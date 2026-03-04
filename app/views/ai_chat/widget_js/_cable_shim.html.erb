@@ -1,0 +1,69 @@
+<script>
+/* ===================== Tiny ActionCable-compatible shim ===================== */
+(function () {
+  function toWsURL(pathOrURL) {
+    var s = String(pathOrURL || "/cable");
+    if (/^wss?:\/\//i.test(s)) return s;
+    var loc = window.location, proto = (loc.protocol === "https:") ? "wss:" : "ws:";
+    return (s[0] === "/" ? proto + "//" + loc.host + s : proto + "//" + loc.host + "/" + s.replace(/^\//,""));
+  }
+
+  function SimpleConsumer(url) {
+    this.url = toWsURL(url || "/cable");
+    this.subscriptions = new Map();
+    this._reconnectDelay = 300;
+    this._connect();
+  }
+  SimpleConsumer.prototype._connect = function () {
+    var self = this;
+    try { this.ws && this.ws.close(); } catch(_) {}
+    this.ws = new WebSocket(this.url);
+    this.ws.onopen = function(){ self.subscriptions.forEach(function(s){ s._subscribe(); }); self._reconnectDelay = 300; };
+    this.ws.onmessage = function(evt){
+      var data; try{ data = JSON.parse(evt.data); }catch(_){ return; }
+      if (!data) return;
+      if (data.type === "welcome" || data.type === "ping" || data.type === "confirm_subscription") return;
+      if (data.type === "reject_subscription") return;
+      if (data.identifier && Object.prototype.hasOwnProperty.call(data,"message")) {
+        var sub = self.subscriptions.get(data.identifier);
+        sub && sub.callbacks && typeof sub.callbacks.received === "function" && sub.callbacks.received(data.message);
+      }
+    };
+    this.ws.onclose = function(){ var d = self._reconnectDelay = Math.min(self._reconnectDelay*2, 5000); setTimeout(function(){ self._connect(); }, d); };
+    this.ws.onerror = function(){};
+  };
+  SimpleConsumer.prototype._send = function (obj) {
+    if (this.ws && this.ws.readyState === 1) try { this.ws.send(JSON.stringify(obj)); } catch (_) {}
+  };
+  SimpleConsumer.prototype._create = function (identifier, callbacks) {
+    var idStr = typeof identifier === "string" ? identifier : JSON.stringify(identifier);
+    var sub = new SimpleSubscription(this, idStr, callbacks || {});
+    this.subscriptions.set(idStr, sub);
+    sub._subscribe();
+    return sub;
+  };
+
+  function SimpleSubscription(consumer, identifier, callbacks) {
+    this.consumer = consumer; this.identifier = identifier; this.callbacks = callbacks || {};
+  }
+  SimpleSubscription.prototype._subscribe = function(){ this.consumer._send({command:"subscribe",identifier:this.identifier}); };
+  SimpleSubscription.prototype.perform = function(action, data){
+    var payload = Object.assign({}, data||{}, {action: action});
+    this.consumer._send({command:"message", identifier:this.identifier, data: JSON.stringify(payload)});
+  };
+  SimpleSubscription.prototype.unsubscribe = function(){
+    this.consumer._send({command:"unsubscribe", identifier:this.identifier});
+    this.consumer.subscriptions.delete(this.identifier);
+  };
+
+  window.SimpleCable = {
+    createConsumer: function(url){
+      var c = new SimpleConsumer(url || "/cable");
+      return {
+        subscriptions: { create: c._create.bind(c) },
+        disconnect: function(){ try{ c.ws && c.ws.close(); }catch(_){ } }
+      };
+    }
+  };
+})();
+</script>

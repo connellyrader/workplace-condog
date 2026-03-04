@@ -1,0 +1,391 @@
+<%= render "settings/topbar" %>
+<%= render "settings/navigation" %>
+
+<div class="settings-main"
+     data-workspace-token="<%= @active_workspace.signed_id(purpose: 'workspace_switch') %>"
+     data-workspace-update-url="<%= settings_workspace_path %>"
+     data-workspace-destroy-url="<%= settings_workspace_path %>">
+
+  <div class="settings-subtitle"><%= @topbar_subtitle %></div>
+
+
+  <div class="settings-sections">
+
+    <div class="settings-section"
+         data-workspace-icon-upload-url="<%= settings_workspace_icon_path %>">
+
+      <div class="settings-section-title">Workspace Icon</div>
+      <div class="settings-section-general-line"></div>
+
+      <%
+        icon_url =
+          @active_workspace.icon.attached? ? url_for(@active_workspace.icon.variant(:thumb)) : nil
+
+        workspace_initials =
+          @active_workspace.name
+            .to_s
+            .split(/\s+/)
+            .reject(&:blank?)
+            .first(2)
+            .map { |w| w[0] }
+            .join
+            .upcase
+      %>
+
+      <div class="settings-section-icon-preview js-workspace-icon-preview <%= 'has-image' if icon_url.present? %>"
+           style="<%= "background-image: url('#{icon_url}');" if icon_url.present? %>">
+        <% unless icon_url.present? %>
+          <%= workspace_initials %>
+        <% end %>
+      </div>
+
+      <div class="settings-section-general-desc">Choose an icon for your workspace. Recommended size is 256x256px.</div>
+
+      <input type="file"
+             class="js-workspace-icon-input"
+             accept="image/*"
+             hidden>
+
+      <button type="button" class="settings-section-general-button js-workspace-icon-button">
+        Select new icon
+      </button>
+    </div>
+
+
+    <div class="settings-section">
+      <div class="settings-section-title">Workspace Name</div>
+      <div class="settings-section-general-line"></div>
+
+      <input class="settings-section-general-input js-workspace-name-input" value="<%= @active_workspace.name %>"><br>
+
+      <button type="button" class="settings-section-general-button js-workspace-name-save">
+        Save workspace name
+      </button>
+    </div>
+
+
+    <div class="settings-section">
+      <div class="settings-section-title">Delete Workspace</div>
+      <div class="settings-section-general-line"></div>
+      <div class="settings-section-general-desc">
+        This will permanently delete this workspace and all of its data. This cannot be undone. It will cancel your subscription, disconnect integrations, and remove access for all members.
+      </div>
+
+      <button type="button"
+              class="settings-section-general-button settings-section-general-button-warning js-workspace-delete">
+        Delete this workspace
+      </button>
+    </div>
+
+
+  </div>
+</div>
+
+<script>
+(function() {
+  const root = document.querySelector('.settings-main[data-workspace-token]');
+  if (!root) return;
+
+  const activeWorkspaceToken = root.dataset.workspaceToken;
+  const updateUrl  = root.dataset.workspaceUpdateUrl;
+  const destroyUrl = root.dataset.workspaceDestroyUrl;
+
+  const iconSection = document.querySelector('[data-workspace-icon-upload-url]');
+  const uploadUrl   = iconSection?.dataset.workspaceIconUploadUrl;
+
+  const preview = iconSection?.querySelector('.js-workspace-icon-preview');
+  const input   = iconSection?.querySelector('.js-workspace-icon-input');
+  const button  = iconSection?.querySelector('.js-workspace-icon-button');
+
+  const nameInput  = root.querySelector('.js-workspace-name-input');
+  const nameSave   = root.querySelector('.js-workspace-name-save');
+  const deleteBtn  = root.querySelector('.js-workspace-delete');
+
+  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+  function setWorkspaceNavName(workspaceToken, newName) {
+    document.querySelectorAll('.navigation-workspace-button-name')
+      .forEach((el) => (el.textContent = newName));
+
+    document
+      .querySelectorAll(`.navigation-top-dropdown-workspace[data-workspace-token="${workspaceToken}"] .navigation-top-dropdown-name`)
+      .forEach((el) => (el.textContent = newName));
+  }
+
+  function showToast(message, kind = "success") {
+    const isError = (kind === "error" || kind === "danger");
+
+    // Your app toast: showToast(title, subtitle = null, sticky = false)
+    if (window.showToast) {
+      return window.showToast(message, null, isError);
+    }
+
+    // Optional other systems
+    if (window.Toast && typeof window.Toast.show === "function") {
+      return window.Toast.show(message, kind);
+    }
+
+    // Minimal fallback
+    let wrap = document.querySelector('.js-toast-wrap');
+    if (!wrap) {
+      wrap = document.createElement('div');
+      wrap.className = 'js-toast-wrap';
+      wrap.style.position = 'fixed';
+      wrap.style.right = '16px';
+      wrap.style.bottom = '16px';
+      wrap.style.zIndex = '9999';
+      document.body.appendChild(wrap);
+    }
+
+    const el = document.createElement('div');
+    el.textContent = message;
+    el.style.background = isError ? "#991b1b" : "#0f172a";
+    el.style.color = "white";
+    el.style.padding = "10px 12px";
+    el.style.borderRadius = "10px";
+    el.style.marginTop = "8px";
+    el.style.boxShadow = "0 10px 24px rgba(0,0,0,0.18)";
+    wrap.appendChild(el);
+
+    if (!isError) {
+      setTimeout(() => el.remove(), 3500);
+    } else {
+      el.style.cursor = "pointer";
+      el.title = "Click to dismiss";
+      el.addEventListener("click", () => el.remove());
+    }
+  }
+
+  function validateWorkspaceName(name) {
+    const trimmed = (name || "").trim();
+    if (!trimmed) return { ok: false, error: "Workspace name cannot be blank." };
+    if (trimmed.length > 60) return { ok: false, error: "Workspace name must be 60 characters or fewer." };
+
+    const re = /^[A-Za-z0-9][A-Za-z0-9 \-&._']*$/;
+    if (!re.test(trimmed)) {
+      return { ok: false, error: "Use only letters, numbers, spaces, and - & . _ '." };
+    }
+    return { ok: true, value: trimmed };
+  }
+
+  // -----------------------------
+  // ICON UPLOAD (server-confirmed + spinner overlay)
+  // -----------------------------
+  if (button && input && preview && uploadUrl) {
+    let isUploading = false;
+
+    function setPreviewToUrl(url) {
+      preview.style.backgroundImage = `url('${url}')`;
+      preview.classList.add("has-image");
+      preview.innerHTML = ""; // remove initials when image is present
+    }
+
+    function setNavIconsToUrl(workspaceToken, url) {
+      const els = document.querySelectorAll(`.js-workspace-nav-icon[data-workspace-token="${workspaceToken}"]`);
+      els.forEach((el) => {
+        el.style.backgroundImage = `url('${url}')`;
+        el.textContent = "";
+        el.classList.add("has-image");
+      });
+    }
+
+    function startUploading() {
+      isUploading = true;
+      preview.classList.add("is-uploading");
+      button.disabled = true;
+      button.classList.add("is-loading");
+    }
+
+    function stopUploading() {
+      isUploading = false;
+      preview.classList.remove("is-uploading");
+      button.disabled = false;
+      button.classList.remove("is-loading");
+    }
+
+    window.addEventListener("beforeunload", (e) => {
+      if (!isUploading) return;
+      e.preventDefault();
+      e.returnValue = "";
+    });
+
+    button.addEventListener("click", () => {
+      if (isUploading) return;
+      input.click();
+    });
+
+    input.addEventListener("change", async () => {
+      const file = input.files && input.files[0];
+      if (!file || isUploading) return;
+
+      startUploading();
+
+      try {
+        const formData = new FormData();
+        formData.append("workspace[icon]", file);
+
+        const resp = await fetch(uploadUrl, {
+          method: "PATCH",
+          headers: {
+            "Accept": "application/json",
+            ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {})
+          },
+          body: formData,
+          credentials: "same-origin"
+        });
+
+        const data = await resp.json().catch(() => ({}));
+
+        if (!resp.ok || !data.ok) {
+          showToast(data.error || "Failed to save icon.", "error");
+          return;
+        }
+
+        const finalUrl = `${data.icon_url}?v=${Date.now()}`;
+
+        setPreviewToUrl(finalUrl);
+        setNavIconsToUrl(activeWorkspaceToken, finalUrl);
+
+        preview.dataset.savedIconUrl = data.icon_url;
+        document
+          .querySelectorAll(`.js-workspace-nav-icon[data-workspace-token="${activeWorkspaceToken}"]`)
+          .forEach((el) => (el.dataset.savedIconUrl = data.icon_url));
+
+        showToast(data.message || "Icon saved.");
+      } catch (e) {
+        showToast("Network error saving icon.", "error");
+      } finally {
+        stopUploading();
+        input.value = "";
+      }
+    });
+  }
+
+  // -----------------------------
+  // WORKSPACE NAME UPDATE
+  // -----------------------------
+  if (nameSave && nameInput) {
+    nameSave.addEventListener('click', async () => {
+      const check = validateWorkspaceName(nameInput.value);
+      if (!check.ok) return showToast(check.error, "error");
+
+      nameSave.disabled = true;
+      nameSave.classList.add("is-loading");
+
+      try {
+        const resp = await fetch(updateUrl, {
+          method: "PATCH",
+          headers: {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {})
+          },
+          credentials: "same-origin",
+          body: JSON.stringify({ workspace: { name: check.value } })
+        });
+
+        const data = await resp.json().catch(() => ({}));
+
+        if (!resp.ok || !data.ok) {
+          showToast(data.error || "Failed to update workspace name.", "error");
+          return;
+        }
+
+        nameInput.value = data.name;
+        setWorkspaceNavName(activeWorkspaceToken, data.name);
+
+        showToast(data.message || "Workspace name updated.");
+      } catch (e) {
+        showToast("Network error saving workspace name.", "error");
+      } finally {
+        nameSave.disabled = false;
+        nameSave.classList.remove("is-loading");
+      }
+    });
+
+    nameInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        nameSave.click();
+      }
+    });
+  }
+
+  // -----------------------------
+  // WORKSPACE ARCHIVE + YOUR WARNING MODAL
+  // -----------------------------
+  if (deleteBtn) {
+    deleteBtn.addEventListener("click", () => {
+      const msg =
+        "WARNING! This cannot be undone and you will lose access to all data and dashboards.";
+
+      if (typeof warning !== "function") {
+        showToast("Archive confirmation modal is not available.", "error");
+        return;
+      }
+
+      warning(
+        "This will permanently delete this workspace and all of its data. This cannot be undone.",
+        {
+          title: "Delete this workspace?",
+          confirmLabel: "Delete workspace",
+          cancelLabel: "Cancel",
+          requireText: "DELETE",
+          requirePlaceholder: "Type DELETE to confirm",
+          returnValue: "object", // <-- so we can read the typed value
+          keepOpenOnConfirm: true, // keep modal open + loading state until request resolves
+          loadingLabel: "Deleting..."
+        }
+      ).then(async (res) => {
+        if (!res || res.ok !== true) return;
+
+        const confirmText = (res.input || "").trim();
+        const modalClose = typeof res.close === "function" ? res.close : null;
+        const modalSetError = typeof res.setError === "function" ? res.setError : null;
+
+        deleteBtn.disabled = true;
+        deleteBtn.classList.add("is-loading");
+
+        try {
+          const resp = await fetch(destroyUrl, {
+            method: "DELETE",
+            headers: {
+              "Accept": "application/json",
+              "Content-Type": "application/json",
+              ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {})
+            },
+            credentials: "same-origin",
+            body: JSON.stringify({ confirm: confirmText })
+          });
+
+          const data = await resp.json().catch(() => ({}));
+
+          if (!resp.ok || !data.ok) {
+            const msg = data.error || "Failed to delete workspace.";
+            if (modalSetError) modalSetError(msg);
+            showToast(msg, "error");
+            return;
+          }
+
+          if (modalClose) modalClose();
+          showToast(data.message || "Workspace archived.");
+
+          if (data.redirect_url) {
+            window.location.assign(data.redirect_url);
+          } else {
+            window.location.assign("<%= dashboard_path %>");
+          }
+        } catch (e) {
+          const msg = "Network error deleting workspace.";
+          if (modalSetError) modalSetError(msg);
+          showToast(msg, "error");
+        } finally {
+          deleteBtn.disabled = false;
+          deleteBtn.classList.remove("is-loading");
+        }
+      });
+
+    });
+  }
+})();
+</script>

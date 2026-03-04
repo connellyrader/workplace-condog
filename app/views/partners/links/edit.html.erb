@@ -1,0 +1,58 @@
+<!-- app/views/partners/links/edit.html.erb -->
+<h1>Edit link</h1>
+
+<section class="pp-card" style="max-width:640px;">
+  <% if flash[:alert].present? %>
+    <!--div class="pp-status" style="border-color:#ef4444; color:#ef4444; margin-bottom:12px;">
+      <%= flash[:alert] %>
+    </div-->
+  <% end %>
+
+  <% if @link.errors.any? %>
+    <!--div class="pp-card" style="border-color:#fee2e2; background:#fff7f7; margin-bottom:12px;">
+      <div class="pp-muted" style="margin-bottom:6px;">
+        <strong><%= pluralize(@link.errors.count, "error") %></strong> prevented this link from being saved:
+      </div>
+      <ul style="margin:0; padding-left:16px;">
+        <% @link.errors.full_messages.each do |msg| %>
+          <li><%= msg %></li>
+        <% end %>
+      </ul>
+    </div-->
+  <% end %>
+
+  <%= form_with model: [:partners, @link], local: true do |f| %>
+    <div style="display:grid; gap:12px;">
+      <div>
+        <label class="pp-muted">Code</label><br>
+        <%= f.text_field :code,
+              class: "pp-input",
+              minlength: 6,
+              pattern: "[A-Za-z0-9_-]{6,}",
+              title: "6+ chars: letters, numbers, dashes (-), underscores (_)",
+              disabled: @link.link_clicks.exists? %>
+
+        <% if @link.link_clicks.exists? %>
+          <div class="pp-muted" style="margin-top:6px;">This link is locked because it has clicks.</div>
+        <% else %>
+          <% if (msg = @link.errors[:code]&.first).present? %>
+            <div class="pp-muted" style="margin-top:6px; color:#ef4444;"><%= msg %></div>
+          <% else %>
+            <div class="pp-muted" style="margin-top:6px;">
+              Must be unique; 6+ chars; A–Z, a–z, 0–9, ., -, _
+            </div>
+          <% end %>
+        <% end %>
+      </div>
+
+      <div>
+        <% if @link.link_clicks.exists? %>
+          <%= link_to "Back", partners_links_path, class: "pp-btn" %>
+        <% else %>
+          <%= f.submit "Save", class: "pp-btn" %>
+          <%= link_to "Cancel", partners_links_path, class: "pp-link", style: "margin-left:10px;" %>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</section>

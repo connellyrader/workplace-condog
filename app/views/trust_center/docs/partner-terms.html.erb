@@ -1,0 +1,254 @@
+<%# app/views/trust_center/docs/partner-terms.html.erb %>
+
+<div class="trust-doc">
+  <div class="trust-doc-header">
+    <div class="trust-doc-breadcrumb">
+      <%= link_to "Trust Center", trust_home_url, class: "trust-doc-breadcrumb-link" %>
+      <span class="trust-doc-breadcrumb-sep">/</span>
+      <span class="trust-doc-breadcrumb-current">Partner Program Terms</span>
+    </div>
+
+    <div class="trust-doc-title-row">
+      <%= image_tag "logo.png", class: "trust-doc-logo", alt: "Workplace.io" %>
+      <div class="trust-doc-title">Partner Program Terms</div>
+    </div>
+
+    <div class="trust-doc-subtitle">
+      These Partner Program Terms (“Partner Terms”) govern your participation in the Workplace.io partner/affiliate program (the “Partner Program”).
+      The Partner Program is operated by <strong>5 Voices Inc.</strong>, a Delaware corporation (“Company,” “we,” “us”).
+      By enrolling as a partner or affiliate (“Partner”), you agree to these Partner Terms and the main
+      <%= link_to "Terms of Service", trust_doc_url_for("terms"), class: "trust-doc-link" %>.
+    </div>
+
+    <div class="trust-doc-updated">
+      Last updated: <%= @trust_center_stamp %>
+    </div>
+  </div>
+
+  <div class="trust-doc-body">
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">1. Enrollment and eligibility</div>
+      <div class="trust-doc-text">
+        To participate, you must create a Partner account and be approved (if approval is required). We may accept or reject applications in our
+        discretion. You must be able to enter into a binding agreement and comply with all applicable laws, including marketing, privacy, and
+        consumer protection laws.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">2. Partner links and tracking</div>
+      <div class="trust-doc-text">
+        We provide Partners with one or more referral links (“Partner Links”). Tracking is performed using link parameters and/or cookies to attribute
+        eligible sign-ups or subscriptions to a Partner. We do not guarantee uninterrupted tracking, and tracking may be affected by customer settings,
+        browser restrictions, or user actions (including blocking cookies).
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Attribution window:</strong> <strong>30</strong> days from click (unless otherwise stated in your dashboard or program terms).</li>
+        <li><strong>Attribution rules:</strong> <strong>Last-click attribution</strong> unless otherwise stated.</li>
+        <li><strong>Disputes:</strong> attribution decisions are made by us based on our records and anti-fraud controls.</li>
+      </ul>
+
+      <div class="trust-doc-callout trust-doc-callout--note">
+        <div class="trust-doc-callout-title">No “cookie stuffing”</div>
+        <div class="trust-doc-callout-text">
+          Any attempt to force, inject, or conceal tracking (including cookie stuffing or deceptive redirects) is prohibited and may result in
+          forfeiture of commissions and removal from the Partner Program.
+        </div>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">3. Commissions</div>
+      <div class="trust-doc-text">
+        Commission eligibility, rates, and qualifying events are described in your Partner dashboard or program listing (“Commission Terms”).
+        Unless otherwise stated, commissions are earned only on <strong>paid</strong> subscriptions that are successfully collected and not reversed.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Qualifying event:</strong> typically an eligible paid subscription from a new customer acquired via your Partner Link.</li>
+        <li><strong>Exclusions:</strong> taxes, refunds, chargebacks, credits, and fees may be excluded from commissionable amounts.</li>
+        <li><strong>Changes:</strong> we may change commission rates or rules prospectively with notice via dashboard update or program update.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">4. Holdbacks, refunds, chargebacks, and reversals</div>
+      <div class="trust-doc-text">
+        To protect against refunds, chargebacks, and payment failure risk, we may apply a holdback period before commissions become payable.
+        If a customer payment is refunded, charged back, reversed, or deemed fraudulent, the related commission is not payable and may be deducted
+        from future payouts or treated as a negative balance.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Holdback period:</strong> <strong>45</strong> days after the qualifying payment (unless otherwise stated).</li>
+        <li><strong>Refunds/chargebacks:</strong> related commissions are reversed and may be netted against future earnings.</li>
+        <li><strong>Delinquency:</strong> unpaid/delinquent subscriptions do not earn commissions until collected.</li>
+        <li><strong>Fraud:</strong> fraudulent activity results in reversal and may result in termination from the program.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">5. Payouts</div>
+      <div class="trust-doc-text">
+        Payouts are issued according to the schedule and minimum thresholds shown in your Partner dashboard (“Payout Terms”).
+        Payouts may be processed through third-party payout providers (such as Trolley). We may require identity verification and tax
+        documentation before issuing payouts.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Payout schedule:</strong> <strong>Monthly, paid on the 15th for the prior full calendar month (or the prior Friday if the 15th falls on a weekend).</strong></li>
+        <li><strong>Minimum payout threshold:</strong> <strong>$50.00 USD</strong></li>
+        <li><strong>Payout method:</strong> via the payout method you configure in your Partner profile (subject to provider availability by region).</li>
+        <li><strong>Fees:</strong> transaction or payout fees may apply depending on payout method and region.</li>
+      </ul>
+
+      <div class="trust-doc-callout trust-doc-callout--note">
+        <div class="trust-doc-callout-title">Withholding and adjustments</div>
+        <div class="trust-doc-callout-text">
+          We may delay or withhold payouts to address suspected fraud or policy violations, missing required documentation, legal compliance requirements,
+          or to apply chargebacks, refunds, reversals, or other adjustments permitted under these Partner Terms.
+        </div>
+      </div>
+    </div>
+
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">6. Taxes</div>
+      <div class="trust-doc-text">
+        You are responsible for all taxes arising from your participation. We may require a W-9/W-8 or similar documentation and may report payments
+        as required by law. You are responsible for providing accurate tax information.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">7. Marketing, branding, and disclosures</div>
+      <div class="trust-doc-text">
+        You may promote Workplace.io only in a truthful, non-deceptive manner. You must comply with advertising, endorsement, and consumer protection
+        rules, including clear disclosure that you may receive compensation.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Disclosure:</strong> clearly disclose that you may earn a commission (or equivalent) where required.</li>
+        <li><strong>No misleading claims:</strong> do not make false claims about features, security certifications, or compliance status.</li>
+        <li><strong>No impersonation:</strong> do not present yourself as the Company or as an employee/agent of the Company.</li>
+        <li><strong>Brand use:</strong> use our logos/trademarks only as permitted and do not alter them without permission.</li>
+      </ul>
+
+      <div class="trust-doc-callout trust-doc-callout--note">
+        <div class="trust-doc-callout-title">Certification claims</div>
+        <div class="trust-doc-callout-text">
+          Do not claim Workplace.io is SOC 2 or ISO 27001 certified unless we publicly state that an attestation/certification has been completed.
+        </div>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">8. Prohibited conduct (anti-fraud)</div>
+      <div class="trust-doc-text">
+        The following are prohibited and may result in commission forfeiture, chargebacks to your account balance, and termination:
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Self-referrals:</strong> referring yourself, your own organization, or transactions you control, unless explicitly allowed in writing.</li>
+        <li><strong>Incentivized sign-ups:</strong> offering cash-back, rebates, or prohibited incentives without written approval.</li>
+        <li><strong>Spam:</strong> unsolicited bulk email, automated messaging, or other spam tactics.</li>
+        <li><strong>Cookie stuffing / forced clicks:</strong> any method to create attribution without a genuine referral.</li>
+        <li><strong>Misrepresentation:</strong> false claims, fake reviews, or misleading endorsements.</li>
+        <li><strong>Unauthorized trademarks:</strong> bidding on our trademarks in search ads or using confusing domains/social handles, unless approved.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">9. Data and privacy (Partner access)</div>
+      <div class="trust-doc-text">
+        We may provide Partners limited reporting about referrals (for example, counts and status such as “signed up,” “active,” or “canceled”).
+        Partners must treat any non-public information as confidential and comply with privacy laws.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Minimum necessary:</strong> we provide only the information needed to operate the Partner Program.</li>
+        <li><strong>No resale:</strong> you may not sell, rent, or disclose referral information to third parties.</li>
+        <li><strong>Security:</strong> you must take reasonable steps to secure your Partner account and credentials.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Privacy Policy →", trust_doc_url_for("privacy"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">10. Confidentiality</div>
+      <div class="trust-doc-text">
+        Non-public information about the Company, the Service, commissions, customers, pricing, and program operations is confidential.
+        You will protect it using reasonable measures and use it only for participation in the Partner Program.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">11. Termination</div>
+      <div class="trust-doc-text">
+        You may terminate your participation at any time by discontinuing promotion and requesting closure of your Partner account.
+        We may suspend or terminate your participation for violations, suspected fraud, legal compliance, or program changes.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Effect on commissions:</strong> upon termination, unpaid commissions may be forfeited if related to fraud or policy violations.</li>
+        <li><strong>Outstanding holdbacks:</strong> commissions in holdback remain subject to refunds/chargebacks and program rules.</li>
+        <li><strong>Survival:</strong> confidentiality, limitations, and other survival provisions remain in effect.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">12. Disclaimers</div>
+      <div class="trust-doc-text">
+        THE PARTNER PROGRAM IS PROVIDED “AS IS.” WE DO NOT GUARANTEE THAT YOU WILL EARN ANY COMMISSIONS OR THAT TRACKING WILL BE UNINTERRUPTED.
+        TO THE MAXIMUM EXTENT PERMITTED BY LAW, WE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">13. Limitation of liability</div>
+      <div class="trust-doc-text">
+        TO THE MAXIMUM EXTENT PERMITTED BY LAW, WE WILL NOT BE LIABLE FOR INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES,
+        OR LOST PROFITS OR REVENUE, ARISING FROM THE PARTNER PROGRAM. TO THE EXTENT WE ARE LIABLE, OUR AGGREGATE LIABILITY UNDER THESE PARTNER
+        TERMS WILL NOT EXCEED THE TOTAL COMMISSIONS PAID TO YOU IN THE THREE (3) MONTHS PRECEDING THE EVENT GIVING RISE TO THE CLAIM.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">14. Indemnification</div>
+      <div class="trust-doc-text">
+        You agree to defend, indemnify, and hold harmless the Company from claims arising from your marketing activities, your breach of these Partner
+        Terms, your violation of law, or your violation of third-party rights.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">15. Governing law; venue</div>
+      <div class="trust-doc-text">
+        These Partner Terms are governed by the laws of the State of <strong>Delaware</strong>, excluding its conflict of laws rules.
+        Any dispute will be brought in the state or federal courts located in <strong>New Castle County, Delaware</strong>, and the parties consent to jurisdiction and venue.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">16. Changes to the Partner Program</div>
+      <div class="trust-doc-text">
+        We may update the Partner Program, commission rates, payout rules, or these Partner Terms from time to time. We will provide notice through
+        your Partner dashboard or other reasonable means. Continued participation after the effective date constitutes acceptance.
+      </div>
+    </div>
+
+    <div class="trust-doc-footer">
+      <div class="trust-doc-footer-title">Partner questions?</div>
+      <div class="trust-doc-footer-text">
+        Contact us if you need help with tracking, payout setup, or compliance guidance.
+      </div>
+      <div class="trust-doc-footer-actions">
+        <%= link_to "Contact Trust & Security", trust_doc_url_for("contact"), class: "trust-doc-button" %>
+        <%= link_to "Back to Trust Center", trust_home_url, class: "trust-doc-button trust-doc-button--secondary" %>
+      </div>
+    </div>
+  </div>
+</div>

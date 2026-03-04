@@ -1,0 +1,74 @@
+<script>
+/* ============================== Chat Widget — Confirm Popup ============================== */
+(function(global){
+  var C = {
+    install: function(){
+      if (this._installed) return; this._installed = true;
+      var root = document.createElement("div");
+      root.className = "ai-confirm";
+      root.innerHTML =
+        '<div class="ai-confirm__backdrop"></div>' +
+        '<div class="ai-confirm__dialog" role="dialog" aria-modal="true" aria-labelledby="ai-confirm-title">' +
+          '<h3 class="ai-confirm__title" id="ai-confirm-title">Confirm</h3>' +
+          '<div class="ai-confirm__body">Are you sure?</div>' +
+          '<div class="ai-confirm__actions">' +
+            '<button class="ai-btn ai-btn--muted" data-act="cancel">Cancel</button>' +
+            '<button class="ai-btn ai-btn--danger" data-act="ok">Delete</button>' +
+          '</div>' +
+        '</div>';
+      document.body.appendChild(root);
+      this.$root = root;
+      this.$title = root.querySelector(".ai-confirm__title");
+      this.$body  = root.querySelector(".ai-confirm__body");
+      this.$ok    = root.querySelector('[data-act="ok"]');
+      this.$cancel= root.querySelector('[data-act="cancel"]');
+      var self = this;
+
+      root.addEventListener("click", function(e){
+        if (e.target === root.querySelector(".ai-confirm__backdrop")) self._resolve(false);
+      });
+      this.$cancel.addEventListener("click", function(){ self._resolve(false); });
+      this.$ok.addEventListener("click", function(){ self._resolve(true); });
+
+      // basic escape/enter
+      document.addEventListener("keydown", function(e){
+        if (!self.isOpen()) return;
+        if (e.key === "Escape") { e.preventDefault(); self._resolve(false); }
+        if (e.key === "Enter") { e.preventDefault(); self._resolve(true); }
+      });
+    },
+
+    isOpen: function(){ return this.$root && this.$root.classList.contains("is-open"); },
+
+    ask: function(opts){
+      this.install();
+      opts = opts || {};
+      this.$title.textContent = opts.title || "Confirm";
+      this.$body.textContent  = opts.body  || "Are you sure?";
+      this.$ok.textContent    = opts.confirmText || "OK";
+      this.$cancel.textContent= opts.cancelText  || "Cancel";
+      if (opts.danger) this.$ok.classList.add("ai-btn--danger"); else this.$ok.classList.remove("ai-btn--danger");
+      this.$root.classList.add("is-open");
+      var self = this;
+      return new Promise(function(resolve){ self._resolver = resolve; });
+    },
+
+    _resolve: function(ok){
+      if (!this._resolver) return;
+      this.$root.classList.remove("is-open");
+      try { this._resolver(!!ok); } finally { this._resolver = null; }
+    },
+
+    toast: function(msg){
+      // super lightweight toast
+      var t = document.createElement("div");
+      t.style.cssText = "position:fixed;left:50%;top:10px;transform:translateX(-50%);background:#111827;color:#fff;padding:6px 10px;border-radius:8px;font-size:12px;z-index:10060;opacity:.97";
+      t.textContent = msg || "Action complete";
+      document.body.appendChild(t);
+      setTimeout(function(){ t.parentNode && t.parentNode.removeChild(t); }, 1800);
+    }
+  };
+
+  global.AiConfirm = C;
+})(window);
+</script>

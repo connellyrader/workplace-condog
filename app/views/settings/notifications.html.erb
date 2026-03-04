@@ -1,0 +1,512 @@
+<%= render "settings/topbar" %>
+<%= render "settings/navigation" %>
+<%
+  type_labels = {
+    "personal_insights"   => { title: "Personal Insights", subtitle: "Helpful insights found from signals in your collaboration." },
+    "all_group_insights"  => { title: "All Group Insights", subtitle: "Insights for all groups." },
+    "my_group_insights"   => { title: "My Group Insights", subtitle: "Insights specific to groups you are a member of." },
+    "executive_summaries" => { title: "Executive Summaries", subtitle: "A recap of the previous month." }
+  }
+
+  dropdown_label_for = lambda do |selected|
+    selected = Array(selected).map(&:to_s)
+    fallback_label = ->(key) { type_labels[key]&.dig(:title) || key.to_s.humanize }
+
+    if selected.sort == NotificationPreference::TYPE_KEYS.sort
+      "All Notifications"
+    elsif selected.empty?
+      "None selected..."
+    elsif selected.size == 1
+      fallback_label.call(selected.first)
+    else
+      "Multiple selected"
+    end
+  end
+%>
+
+<div class="settings-main" data-notification-account-type="<%= @notification_account_type %>">
+  <div class="settings-subtitle"><%= @topbar_subtitle%></div>
+
+  <div class="settings-h2">Notification channels</div>
+  <div class="settings-h3">Choose how to be notified for account activity and insights.</div>
+
+  <div class="settings-section-boxed">
+      <div class="settings-row">
+        <div class="settings-row-icon"><%= icon "envelope" %></div>
+        <div class="settings-row-middle">
+          <div class="settings-row-middle-title">Email</div>
+          <div class="settings-row-middle-subtitle">Get notified at <%= current_user.email%></div>
+        </div>
+
+        <div class="settings-row-right">
+          <button type="button"
+                  class="settings-toggle js-settings-toggle"
+                  data-setting-scope="user"
+                  data-setting-key="email"
+                  aria-pressed="<%= @channel_settings[:email] ? 'true' : 'false' %>">
+            <span class="settings-toggle-knob"></span>
+          </button>
+        </div>
+      </div>
+
+      <% if @channel_availability[:slack] %>
+        <div class="settings-row">
+          <div class="settings-row-icon"><%= image_tag "apps/slack.png" %></div>
+          <div class="settings-row-middle">
+            <div class="settings-row-middle-title">Slack</div>
+            <div class="settings-row-middle-subtitle">Get notified in your channel with the Workplace app.</div>
+          </div>
+
+          <div class="settings-row-right">
+            <button type="button"
+                    class="settings-toggle js-settings-toggle"
+                    data-setting-scope="user"
+                    data-setting-key="slack"
+                    aria-pressed="<%= @channel_settings[:slack] ? 'true' : 'false' %>">
+              <span class="settings-toggle-knob"></span>
+            </button>
+          </div>
+        </div>
+      <% end %>
+
+      <% if @channel_availability[:teams] %>
+        <div class="settings-row">
+          <div class="settings-row-icon"><%= image_tag "apps/microsoft_teams.png" %></div>
+          <div class="settings-row-middle">
+            <div class="settings-row-middle-title">Microsoft Teams</div>
+            <div class="settings-row-middle-subtitle">Get notified in your channel with the Workplace app.</div>
+          </div>
+
+          <div class="settings-row-right">
+            <button type="button"
+                    class="settings-toggle js-settings-toggle"
+                    data-setting-scope="user"
+                    data-setting-key="teams"
+                    aria-pressed="<%= @channel_settings[:teams] ? 'true' : 'false' %>">
+              <span class="settings-toggle-knob"></span>
+            </button>
+          </div>
+        </div>
+      <% end %>
+  </div>
+
+  <div class="settings-h2">My notifications</div>
+  <div class="settings-h3">Decide what notifications you would like to receive.</div>
+
+  <div class="settings-section-boxed">
+    <% if @allowed_types.empty? %>
+      <div class="settings-row">
+        <div class="settings-row-middle">
+          <div class="settings-row-middle-title">No notifications available</div>
+          <div class="settings-row-middle-subtitle">Your workspace admin has disabled notifications for your role.</div>
+        </div>
+      </div>
+    <% else %>
+      <% @allowed_types.each do |key| %>
+        <% label = type_labels[key] %>
+        <% next unless label %>
+        <div class="settings-row">
+          <div class="settings-row-middle">
+            <div class="settings-row-middle-title"><%= label[:title] %> <span class="settings-info-tooltip" data-tooltip="<%= label[:subtitle] %>"><%= icon "info" %></span></div>
+            <div class="settings-row-middle-subtitle"><%= label[:subtitle] %></div>
+          </div>
+
+          <div class="settings-row-right">
+            <button type="button"
+                    class="settings-toggle js-settings-toggle"
+                    data-setting-scope="user"
+                    data-setting-key="<%= key %>"
+                    aria-pressed="<%= @type_settings[key] ? 'true' : 'false' %>">
+              <span class="settings-toggle-knob"></span>
+            </button>
+          </div>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+
+
+  <% if @show_admin_panel %>
+    <div class="settings-section-boxed-admin">
+      <div class="settings-section-boxed-admin-topbar">
+        <div class="settings-section-boxes-admin-topbar-left">
+          <div class="settings-h2">Notification Permissions</div>
+          <div class="settings-h3">Decide what notifications each role can control.</div>
+        </div>
+        <div class="settings-section-boxes-admin-topbar-label"><%= icon "lock" %>Admin only</div>
+      </div>
+      <div class="settings-section-boxed">
+        <% admin_rows = {
+          "viewer"     => { title: "Viewers", subtitle: "People who have read-only access to dashboards and scores." },
+          "user"       => { title: "Users", subtitle: "People with no access to see scores and cannot manage anything." },
+          "no_account" => { title: "No Account", subtitle: "People in your collaboration channels but not connected to Workplace.io." }
+        } %>
+
+        <% admin_rows.each do |account_type, meta| %>
+          <% permission = @workspace_permissions[account_type] %>
+          <% selected_types = permission.enabled? ? permission.allowed_types : [] %>
+          <% dropdown_label = dropdown_label_for.call(selected_types) %>
+
+          <div class="settings-row">
+            <div class="settings-row-middle">
+              <div class="settings-row-middle-title"><%= meta[:title] %> <span class="settings-info-tooltip" data-tooltip="<%= meta[:subtitle] %>"><%= icon "info" %></span></div>
+              <div class="settings-row-middle-subtitle"><%= meta[:subtitle] %></div>
+            </div>
+            <div class="settings-row-right" data-dropdown-scope="permissions" data-account-type="<%= account_type %>">
+              <%= render "settings/notifications_dropdown",
+                         label: dropdown_label,
+                         selected_types: selected_types,
+                         account_type: account_type,
+                         dropdown_scope: "permissions",
+                         disabled: !permission.enabled? %>
+              <button type="button"
+                      class="settings-toggle js-settings-toggle"
+                      data-setting-scope="permissions"
+                      data-account-type="<%= account_type %>"
+                      data-setting-key="permissions_<%= account_type %>"
+                      aria-pressed="<%= permission.enabled? ? 'true' : 'false' %>">
+                <span class="settings-toggle-knob"></span>
+              </button>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+</div>
+
+
+<script>
+  document.addEventListener("turbo:load", function() {
+    initNotificationSettings();
+    initSettingsDropdowns();
+  });
+  document.addEventListener("DOMContentLoaded", function() {
+    initNotificationSettings();
+    initSettingsDropdowns();
+  });
+
+  function csrfToken() {
+    return $('meta[name="csrf-token"]').attr("content");
+  }
+
+  function initNotificationSettings() {
+    if (typeof $ === "undefined") {
+      console.warn("jQuery ($) not found; notification toggles not initialized.");
+      return;
+    }
+
+    var $toggles = $(".js-settings-toggle");
+    if ($toggles.length === 0) return;
+
+    $toggles.each(function() {
+      var $toggle = $(this);
+      syncToggleState($toggle);
+
+      if ($toggle.is(":disabled") || $toggle.attr("aria-disabled") === "true") return;
+
+      $toggle.off("click.notificationToggle").on("click.notificationToggle", function() {
+        var previous = $toggle.attr("aria-pressed") === "true";
+        var next     = !previous;
+
+        setToggleState($toggle, next);
+
+        var settingKey = $toggle.data("setting-key");
+        var promises   = [];
+        var prevMy     = null;
+        var $myToggle  = null;
+
+        if (settingKey === "all_group_insights" && next === true && $toggle.data("setting-scope") === "user") {
+          $myToggle = $(".js-settings-toggle[data-setting-key='my_group_insights'][data-setting-scope='user']").first();
+          if ($myToggle.length && $myToggle.attr("aria-pressed") !== "true") {
+            prevMy = $myToggle.attr("aria-pressed") === "true";
+            setToggleState($myToggle, true);
+            promises.push(persistToggle($myToggle, prevMy, true, { silent: true }));
+          }
+        }
+
+        promises.push(persistToggle($toggle, previous, next));
+
+        $.when.apply($, promises).done(function() {
+          showSavedToast();
+        }).fail(function() {
+          setToggleState($toggle, previous);
+          if ($myToggle && prevMy !== null) setToggleState($myToggle, prevMy);
+        });
+      });
+    });
+  }
+
+  function setToggleState($toggle, isOn) {
+    $toggle.attr("aria-pressed", String(isOn));
+    $toggle.toggleClass("is-on", isOn);
+    syncDropdownEnabledForToggle($toggle, isOn);
+  }
+
+  function syncToggleState($toggle) {
+    var isOn = $toggle.attr("aria-pressed") === "true";
+    setToggleState($toggle, isOn);
+  }
+
+  function syncDropdownEnabledForToggle($toggle, isOn) {
+    var $rowRight = $toggle.closest(".settings-row-right");
+    var $selector = $rowRight.find(".settings-row-dropdown-selector");
+
+    if ($selector.length === 0) return;
+
+    $selector.toggleClass("is-disabled", !isOn);
+  }
+
+  function persistToggle($toggle, previousState, nextState, options) {
+    options = options || {};
+
+    var scope       = $toggle.data("setting-scope") || "user";
+    var settingKey  = $toggle.data("setting-key");
+    var accountType = $toggle.data("account-type");
+    var url, payload;
+
+    if (scope === "permissions") {
+      url = "/settings/notifications/permissions";
+      payload = { account_type: accountType, enabled: nextState };
+    } else {
+      url = "/settings/notifications";
+      payload = { key: settingKey, value: nextState };
+    }
+
+    return $.ajax({
+      url: url,
+      method: "PATCH",
+      dataType: "json",
+      data: payload,
+      headers: { "X-CSRF-Token": csrfToken() }
+    }).fail(function(xhr) {
+      console.error("Save failed", xhr);
+      setToggleState($toggle, previousState);
+    });
+  }
+
+  function showSavedToast() {
+    if (typeof showToast === "function") {
+      showToast("Saved your notification settings.");
+    } else {
+      console.log("Saved your notification settings.");
+    }
+  }
+
+  function initSettingsDropdowns() {
+    if (typeof $ === "undefined") {
+      console.warn("jQuery ($) not found; dropdowns not initialized.");
+      return;
+    }
+
+    var $selectors = $(".settings-row-dropdown-selector");
+    if ($selectors.length === 0) return;
+
+    $(".settings-row-dropdown-menu").hide();
+
+    $selectors.off("click.settingsDropdown").on("click.settingsDropdown", function(event) {
+      event.stopPropagation();
+
+      var $selector = $(this);
+      if ($selector.hasClass("is-disabled")) return;
+
+      var $rowRight = $selector.closest(".settings-row-right");
+      var $menu     = $rowRight.find(".settings-row-dropdown-menu");
+      var isOpen    = $rowRight.hasClass("is-open");
+
+      closeAllSettingsDropdowns();
+
+      if (!isOpen) {
+        $rowRight.addClass("is-open");
+        $menu.stop(true, true).slideDown(150);
+      }
+    });
+
+    $(".settings-row-dropdown-menu-item").off("click.settingsDropdownItem").on("click.settingsDropdownItem", function(event) {
+      event.stopPropagation();
+
+      var $item     = $(this);
+      var $rowRight = $item.closest(".settings-row-right");
+      var $selector = $rowRight.find(".settings-row-dropdown-selector");
+      if ($selector.hasClass("is-disabled")) return;
+
+      var previousTypes = getSelectedTypes($rowRight);
+
+      toggleDropdownItem($rowRight, $item);
+      var nextTypes = getSelectedTypes($rowRight);
+      updateSelectorLabel($rowRight);
+
+      saveDropdownSelection($rowRight, nextTypes)
+        .done(function() { showSavedToast(); })
+        .fail(function(xhr) {
+          console.error("Dropdown save failed", xhr);
+          setDropdownSelection($rowRight, previousTypes);
+          updateSelectorLabel($rowRight);
+        });
+    });
+
+    document.addEventListener("click", function(event) {
+      var clickedSelector = event.target.closest(".settings-row-dropdown-selector");
+      var clickedMenu     = event.target.closest(".settings-row-dropdown-menu");
+
+      if (!clickedSelector && !clickedMenu) {
+        closeAllSettingsDropdowns();
+      }
+    });
+
+    $(".settings-row-right").each(function() {
+      updateSelectorLabel($(this));
+    });
+  }
+
+  function toggleDropdownItem($rowRight, $item) {
+    var type      = $item.data("notification-type");
+    var $checkbox = $item.find(".settings-row-dropdown-menu-item-checkbox");
+    var next      = !$checkbox.hasClass("is-checked");
+
+    if (type === "all") {
+      if (next) {
+        setDropdownSelection($rowRight, allTypesFromMenu($rowRight));
+      } else {
+        setDropdownSelection($rowRight, []);
+      }
+      return;
+    }
+
+    $checkbox.toggleClass("is-checked", next);
+
+    if (type === "all_group_insights" && next) {
+      var $myGroupItem = $rowRight.find(".settings-row-dropdown-menu-item[data-notification-type='my_group_insights']");
+      $myGroupItem.find(".settings-row-dropdown-menu-item-checkbox").addClass("is-checked");
+    }
+
+    syncAllCheckboxState($rowRight);
+  }
+
+  function saveDropdownSelection($rowRight, types) {
+    var scope       = $rowRight.data("dropdown-scope") || "permissions";
+    var accountType = $rowRight.data("account-type");
+    var url, payload;
+
+    if (scope === "permissions") {
+      url = "/settings/notifications/permissions";
+      payload = { account_type: accountType, allowed_types: types };
+    } else {
+      url = "/settings/notifications";
+      payload = { types: types };
+    }
+
+    return $.ajax({
+      url: url,
+      method: "PATCH",
+      dataType: "json",
+      data: payload,
+      headers: { "X-CSRF-Token": csrfToken() }
+    });
+  }
+
+  function closeAllSettingsDropdowns() {
+    $(".settings-row-right.is-open").each(function() {
+      var $row  = $(this);
+      var $menu = $row.find(".settings-row-dropdown-menu");
+
+      $row.removeClass("is-open");
+      $menu.stop(true, true).slideUp(150);
+    });
+  }
+
+  function getSelectedTypes($rowRight) {
+    var types = [];
+    $rowRight.find(".settings-row-dropdown-menu-item").each(function() {
+      var $item = $(this);
+      var type  = $item.data("notification-type");
+      var isAll = type === "all";
+      var isChecked = $item.find(".settings-row-dropdown-menu-item-checkbox").hasClass("is-checked");
+
+      if (!isAll && isChecked) types.push(type);
+    });
+    return types;
+  }
+
+  function setDropdownSelection($rowRight, types) {
+    var typeSet = {};
+    (types || []).forEach(function(t) { typeSet[t] = true; });
+
+    $rowRight.find(".settings-row-dropdown-menu-item").each(function() {
+      var $item     = $(this);
+      var type      = $item.data("notification-type");
+      var $checkbox = $item.find(".settings-row-dropdown-menu-item-checkbox");
+
+      if (type === "all") {
+        var allChecked = allTypesFromMenu($rowRight).every(function(t) { return typeSet[t]; });
+        $checkbox.toggleClass("is-checked", allChecked);
+      } else {
+        $checkbox.toggleClass("is-checked", !!typeSet[type]);
+      }
+    });
+
+    syncAllCheckboxState($rowRight);
+  }
+
+  function allTypesFromMenu($rowRight) {
+    var all = [];
+    $rowRight.find(".settings-row-dropdown-menu-item").each(function() {
+      var type = $(this).data("notification-type");
+      if (type && type !== "all") all.push(type);
+    });
+    return all;
+  }
+
+  function syncAllCheckboxState($rowRight) {
+    var $allItem = $rowRight.find(".settings-row-dropdown-menu-item[data-notification-type='all']");
+    var $allBox  = $allItem.find(".settings-row-dropdown-menu-item-checkbox");
+
+    var types = allTypesFromMenu($rowRight);
+    var allChecked = types.every(function(t) {
+      return $rowRight.find(".settings-row-dropdown-menu-item[data-notification-type='" + t + "']")
+                      .find(".settings-row-dropdown-menu-item-checkbox")
+                      .hasClass("is-checked");
+    });
+
+    $allBox.toggleClass("is-checked", allChecked);
+  }
+
+  function updateSelectorLabel($rowRight) {
+    var $label = $rowRight.find(".settings-row-dropdown-label");
+    if ($label.length === 0) return;
+
+    var selectedTypes = getSelectedTypes($rowRight);
+    var allTypes      = allTypesFromMenu($rowRight);
+    var allSelected   = selectedTypes.length === allTypes.length;
+
+    if (allSelected) {
+      $label.text("All Notifications");
+      return;
+    }
+
+    var selectedHeadings = [];
+    $rowRight.find(".settings-row-dropdown-menu-item").each(function() {
+      var $item = $(this);
+      var type  = $item.data("notification-type");
+      if (type === "all") return;
+
+      var isChecked = $item.find(".settings-row-dropdown-menu-item-checkbox").hasClass("is-checked");
+      if (isChecked) {
+        var heading = $item.find(".settings-row-dropdown-menu-item-heading").text().trim();
+        if (heading) selectedHeadings.push(heading);
+      }
+    });
+
+    var newLabel;
+    if (selectedHeadings.length === 0) {
+      newLabel = "None selected...";
+    } else if (selectedHeadings.length === 1) {
+      newLabel = selectedHeadings[0];
+    } else {
+      newLabel = "Multiple selected";
+    }
+
+    $label.text(newLabel);
+  }
+</script>

@@ -1,0 +1,331 @@
+<!-- app/views/dashboard/components/_metric_sparkline.html.erb -->
+
+<%
+  score_ok =
+    if local_assigns.key?(:score_available)
+      !!local_assigns[:score_available]
+    elsif defined?(@score_available)
+      !!@score_available
+    else
+      true
+    end
+
+  def spark_smooth_path(points, tension: 0.7, y_min: nil, y_max: nil)
+    return "" if points.empty?
+    return "M #{points.first[0].round(2)} #{points.first[1].round(2)}" if points.size < 2
+
+    t = [[tension.to_f, 0.0].max, 1.0].min
+
+    clamp_y = ->(y) do
+      yy = y.to_f
+      if !y_min.nil? && !y_max.nil?
+        [[yy, y_min.to_f].max, y_max.to_f].min
+      else
+        yy
+      end
+    end
+
+    p = points.map { |x, y| [x.to_f, y.to_f] }
+
+    fetch = ->(idx) do
+      i = [[idx, 0].max, p.length - 1].min
+      p[i]
+    end
+
+    d = +"M #{p[0][0].round(2)} #{p[0][1].round(2)}"
+
+    (0...(p.length - 1)).each do |i|
+      p0 = fetch.call(i - 1)
+      p1 = fetch.call(i)
+      p2 = fetch.call(i + 1)
+      p3 = fetch.call(i + 2)
+
+      c1x = p1[0] + (p2[0] - p0[0]) * (t / 6.0)
+      c1y = p1[1] + (p2[1] - p0[1]) * (t / 6.0)
+      c2x = p2[0] - (p3[0] - p1[0]) * (t / 6.0)
+      c2y = p2[1] - (p3[1] - p1[1]) * (t / 6.0)
+
+      c1y = clamp_y.call(c1y)
+      c2y = clamp_y.call(c2y)
+
+      d << " C #{c1x.round(2)} #{c1y.round(2)} #{c2x.round(2)} #{c2y.round(2)} #{p2[0].round(2)} #{p2[1].round(2)}"
+    end
+
+    d
+  end
+
+  raw = Array(points)
+  raw = [nil, nil] if raw.empty?
+
+  raw_cmp =
+    if local_assigns.key?(:comparison_points) && !local_assigns[:comparison_points].nil?
+      Array(local_assigns[:comparison_points])
+    else
+      nil
+    end
+
+  pts =
+    raw.map do |v|
+      f =
+        begin
+          Float(v)
+        rescue
+          nil
+        end
+      f = 50.0 if f.nil? || (f.respond_to?(:finite?) && !f.finite?)
+      [[f, 0.0].max, 100.0].min
+    end
+  pts = Array.new(2, pts.first) if pts.size < 2
+
+  pts_cmp =
+    if raw_cmp
+      arr = raw_cmp
+      arr = [nil, nil] if arr.empty?
+      norm =
+        arr.map do |v|
+          f =
+            begin
+              Float(v)
+            rescue
+              nil
+            end
+          f = 50.0 if f.nil? || (f.respond_to?(:finite?) && !f.finite?)
+          [[f, 0.0].max, 100.0].min
+        end
+
+      if norm.size < pts.size
+        norm = norm + Array.new(pts.size - norm.size, norm.last)
+      elsif norm.size > pts.size
+        norm = norm.first(pts.size)
+      end
+
+      norm
+    else
+      nil
+    end
+
+  w   = (local_assigns[:width]  || 800).to_f
+  h   = (local_assigns[:height] || 260).to_f
+  pad = { l: 56.0, r: 16.0, t: 18.0, b: 42.0 }
+
+  iw = w - pad[:l] - pad[:r]
+  ih = h - pad[:t] - pad[:b]
+
+  n  = [pts.size, 2].max
+  sx = n > 1 ? (iw / (n - 1)) : 0.0
+
+  y_min_value = 0.0
+  y_max_value = 100.0
+
+  curve         = (local_assigns[:curve] || :linear).to_sym
+  curve_tension = (local_assigns[:curve_tension] || 0.5).to_f
+  curve_pad_px  = (local_assigns[:curve_pad_px] || 8).to_f
+
+  inset = (curve == :smooth) ? curve_pad_px : 0.0
+  inset = [[inset, 0.0].max, (ih / 2.0 - 1.0)].min
+
+  y_draw_min = pad[:t] + inset
+  y_draw_max = pad[:t] + ih - inset
+
+  map_y = ->(v) do
+    v = v.to_f
+    frac = 1.0 - ((v - y_min_value) / (y_max_value - y_min_value))
+    y_draw_min + (y_draw_max - y_draw_min) * frac
+  end
+
+  y_ticks = [0, 25, 50, 75, 100]
+
+  xy = pts.each_with_index.map do |v, i|
+    x = pad[:l] + i * sx
+    y = map_y.call(v)
+    [x, y]
+  end
+
+  xy_cmp =
+    if pts_cmp
+      pts_cmp.each_with_index.map do |v, i|
+        x = pad[:l] + i * sx
+        y = map_y.call(v)
+        [x, y]
+      end
+    else
+      nil
+    end
+
+  xys_payload = xy.map { |x, y| [x.round(2), y.round(2)] }
+  xys_cmp_payload = (xy_cmp || []).map { |x, y| [x.round(2), y.round(2)] }
+
+  d_line =
+    if curve == :smooth
+      spark_smooth_path(xy, tension: curve_tension, y_min: y_draw_min, y_max: y_draw_max)
+    else
+      xy.map.with_index { |(x, y), i|
+        i.zero? ? "M #{x.round(2)} #{y.round(2)}" : "L #{x.round(2)} #{y.round(2)}"
+      }.join(" ")
+    end
+
+  d_line_cmp =
+    if xy_cmp
+      if curve == :smooth
+        spark_smooth_path(xy_cmp, tension: curve_tension, y_min: y_draw_min, y_max: y_draw_max)
+      else
+        xy_cmp.map.with_index { |(x, y), i|
+          i.zero? ? "M #{x.round(2)} #{y.round(2)}" : "L #{x.round(2)} #{y.round(2)}"
+        }.join(" ")
+      end
+    else
+      nil
+    end
+
+  base_y = (pad[:t] + ih).round(2)
+  d_area =
+    if xy.any?
+      "#{d_line} L #{xy.last[0].round(2)} #{base_y} L #{xy.first[0].round(2)} #{base_y} Z"
+    else
+      ""
+    end
+
+  min_gap_px = 90.0
+  max_ticks  = [[(iw / min_gap_px).floor + 1, 2].max, n].min
+  k          = max_ticks
+  step       = (n - 1).fdiv(k - 1)
+
+  tick_ix = []
+  k.times do |j|
+    idx = (j * step).round
+    idx = [idx, (tick_ix.last || -1) + 1].max
+    idx = [idx, n - 1].min
+    tick_ix << idx
+  end
+  tick_ix[-1] = n - 1
+
+  # Build axis ticks with UNIFORM visual spacing (x position by ratio), independent of data-point index.
+  axis_ticks = []
+  begin
+    axis_start = local_assigns[:x_axis_start]&.to_date
+    axis_end   = local_assigns[:x_axis_end]&.to_date
+    axis_count = [k, 2].max
+    denom = [axis_count - 1, 1].max
+
+    if axis_start && axis_end && axis_end >= axis_start
+      span_days = (axis_end - axis_start).to_i
+      label_fmt = span_days > 365 ? "%b %Y" : "%b %-d"
+
+      axis_count.times do |j|
+        ratio = j.to_f / denom
+        x = (pad[:l] + iw * ratio).round(2)
+        d = axis_start + (span_days * ratio).round.days
+        axis_ticks << { x: x, label: d.strftime(label_fmt), j: j }
+      end
+    else
+      # Fallback to existing labels if axis bounds are unavailable
+      tick_ix.each_with_index do |idx, j|
+        ratio = j.to_f / [tick_ix.length - 1, 1].max
+        x = (pad[:l] + iw * ratio).round(2)
+        label = (local_assigns[:x_labels] && x_labels && x_labels[idx]) || ""
+        axis_ticks << { x: x, label: label, j: j }
+      end
+    end
+  rescue
+    axis_ticks = []
+  end
+
+  uid = "mspark-#{(Time.now.to_f * 1000).to_i}-#{rand(1000)}"
+%>
+
+<div class="metric-sparkline-wrap"
+     data-metric-spark="true"
+     data-xys="<%= ERB::Util.html_escape(xys_payload.to_json) %>"
+     data-compare-xys="<%= ERB::Util.html_escape(xys_cmp_payload.to_json) %>"
+     data-points="<%= ERB::Util.html_escape(pts.to_json) %>"
+     data-compare-points="<%= ERB::Util.html_escape((pts_cmp || []).to_json) %>"
+     data-labels="<%= ERB::Util.html_escape((local_assigns[:x_labels] || []).to_json) %>">
+
+  <% unless score_ok %>
+    <div class="metric-score-help"
+         data-tooltip="Not enough data for this metric within the selected date range to provide a culture score.">
+      Not enough data
+    </div>
+  <% end %>
+
+  <div class="metric-spark-wrap" style="--spark-ratio: <%= w %>/<%= h %>;">
+    <svg class="metric-spark"
+         viewBox="0 0 <%= w %> <%= h %>"
+         preserveAspectRatio="xMidYMid meet"
+         role="img" aria-label="metric trend">
+      <defs>
+        <linearGradient id="<%= uid %>-area" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stop-color="#3b82f6" stop-opacity="0.22"/>
+          <stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+
+      <g stroke="#e5e7eb" stroke-width="1" shape-rendering="crispEdges">
+        <% y_ticks.each do |t| %>
+          <% y = map_y.call(t).round(2) %>
+          <line x1="<%= pad[:l] %>" y1="<%= y %>" x2="<%= w - pad[:r] %>" y2="<%= y %>"/>
+        <% end %>
+      </g>
+
+      <g stroke="#e5e7eb" stroke-width="1" shape-rendering="crispEdges">
+        <line x1="<%= pad[:l] %>" y1="<%= h - pad[:b] %>" x2="<%= w - pad[:r] %>" y2="<%= h - pad[:b] %>"/>
+        <line x1="<%= pad[:l] %>" y1="<%= pad[:t] %>" x2="<%= pad[:l] %>" y2="<%= h - pad[:b] %>"/>
+      </g>
+
+      <g fill="#94a3b8" font-size="12" text-anchor="end" dominant-baseline="middle">
+        <% y_ticks.each do |t| %>
+          <% y = map_y.call(t).round(2) %>
+          <text x="<%= pad[:l] - 8 %>" y="<%= y %>"><%= "#{t}" %></text>
+        <% end %>
+      </g>
+
+      <g fill="#94a3b8" font-size="12" dominant-baseline="hanging">
+        <% axis_ticks.each do |t| %>
+          <text x="<%= t[:x] %>" y="<%= h - pad[:b] + 8 %>"
+                text-anchor="<%= t[:j] == 0 ? 'start' : (t[:j] == axis_ticks.length - 1 ? 'end' : 'middle') %>"><%= t[:label] %></text>
+        <% end %>
+      </g>
+
+      <% if local_assigns[:y_title] %>
+        <text x="12" y="<%= (pad[:t] + ih/2).round(2) %>" fill="#64748B" font-size="12"
+              transform="rotate(-90 12 <%= (pad[:t] + ih/2).round(2) %>)"
+              text-anchor="middle"><%= y_title %></text>
+      <% end %>
+
+      <path d="<%= d_area %>" fill="url(#<%= uid %>-area)"/>
+
+      <% if d_line_cmp.present? %>
+        <path d="<%= d_line_cmp %>" fill="none" stroke="#94a3b8"
+              opacity="0.75" stroke-width="1.5" stroke-dasharray="4 3"
+              stroke-linecap="round" stroke-linejoin="round"
+              vector-effect="non-scaling-stroke"/>
+      <% end %>
+
+      <path d="<%= d_line %>" fill="none" stroke="#3b82f6" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round"
+            vector-effect="non-scaling-stroke"/>
+
+      <line data-hover-line x1="0" y1="<%= pad[:t] %>" x2="0" y2="<%= h - pad[:b] %>"
+            stroke="#94A3B8" stroke-width="1.5" stroke-dasharray="4 3" opacity="0"
+            vector-effect="non-scaling-stroke"/>
+      <circle data-hover-dot-compare cx="0" cy="0" r="5" fill="#94A3B8" stroke="white" stroke-width="2" opacity="0"/>
+      <circle data-hover-dot cx="0" cy="0" r="5" fill="#3b82f6" stroke="white" stroke-width="2" opacity="0"/>
+    </svg>
+
+    <div class="metric-spark-tooltip" data-hover-tooltip style="display:none; position:fixed; z-index:9999;">
+      <div class="metric-spark-tooltip-title"></div>
+
+      <div class="metric-spark-tooltip-row">
+        <div class="metric-spark-tooltip-key" style="background:#3b82f6;"></div>
+        <div class="metric-spark-tooltip-score-title">Score</div>
+        <div class="metric-spark-tooltip-score"></div>
+      </div>
+
+      <div class="metric-spark-tooltip-row">
+        <div class="metric-spark-tooltip-key" style="background:#94A3B8;"></div>
+        <div class="metric-spark-tooltip-score-title">Previous</div>
+        <div class="metric-spark-tooltip-comparison-score"></div>
+      </div>
+    </div>
+  </div>
+</div>

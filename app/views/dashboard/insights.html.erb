@@ -1,0 +1,142 @@
+<div class="topbar">
+  <% if @back_path %>
+    <%= link_to @back_path do %>
+      <%= icon "left-arrow", class_name: "topbar-back" %>
+    <% end %>
+    <div class="topbar-back-line"></div>
+  <% end %>
+
+  <span class="topbar-title" style="<%= @back_path.present? ? "font-size:14px;" : "" %>">
+    <%= @topbar_title %>
+  </span>
+</div>
+
+<div class="insights-header">
+  <div class="insights-row insights-row--header">
+    <div class="insights-col insights-col--main"><!-- placeholder --></div>
+    <div class="insights-col insights-col--small">Trigger</div>
+    <div class="insights-col insights-col--small">Receivers</div>
+    <div class="insights-col insights-col--small">Sent</div>
+  </div>
+</div>
+
+<div class="insights-content">
+  <% if @insight_rows.blank? %>
+    <div class="insights-row">
+      <div class="insights-col insights-col--main">
+        <div class="insights-labels">
+          <div class="insights-label">No insights yet</div>
+        </div>
+        When new personal or group insights are generated, they’ll show up here.
+      </div>
+      <div class="insights-col insights-col--small">–</div>
+      <div class="insights-col insights-col--small">–</div>
+      <div class="insights-col insights-col--small">–</div>
+    </div>
+  <% else %>
+    <% @insight_rows.each do |row| %>
+      <%
+        body        = row[:body].to_s
+        collapsible = body.length > 200
+        body_id     = "insight-body-#{row[:id]}"
+      %>
+      <div class="insights-row <%= 'insights-row--expandable' if collapsible %>" <%= %(data-target="#{body_id}") if collapsible %>>
+        <div class="insights-col insights-col--main">
+          <% if row[:labels].present? %>
+            <div class="insights-labels">
+              <% row[:labels].each_with_index do |raw_label, i| %>
+                <% label = raw_label.is_a?(Hash) ? raw_label : { text: raw_label.to_s, type: :generic } %>
+                <% label_type = label[:type].presence || :generic %>
+                <div class="insights-label insights-label--<%= label_type %>">
+                  <% if label_type.to_s == "metric" && label[:icon].present? %>
+                    <%= icon label[:icon], size: 14, class_name: "insights-label-icon" %>
+                  <% end %>
+                  <%= ">" if i > 0 %>
+                  <%= label[:text] %>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+          <div class="insights-headline"><%= row[:title] %></div>
+          <div class="insights-body <%= 'is-collapsed' if collapsible %>" id="<%= body_id %>" data-collapsed="<%= collapsible %>">
+            <%= simple_format(body) %>
+          </div>
+        </div>
+        <div class="insights-col insights-col--small">
+          <% if row[:trigger_icon].present? %>
+            <%= icon row[:trigger_icon], size: 16, class_name: "insights-trigger-icon" %>
+          <% end %>
+          <%= row[:trigger_label] %>
+        </div>
+        <div class="insights-col insights-col--small">
+          <% recs = Array(row[:recipients]) %>
+          <% if recs.any? %>
+            <% display = recs.first(3) %>
+            <div class="insights-recipients">
+              <% display.each do |rec| %>
+                <div class="insights-recipient-avatar" title="<%= rec[:name] %>" style="<%= rec[:avatar_url].present? ? "background-image: url('#{rec[:avatar_url]}');" : "" %>">
+                  <% unless rec[:avatar_url].present? %>
+                    <%= icon "user", size: 12 %>
+                  <% end %>
+                </div>
+              <% end %>
+              <% remaining = recs.size - display.size %>
+              <% if remaining > 0 %>
+                <div class="insights-recipient-avatar insights-recipient-avatar--more"
+                     title="<%= recs.map { |r| r[:name] }.join(', ') %>">
+                  +<%= remaining %>
+                </div>
+              <% end %>
+            </div>
+          <% else %>
+            <%= row[:recipient_label] %>
+          <% end %>
+        </div>
+        <div class="insights-col insights-col--small">
+          <% if row[:sent_at].present? %>
+            <%= l(row[:sent_at], format: :short) %>
+          <% else %>
+            –
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  <% end %>
+</div>
+
+<div class="insights-pagination">
+  <%= paginate @insights %>
+</div>
+
+<script>
+  (function() {
+    function bindInsightToggles() {
+      const rows = document.querySelectorAll('.insights-row--expandable');
+      rows.forEach(function(row) {
+        if (row.dataset.toggleBound === "true") return;
+
+        row.addEventListener('click', function(event) {
+          const rawTarget = row.dataset.target || row.getAttribute('data-target') || "";
+          const targetId  = rawTarget.replace(/^['"]|['"]$/g, "");
+          if (!targetId) return;
+
+          const bodyEl = document.getElementById(targetId);
+          console.log("[insights toggle]", { rawTarget: rawTarget, targetId: targetId, found: !!bodyEl });
+          if (!bodyEl) return;
+
+          bodyEl.classList.toggle('is-collapsed');
+        }, false);
+
+        row.dataset.toggleBound = "true";
+      });
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", bindInsightToggles, { once: true });
+    } else {
+      bindInsightToggles();
+    }
+
+    document.addEventListener("turbo:load", bindInsightToggles);
+  })();
+</script>

@@ -1,0 +1,567 @@
+<%= render "settings/topbar" %>
+<%= render "settings/navigation" %>
+
+<script src="https://js.stripe.com/v3"></script>
+
+<div class="settings-main">
+  <div class="settings-topbar">
+    <div class="settings-topbar-left">
+      <div class="settings-main-heading">Billing</div>
+      <div class="settings-main-subheading">
+        Manage your Workplace.io subscription, payment method, and view invoice history.
+      </div>
+    </div>
+  </div>
+
+  <% if @is_delinquent || @manual_invoice_notice %>
+    <%
+      is_manual =
+        @stripe_subscription.present? &&
+        @stripe_subscription["collection_method"].to_s == "send_invoice"
+
+      invoice_url =
+        @open_invoice.respond_to?(:hosted_invoice_url) ? @open_invoice.hosted_invoice_url : (@open_invoice && @open_invoice["hosted_invoice_url"])
+    %>
+
+    <div class="billing-delinquent-section">
+      <% if @is_delinquent %>
+        Your account has an unpaid invoice.
+      <% else %>
+        Invoice issued<% if @manual_invoice_due_label.present? %>, due on <%= @manual_invoice_due_label %><% end %>.
+      <% end %>
+
+      <% if is_manual && invoice_url.present? %>
+        <a class="billing-pay-now js-billing-view-invoice"
+           href="<%= invoice_url %>"
+           target="_blank"
+           rel="noopener">
+          View invoice
+        </a>
+      <% else %>
+        <div class="billing-pay-now js-billing-pay-now" role="button" tabindex="0">Pay Now</div>
+      <% end %>
+    </div>
+  <% end %>
+
+
+  <div class="settings-sections">
+    <!-- ===================== -->
+    <!-- CURRENT PLAN          -->
+    <!-- ===================== -->
+    <div class="settings-section">
+      <div class="settings-section-title">Current Plan</div>
+      <div class="settings-section-general-line"></div>
+
+      <% if @stripe_subscription.present? && @subscription_item.present? && @stripe_price.present? %>
+        <%
+          status = @stripe_subscription["status"].to_s
+          interval = @stripe_price.recurring&.interval.to_s.presence || "month"
+
+          now_unix = Time.current.to_i
+          trial_end_unix       = @stripe_subscription["trial_end"].to_i
+          sub_period_end_unix  = @stripe_subscription["current_period_end"].to_i
+          item_period_end_unix = (@subscription_item.respond_to?(:[]) ? @subscription_item["current_period_end"].to_i : 0)
+          anchor_unix          = @stripe_subscription["billing_cycle_anchor"].to_i
+
+          next_bill_unix =
+            if status == "trialing" && trial_end_unix > now_unix
+              trial_end_unix
+            elsif sub_period_end_unix > 0
+              sub_period_end_unix
+            elsif item_period_end_unix > 0
+              item_period_end_unix
+            elsif anchor_unix > 0
+              anchor_unix
+            else
+              0
+            end
+
+          next_bill_at    = next_bill_unix.positive? ? Time.at(next_bill_unix).in_time_zone : nil
+          next_bill_label = next_bill_at ? next_bill_at.strftime("%b %-d, %Y") : "—"
+          cancel_effective_label = next_bill_at ? next_bill_at.strftime("%B %-d, %Y") : "—"
+
+
+          collection_method = @stripe_subscription["collection_method"].to_s
+          is_manual_invoicing = (collection_method == "send_invoice")
+          days_until_due = @stripe_subscription["days_until_due"]
+          net_label =
+            if is_manual_invoicing && days_until_due.present?
+              "Net #{days_until_due}"
+            elsif is_manual_invoicing
+              "Manual payment"
+            else
+              nil
+            end
+
+          # -------------------------
+          # Correct cancellation state
+          # -------------------------
+          # IMPORTANT:
+          # `canceled_at` is often set when you schedule cancel-at-period-end.
+          # Do NOT treat it as "canceled".
+          cancel_at_period_end = !!@stripe_subscription["cancel_at_period_end"]
+          ended_at_unix        = @stripe_subscription["ended_at"].to_i
+
+          is_canceled  = (status == "canceled") || ended_at_unix.positive?
+          is_canceling = cancel_at_period_end && !is_canceled
+
+          status_pill =
+            if is_canceled
+              "Canceled"
+            elsif is_canceling
+              "Canceling"
+            elsif status == "trialing"
+              "Trialing"
+            else
+              nil
+            end
+
+          headline_amount_cents = @resume_headline_amount_cents.to_i
+          headline_amount_display =
+            headline_amount_cents.positive? ? number_to_currency(headline_amount_cents / 100.0) : nil
+
+          next_invoice_amount_cents =
+            if @upcoming_invoice.present? && @upcoming_invoice.respond_to?(:[])
+              (@upcoming_invoice["total"] || @upcoming_invoice["amount_due"]).to_i
+            else
+              0
+            end
+          next_invoice_amount_display = number_to_currency(next_invoice_amount_cents / 100.0)
+
+          cancel_line =
+            if is_canceling && next_bill_at
+              "Canceling on #{cancel_effective_label}"
+            elsif is_canceled
+              "Canceled"
+            else
+              nil
+            end
+        %>
+
+        <div class="settings-billing-product-title">
+          Workplace.io Pro
+          <% if status_pill.present? %>
+            <span class="settings-billing-product-status"><%= status_pill %></span>
+          <% end %>
+        </div>
+
+        <% if headline_amount_display.present? %>
+          <div class="settings-section-general-desc">
+            <%= headline_amount_display %> per <%= interval %>
+          </div>
+        <% end %>
+
+        <% if @upcoming_invoice.present? && next_invoice_amount_cents.positive? %>
+          <div class="settings-section-general-desc">
+            Next Invoice <strong><%= next_invoice_amount_display %></strong>
+            on <strong><span class="js-next-invoice-date"><%= next_bill_label %></span></strong>
+          </div>
+
+          <% if is_manual_invoicing %>
+            <div class="settings-section-general-desc">
+              Payment terms: <strong><%= net_label %></strong> (manual invoicing)
+            </div>
+          <% end %>
+
+          <% if !is_manual_invoicing && @manual_invoice_eligible && !is_canceled && !is_canceling %>
+            <div class="settings-section-general-desc" style="margin-top:12px;">
+              Eligible for <strong>Net 30</strong> invoicing.
+              <button type="button"
+                      class="settings-section-general-button js-billing-switch-net30"
+                      style="margin-left:12px;">
+                Switch to Net 30
+              </button>
+              <div style="opacity:0.7; margin-top:6px; font-size:13px;">
+                Takes effect on your next renewal. Your current period stays on autopay.
+              </div>
+            </div>
+          <% end %>
+        <% end %>
+
+
+        <% if cancel_line.present? %>
+          <div class="settings-section-general-desc" style="opacity:0.7;">
+            <%= cancel_line %>
+          </div>
+        <% end %>
+
+        <% if is_canceled || is_canceling %>
+          <button type="button"
+                  class="settings-section-general-button js-workspace-resume-plan"
+                  data-resume-interval="<%= interval %>"
+                  <% if headline_amount_display.present? %>
+                    data-resume-amount="<%= headline_amount_display %>"
+                  <% end %>>
+            Resume subscription
+          </button>
+        <% else %>
+          <button type="button"
+                  class="settings-section-general-button settings-section-general-button-warning js-workspace-cancel-plan"
+                  data-cancel-effective="<%= cancel_effective_label %>">
+            Cancel subscription
+          </button>
+        <% end %>
+
+      <% else %>
+        <div class="settings-section-general-desc">
+          No active subscription found for this workspace.
+        </div>
+
+        <%= link_to "Go to plans", plan_path, class: "settings-section-general-button" %>
+      <% end %>
+    </div>
+
+    <!-- ===================== -->
+    <!-- PAYMENT METHOD        -->
+    <!-- ===================== -->
+    <div class="settings-section">
+    <div class="settings-section-title">Payment Method</div>
+    <div class="settings-section-general-line"></div>
+
+    <% cards = Array(@card_payment_methods) %>
+    <% banks = Array(@bank_payment_methods) %>
+    <% has_any = cards.any? || banks.any? %>
+
+    <% if !has_any %>
+      <div class="settings-section-general-desc">No payment methods on file.</div>
+    <% else %>
+
+      <% cards.each do |pm| %>
+        <%
+          card = pm.card
+          brand = card&.brand.to_s.upcase
+          last4 = card&.last4.to_s
+          exp_m = card&.exp_month.to_i
+          exp_y = card&.exp_year.to_i
+          is_default = (@default_payment_method_id.to_s == pm.id.to_s)
+        %>
+
+        <div class="settings-section-general-desc" style="display:flex; align-items:center; gap:24px;">
+          <%= icon "card" %>
+          <span><%= brand %> ****<%= last4 %></span>
+          <span>Exp <%= "%02d" % exp_m %>/<%= exp_y %></span>
+
+          <% if is_default %>
+            <div class="settings-billing-card-default-label">Default</div>
+          <% else %>
+            <div class="settings-billing-card-default-button js-billing-set-default"
+                 role="button"
+                 tabindex="0"
+                 data-pm-id="<%= pm.id %>">
+              Make default
+            </div>
+          <% end %>
+
+          <div style="margin-left:auto;">
+            <span class="settings-billing-card-delete js-billing-delete-pm"
+                  role="button"
+                  tabindex="0"
+                  data-pm-id="<%= pm.id %>"
+                  data-is-default="<%= is_default ? 'true' : 'false' %>">
+              <%= icon "trash" %>
+            </span>
+          </div>
+        </div>
+      <% end %>
+
+      <% banks.each do |pm| %>
+        <%
+          ba = pm.us_bank_account
+          bank_name = ba&.bank_name.presence || "Bank account"
+          last4 = ba&.last4.to_s
+          acct_type = ba&.account_type.to_s
+          holder_type = ba&.account_holder_type.to_s
+          is_default = (@default_payment_method_id.to_s == pm.id.to_s)
+
+          meta_bits = []
+          meta_bits << acct_type if acct_type.present?
+          meta_bits << holder_type if holder_type.present?
+          meta = meta_bits.any? ? " (#{meta_bits.join(', ')})" : ""
+        %>
+
+        <div class="settings-section-general-desc" style="display:flex; align-items:center; gap:24px;">
+          <%= icon "bank" rescue icon("card") %>
+          <span><%= bank_name %> ****<%= last4 %><%= meta %></span>
+
+          <% if is_default %>
+            <div class="settings-billing-card-default-label">Default</div>
+          <% else %>
+            <div class="settings-billing-card-default-button js-billing-set-default"
+                 role="button"
+                 tabindex="0"
+                 data-pm-id="<%= pm.id %>">
+              Make default
+            </div>
+          <% end %>
+
+          <div style="margin-left:auto;">
+            <span class="settings-billing-card-delete js-billing-delete-pm"
+                  role="button"
+                  tabindex="0"
+                  data-pm-id="<%= pm.id %>"
+                  data-is-default="<%= is_default ? 'true' : 'false' %>">
+              <%= icon "trash" %>
+            </span>
+          </div>
+        </div>
+      <% end %>
+
+    <% end %>
+
+    <button type="button" class="settings-section-general-button js-billing-add-payment-method" style="margin-top:12px;">
+      Add payment method
+    </button>
+  </div>
+
+
+
+    <!-- ===================== -->
+    <!-- BILLING HISTORY        -->
+    <!-- ===================== -->
+    <div class="settings-section">
+      <div class="settings-section-title">Billing History</div>
+      <div class="settings-section-general-line"></div>
+
+      <% if @invoices.present? %>
+        <% @invoices.each do |inv| %>
+          <%
+            created = Time.at(inv.created).in_time_zone
+            amount  = inv.amount_paid.to_i > 0 ? inv.amount_paid.to_i : inv.amount_due.to_i
+            url     = inv.hosted_invoice_url
+            pdf     = inv.invoice_pdf
+            inv_status = inv["status"].to_s
+          %>
+
+          <div class="settings-section-general-desc" style="display:flex; align-items:center; gap:10px;">
+            <span style="min-width:110px;"><%= number_to_currency(amount / 100.0) %></span>
+            <span style="min-width:140px;"><%= created.strftime("%b %-d, %Y") %></span>
+            <span style="opacity:0.7;"><%= inv_status.titleize %></span>
+
+            <div style="margin-left:auto; display:flex; gap:12px;">
+              <% if url.present? %>
+                <a href="<%= url %>" target="_blank" rel="noopener" style="font-size:13px;">View</a>
+              <% end %>
+              <% if pdf.present? %>
+                <a href="<%= pdf %>" target="_blank" rel="noopener" style="font-size:13px;">Download</a>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      <% else %>
+        <div class="settings-section-general-desc">No invoices yet.</div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<%= render "settings/card_modal" %>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content");
+
+    // Cancel subscription
+    const cancelBtn = document.querySelector(".js-workspace-cancel-plan");
+    if (cancelBtn) {
+      cancelBtn.addEventListener("click", function() {
+        const cancelEffective = cancelBtn.getAttribute("data-cancel-effective") || "the end of the current billing period";
+
+        warning(`Cancel your subscription effective ${cancelEffective}?`, {
+          title: "Cancel subscription?",
+          confirmLabel: "Cancel subscription",
+          cancelLabel: "Keep subscription"
+        }).then(function(ok) {
+          if (!ok) return;
+
+          fetch("<%= billing_cancel_subscription_path %>", {
+            method: "POST",
+            headers: { "Accept": "application/json", ...(csrf ? { "X-CSRF-Token": csrf } : {}) },
+            credentials: "same-origin"
+          })
+          .then(res => res.json().then(data => ({ res, data })))
+          .then(({ res, data }) => {
+            if (!res.ok || !data.ok) throw new Error(data.error || "cancel_failed");
+            showToast("Subscription updated", "Your subscription will cancel at period end.", true);
+            window.location.reload();
+          })
+          .catch(() => showToast("Error", "Unable to cancel subscription. Please try again.", true));
+        });
+      });
+    }
+
+    // Switch to Net 30 (manual invoicing)
+    const switchNet30Btn = document.querySelector(".js-billing-switch-net30");
+    if (switchNet30Btn) {
+      switchNet30Btn.addEventListener("click", function() {
+        warning(
+          "Switch to Net 30 invoicing? This will take effect on your next renewal; your current period will remain on autopay.",
+          {
+            title: "Switch to Net 30?",
+            confirmLabel: "Switch to Net 30",
+            cancelLabel: "Cancel"
+          }
+        ).then(function(ok) {
+          if (!ok) return;
+
+          fetch("<%= billing_switch_to_net30_path %>", {
+            method: "POST",
+            headers: { "Accept": "application/json", ...(csrf ? { "X-CSRF-Token": csrf } : {}) },
+            credentials: "same-origin"
+          })
+          .then(res => res.json().then(data => ({ res, data })))
+          .then(({ res, data }) => {
+            if (!res.ok || !data.ok) throw new Error(data.error || "switch_failed");
+            showToast("Billing updated", "Net 30 will start on your next renewal.", true);
+            window.location.reload();
+          })
+          .catch(() => showToast("Error", "Unable to switch to Net 30. Please try again.", true));
+        });
+      });
+    }
+
+    // Resume subscription (short modal)
+    const resumeBtn = document.querySelector(".js-workspace-resume-plan");
+    if (resumeBtn) {
+      resumeBtn.addEventListener("click", function() {
+        const amount   = resumeBtn.getAttribute("data-resume-amount") || "the current rate";
+        const interval = resumeBtn.getAttribute("data-resume-interval") || "month";
+
+        let nextDate = null;
+        const nextDateEl = document.querySelector(".js-next-invoice-date");
+        if (nextDateEl) nextDate = (nextDateEl.textContent || "").trim();
+
+        const whenText = (nextDate && nextDate !== "—") ? ` on ${nextDate}` : "";
+        const msg = `Resume your subscription for ${amount} per ${interval}${whenText}?`;
+
+        warning(msg, {
+          title: "Resume subscription?",
+          confirmLabel: "Resume subscription",
+          cancelLabel: "Cancel"
+        }).then(function(ok) {
+          if (!ok) return;
+
+          fetch("<%= billing_resume_subscription_path %>", {
+            method: "POST",
+            headers: { "Accept": "application/json", ...(csrf ? { "X-CSRF-Token": csrf } : {}) },
+            credentials: "same-origin"
+          })
+          .then(res => res.json().then(data => ({ res, data })))
+          .then(({ res, data }) => {
+            if (res.ok && data && data.ok) {
+              showToast("Subscription updated", "Your subscription has been resumed.", true);
+              window.location.reload();
+              return;
+            }
+
+            const err = (data && data.error) || "resume_failed";
+
+            if (err === "missing_default_payment_method") {
+              showToast("Payment method required", "Please add a default card to resume.", true);
+              document.querySelector(".js-billing-add-card")?.click();
+              return;
+            }
+
+            if (err === "invoice_open") {
+              showToast("Payment pending", "We created an invoice that still needs to be paid. Use Pay Now to complete payment.", true);
+              window.location.reload();
+              return;
+            }
+
+            showToast("Error", "Unable to resume subscription. Please try again.", true);
+          })
+          .catch(() => showToast("Error", "Unable to resume subscription. Please try again.", true));
+        });
+      });
+    }
+
+    // Pay now
+    const payNow = document.querySelector(".js-billing-pay-now");
+    if (payNow) {
+      payNow.addEventListener("click", function() {
+        warning("Attempt to pay the latest open invoice now?", {
+          title: "Pay now?",
+          confirmLabel: "Pay now",
+          cancelLabel: "Cancel"
+        }).then(function(ok) {
+          if (!ok) return;
+
+          fetch("<%= billing_pay_now_path %>", {
+            method: "POST",
+            headers: { "Accept": "application/json", ...(csrf ? { "X-CSRF-Token": csrf } : {}) },
+            credentials: "same-origin"
+          })
+          .then(res => res.json().then(data => ({ res, data })))
+          .then(({ res, data }) => {
+            if (!res.ok || !data.ok) throw new Error(data.error || "pay_failed");
+            showToast("Payment attempted", "Invoice payment was submitted.", true);
+            window.location.reload();
+          })
+          .catch(() => showToast("Error", "Unable to pay invoice. Please try again.", true));
+        });
+      });
+    }
+
+    // Set default card
+    document.addEventListener("click", function(e) {
+      const btn = e.target.closest(".js-billing-set-default");
+      if (!btn) return;
+
+      const pmId = btn.getAttribute("data-pm-id");
+      if (!pmId) return;
+
+      fetch("<%= billing_set_default_card_path %>", {
+        method: "PATCH",
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+          ...(csrf ? { "X-CSRF-Token": csrf } : {})
+        },
+        credentials: "same-origin",
+        body: JSON.stringify({ payment_method_id: pmId })
+      })
+      .then(res => res.json().then(data => ({ res, data })))
+      .then(({ res, data }) => {
+        if (!res.ok || !data.ok) throw new Error(data.error || "default_failed");
+        showToast("Default updated", "Default payment method updated.", false);
+        window.location.reload();
+      })
+      .catch(() => showToast("Error", "Unable to set default payment method.", true));
+    });
+
+    // Delete card
+    document.addEventListener("click", function(e) {
+      const iconEl = e.target.closest(".js-billing-delete-pm");
+      if (!iconEl) return;
+
+      const pmId = iconEl.getAttribute("data-pm-id");
+      const isDefault = iconEl.getAttribute("data-is-default") === "true";
+      if (!pmId) return;
+
+      if (isDefault) {
+        showToast("Default payment method", "Set a different default payment method before deleting this one.", true);
+        return;
+      }
+
+      warning("Remove this payment method from your billing profile?", {
+        title: "Remove payment method?",
+        confirmLabel: "Remove payment method",
+        cancelLabel: "Cancel"
+      }).then(function(ok) {
+        if (!ok) return;
+
+        fetch("<%= billing_delete_card_path(payment_method_id: "PM_ID") %>".replace("PM_ID", pmId), {
+          method: "DELETE",
+          headers: { "Accept": "application/json", ...(csrf ? { "X-CSRF-Token": csrf } : {}) },
+          credentials: "same-origin"
+        })
+        .then(res => res.json().then(data => ({ res, data })))
+        .then(({ res, data }) => {
+          if (!res.ok || !data.ok) throw new Error(data.error || "delete_failed");
+          showToast("Payment method removed", "Payment method removed.", false);
+          window.location.reload();
+        })
+        .catch(() => showToast("Error", "Unable to remove payment method.", true));
+      });
+    });
+  });
+</script>

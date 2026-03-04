@@ -1,0 +1,138 @@
+<%= render "settings/topbar" %>
+<%= render "settings/navigation" %>
+
+<div class="settings-main">
+  <div class="settings-topbar">
+    <div class="settings-topbar-left">
+      <div class="settings-main-heading">Privacy</div>
+      <div class="settings-main-subheading">
+        Control which optional cookies we can use. Strictly necessary cookies are always on.
+      </div>
+    </div>
+  </div>
+
+  <div class="settings-sections">
+    <div class="settings-section">
+      <div class="settings-section-title">Privacy Preferences</div>
+      <div class="settings-section-general-line"></div>
+
+      <div class="settings-section-general-desc" style="margin-bottom: 12px;">
+        Your choices are stored on this device in a cookie and can be changed anytime.
+      </div>
+
+      <div style="display:flex; align-items:center; justify-content:space-between; gap: 16px; padding: 10px 0;">
+        <div>
+          <div style="font-weight:600; color: var(--slate-800);">Strictly necessary</div>
+          <div style="font-size:12px; color: var(--slate-600); line-height:1.35em; margin-top:2px;">
+            Required for login and core functionality.
+          </div>
+        </div>
+
+        <button type="button" class="settings-toggle" aria-pressed="true" aria-disabled="true" disabled>
+          <span class="settings-toggle-knob"></span>
+        </button>
+      </div>
+
+      <div style="display:flex; align-items:center; justify-content:space-between; gap: 16px; padding: 10px 0;">
+        <div>
+          <div style="font-weight:600; color: var(--slate-800);">Analytics</div>
+          <div style="font-size:12px; color: var(--slate-600); line-height:1.35em; margin-top:2px;">
+            Helps us understand usage so we can improve the product.
+          </div>
+        </div>
+
+        <button type="button" class="settings-toggle js-consent-toggle" data-consent-key="analytics" aria-pressed="false">
+          <span class="settings-toggle-knob"></span>
+        </button>
+      </div>
+
+      <div style="display:flex; align-items:center; justify-content:space-between; gap: 16px; padding: 10px 0;">
+        <div>
+          <div style="font-weight:600; color: var(--slate-800);">Marketing</div>
+          <div style="font-size:12px; color: var(--slate-600); line-height:1.35em; margin-top:2px;">
+            Used to measure campaign performance (if enabled).
+          </div>
+        </div>
+
+        <button type="button" class="settings-toggle js-consent-toggle" data-consent-key="marketing" aria-pressed="false">
+          <span class="settings-toggle-knob"></span>
+        </button>
+      </div>
+
+      <div style="height: 14px;"></div>
+
+      <button type="button" class="settings-section-general-button js-consent-save">
+        Save privacy settings
+      </button>
+
+      <div class="settings-section-general-desc" style="margin-top: 10px;">
+        See our <a href="https://trust.workplace.io/privacy" target="_blank" rel="noopener" style="text-decoration:underline; color: var(--accent);">Privacy Policy</a>
+        and <a href="https://trust.workplace.io/cookies" target="_blank" rel="noopener" style="text-decoration:underline; color: var(--accent);">Cookie Policy</a>.
+      </div>
+    </div>
+  </div>
+</div>
+
+<%= render "shared/cookie_consent_js" %>
+<script>
+(function() {
+  const saveBtn = document.querySelector('.js-consent-save');
+  const toggles = Array.from(document.querySelectorAll('.js-consent-toggle[data-consent-key]'));
+
+  if (!saveBtn || toggles.length === 0) return;
+  if (!window.WorkplaceConsent) return;
+
+  function showToast(message, kind = "success") {
+    const isError = (kind === "error" || kind === "danger");
+    if (window.showToast) return window.showToast(message, null, isError);
+    alert(message);
+  }
+
+  function setToggle(btn, on) {
+    btn.classList.toggle('is-on', !!on);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+
+  function getToggle(btn) {
+    return btn.getAttribute('aria-pressed') === 'true';
+  }
+
+  // init
+  const existing = window.WorkplaceConsent.read();
+  const canUseExisting = window.WorkplaceConsent.canUse(existing);
+  const state = canUseExisting ? existing : { analytics: false, marketing: false };
+
+  // Ensure globals are available across the app once saved/loaded
+  if (canUseExisting) window.WorkplaceConsent.expose(existing);
+
+  toggles.forEach((btn) => {
+    const key = btn.dataset.consentKey;
+    setToggle(btn, !!state[key]);
+
+    btn.addEventListener('click', () => {
+      const next = !getToggle(btn);
+      setToggle(btn, next);
+    });
+  });
+
+  saveBtn.addEventListener('click', () => {
+    saveBtn.disabled = true;
+    saveBtn.classList.add('is-loading');
+
+    try {
+      const prefs = { functional: true };
+      toggles.forEach((btn) => {
+        prefs[btn.dataset.consentKey] = getToggle(btn);
+      });
+
+      window.WorkplaceConsent.write(prefs);
+      showToast('Privacy settings saved.');
+    } catch (e) {
+      showToast('Unable to save privacy settings.', 'error');
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.classList.remove('is-loading');
+    }
+  });
+})();
+</script>

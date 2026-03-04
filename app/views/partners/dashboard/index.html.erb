@@ -1,0 +1,216 @@
+<h1>Overview</h1>
+<div class="pp-container">
+  <!-- Row 1: Referral Link + Rewards (full width) -->
+  <section class="pp-card pp-span-2">
+    <div class="pp-card-header">
+      <h2>Referral link</h2>
+      <a class="pp-link" href="<%= partners_links_path rescue '#' %>">View all</a>
+    </div>
+
+    <div class="pp-actions">
+      <% if @primary_link.present? && @referral_url.present? %>
+        <input type="text" class="pp-input" value="<%= @referral_url %>" readonly>
+        <button class="pp-btn" data-copy-url="<%= @referral_url %>">Copy link</button>
+        <%= link_to "Download QR",
+                    qr_partners_link_path(@primary_link, format: :png, size: 512),
+                    class: "pp-btn",
+                    style: "margin-left:6px;" %>
+      <% else %>
+        <div class="pp-muted" style="margin-right:12px;">No referral link yet.</div>
+        <%= link_to "Create your first link", partners_links_path, class: "pp-btn" %>
+      <% end %>
+    </div>
+
+    <div class="pp-rewards">
+      <h3 style="margin-top:16px;">Rewards</h3><br>
+      <div class="pp-reward">20% per transaction, includes all one-time and recurring transactions.</div>
+    </div>
+  </section>
+
+  <section class="pp-card pp-span-1">
+    <div class="pp-card-header">
+      <h3>Payouts</h3>
+      <a class="pp-link" href="<%= partners_payouts_path rescue '#' %>">View all</a>
+    </div>
+
+    <ul class="pp-list">
+      <% items = @payouts_card_items || [] %>
+      <% if items.any? %>
+        <% items.each do |p| %>
+          <li class="pp-list-item">
+            <div class="pp-list-left">
+              <div class="pp-amount">
+                <% if p[:date] %>
+                  <%= p[:date].strftime("%b %-d") %>
+                <% end %> -
+                $<%= number_with_precision(p[:amount_cents].to_i / 100.0, precision: 2) %>
+              </div>
+
+              <div class="pp-muted">
+                <% if p[:start_date] && p[:end_date] %>
+                  <span class="pp-label">Period:</span>
+                  <%= p[:start_date].strftime("%b %-d, %Y") %>–<%= p[:end_date].strftime("%b %-d, %Y") %>
+                <% end %>
+              </div>
+            </div>
+
+            <div class="pp-status"><%= p[:status].to_s.humanize %></div>
+          </li>
+        <% end %>
+      <% else %>
+        <li class="pp-list-item"><div class="pp-muted">No payouts yet.</div></li>
+      <% end %>
+    </ul>
+  </section>
+
+
+  <!-- Row 3: Clicks, Leads, Sales (3 equal) -->
+  <section class="pp-card">
+    <div class="pp-card-header">
+      <h3>Clicks</h3>
+      <div class="pp-muted"><%= @clicks_total || 0 %></div>
+      <div class="pp-right">
+        Last 30 days
+      </div>
+    </div>
+
+    <%= render "sparkline",
+      total:  @clicks_total,
+      points: @clicks_points,
+      height: 90,
+      number_kind: :number,
+      dom_id: "clicks" %>
+  </section>
+
+  <section class="pp-card">
+    <div class="pp-card-header">
+      <h3>Leads</h3>
+      <div class="pp-muted"><%= @leads_total || 0 %></div>
+      <div class="pp-right">
+        Last 30 days
+      </div>
+    </div>
+
+    <%= render "sparkline",
+      total:  @leads_total,
+      points: @leads_points,
+      height: 90,
+      number_kind: :number,
+      dom_id: "leads" %>
+  </section>
+
+  <section class="pp-card">
+  <div class="pp-card-header">
+    <h3>Trials</h3>
+    <div class="pp-muted"><%= @trials_total || 0 %></div>
+    <div class="pp-right">Last 30 days</div>
+  </div>
+
+  <%= render "sparkline",
+    total:  @trials_total,
+    points: @trials_points,
+    height: 90,
+    number_kind: :number,
+    dom_id: "trials" %>
+</section>
+
+
+  <section class="pp-card">
+    <div class="pp-card-header">
+      <h3>Sales</h3>
+      <div class="pp-muted"><%= @sales_total || 0 %></div>
+      <div class="pp-right">
+        Last 30 days
+      </div>
+    </div>
+
+    <%= render "sparkline",
+      total:  @sales_total,
+      points: @sales_points,
+      height: 90,
+      number_kind: :number,
+      dom_id: "sales" %>
+
+  </section>
+
+  <!-- Row 2: Earnings (2/3) + Payouts (1/3) -->
+  <section class="pp-card pp-span-2">
+    <div class="pp-card-header">
+      <h3>Earnings</h3>
+      <div class="pp-muted">
+        $<%= number_with_precision(@earnings_total || 0, precision: 2) %>
+      </div>
+      <div class="pp-right">
+        Last 30 days
+      </div>
+    </div>
+
+    <%= render "sparkline",
+      total:  @earnings_total,
+      points: @earnings_points,
+      height: 110,
+      number_kind: :currency,
+      dom_id: "earn" %>
+  </section>
+
+  <!-- Row 4: Recent earnings (full width) -->
+  <section class="pp-card pp-span-3">
+    <div class="pp-card-header">
+      <h3>Recent transactions</h3>
+      <a class="pp-link" href="<%= partners_transactions_path rescue '#' %>">View all</a>
+    </div>
+
+    <div class="pp-table-wrap">
+      <table class="pp-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Type</th>
+            <th>Link</th>
+            <th class="pp-num">Sale Amount</th>
+            <th class="pp-num">Commission</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if @recent_earnings.present? %>
+            <% @recent_earnings.each do |row| %>
+              <tr>
+                <td><%= row[:date].strftime("%b %-d, %Y") %></td>
+                <td><%= row[:type] %></td>
+                <td class="pp-mono"><%= row[:link] %></td>
+                <td class="pp-num">$<%= number_with_precision(row[:sale], precision: 2) %></td>
+                <td class="pp-num">$<%= number_with_precision(row[:earn], precision: 2) %></td>
+                <td><%= row[:status] %></td>
+              </tr>
+            <% end %>
+          <% else %>
+            <tr><td colspan="6" class="pp-muted">No earnings yet.</td></tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<!-- Toast (place once per page, or keep the one already in your layout) -->
+<div id="copy-toast" class="pp-toast" style="display:none;">
+  Copied to clipboard!
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll("[data-copy-url]").forEach(btn => {
+      btn.addEventListener("click", function () {
+        const url = this.dataset.copyUrl || "";
+        if (!url) return;
+        navigator.clipboard.writeText(url).then(() => {
+          const toast = document.getElementById("copy-toast");
+          if (!toast) return;
+          toast.style.display = "block";
+          setTimeout(() => toast.style.display = "none", 1800);
+        }).catch(err => console.error("Failed to copy link", err));
+      });
+    });
+  });
+</script>

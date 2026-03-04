@@ -1,0 +1,82 @@
+<div id="settings-toast-container"></div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // title:    string
+    // subtitle: string | null
+    // sticky:   boolean (default false; true = stays open until closed)
+    window.showToast = function(title, subtitle = null, sticky = false) {
+      var duration = 3000; // ms – auto-close delay for non-sticky toasts
+
+      var container = document.getElementById("settings-toast-container");
+      if (!container) {
+        container = document.createElement("div");
+        container.id = "settings-toast-container";
+        document.body.appendChild(container);
+      }
+
+      // Remove any existing toast
+      var existing = container.querySelector(".settings-toast");
+      if (existing) existing.remove();
+
+      var toast = document.createElement("div");
+      toast.className = "settings-toast";
+
+      toast.innerHTML = `
+        <div class="settings-toast-body">
+          <div class="settings-toast-title">
+            ${escapeHtml(title)}
+          </div>
+          ${
+            subtitle
+              ? `<span class="settings-toast-link">${escapeHtml(subtitle)}</span>`
+              : ""
+          }
+        </div>
+        <button class="settings-toast-close" aria-label="Close">&times;</button>
+      `;
+
+      container.appendChild(toast);
+
+      // Trigger slide-in on next frame
+      requestAnimationFrame(function () {
+        toast.classList.add("is-visible");
+      });
+
+      var closeBtn = toast.querySelector(".settings-toast-close");
+      closeBtn.addEventListener("click", function() {
+        hideToast(toast);
+      });
+
+      // Auto-close only if NOT sticky
+      if (!sticky) {
+        setTimeout(function() {
+          hideToast(toast);
+        }, duration);
+      }
+    };
+
+    function hideToast(toast) {
+      if (!toast) return;
+      toast.classList.remove("is-visible");
+
+      // Wait for the slide-out transition to finish, then remove
+      var removeHandler = function(event) {
+        if (event.propertyName !== "transform") return;
+        toast.removeEventListener("transitionend", removeHandler);
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
+      };
+
+      toast.addEventListener("transitionend", removeHandler);
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+  });
+</script>

@@ -1,0 +1,52 @@
+<%# locals:
+#  total:        Numeric (top tick)
+#  points:       Array of y-values (e.g., last 30 days)
+#  height:       Integer pixels (e.g., 110 or 90)
+#  number_kind:  :currency or :number  (default :number)
+#  dom_id:       unique id suffix for SVG defs ("earn", "clicks", ...)
+%>
+<% number_kind ||= :number %>
+<% top_label =
+     case number_kind
+     when :currency then number_to_currency(total || 0, precision: 0)
+     else number_with_delimiter((total || 0).to_i)
+     end %>
+
+<div class="spark" style="--spark-h:<%= height.to_i %>px">
+  <div class="spark-wrap">
+    <!-- Y axis -->
+    <div class="spark-axis">
+      <div class="tick top"><%= top_label %></div>
+      <div class="tick bot"><%= number_kind == :currency ? number_to_currency(0, precision: 0) : "0" %></div>
+    </div>
+
+    <!-- Chart -->
+    <div>
+      <% paths = sparkline_paths(points || [], height: height) %>
+      <svg viewBox="0 0 320 <%= height %>" preserveAspectRatio="none" class="spark-svg">
+        <defs>
+          <linearGradient id="spark-fade-<%= dom_id %>" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" stop-color="#F1F5F9" stop-opacity="1"/>
+            <stop offset="1" stop-color="#F1F5F9" stop-opacity="0"/>
+          </linearGradient>
+          <filter id="spark-soft-<%= dom_id %>">
+            <feGaussianBlur stdDeviation="1.0"/>
+          </filter>
+        </defs>
+
+        <!-- area under line -->
+        <path d="<%= paths[:area] %>"
+              fill="url(#spark-fade-<%= dom_id %>)"
+              filter="url(#spark-soft-<%= dom_id %>)"></path>
+
+        <!-- line (keeps thickness constant) -->
+        <path d="<%= paths[:line] %>"
+              fill="none"
+              stroke="#CBD5E1"
+              stroke-width="2"
+              stroke-linecap="round"
+              vector-effect="non-scaling-stroke"></path>
+      </svg>
+    </div>
+  </div>
+</div>

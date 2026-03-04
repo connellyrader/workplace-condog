@@ -1,0 +1,228 @@
+<%# app/views/trust_center/docs/subprocessors.html.erb %>
+
+<div class="trust-doc">
+  <div class="trust-doc-header">
+    <div class="trust-doc-breadcrumb">
+      <%= link_to "Trust Center", trust_home_url, class: "trust-doc-breadcrumb-link" %>
+      <span class="trust-doc-breadcrumb-sep">/</span>
+      <span class="trust-doc-breadcrumb-current">Subprocessors</span>
+    </div>
+
+    <div class="trust-doc-title-row">
+      <%= image_tag "logo.png", class: "trust-doc-logo", alt: "Workplace.io" %>
+      <div class="trust-doc-title">Subprocessors</div>
+    </div>
+
+    <div class="trust-doc-subtitle">
+      A current list of subprocessors we use, what they do, and how we evaluate and manage vendor risk. We also list certain offline,
+      licensed datasets used internally that do not receive customer data.
+    </div>
+
+    <div class="trust-doc-updated">
+      Last updated: <%= @trust_center_stamp %>
+    </div>
+  </div>
+
+  <div class="trust-doc-body">
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Vendor risk management</div>
+      <div class="trust-doc-text">
+        We select vendors based on security posture, data access scope, and service criticality. We limit the data shared to what is necessary,
+        restrict credentials and access, and monitor for availability and integration issues.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Due diligence:</strong> vendor review appropriate to the sensitivity of data and the service provided.</li>
+        <li><strong>Least data:</strong> only the data needed for a service function is processed by the vendor.</li>
+        <li><strong>Access restriction:</strong> credentials and vendor access are controlled and limited.</li>
+        <li><strong>Change management:</strong> material subprocessor changes are managed and communicated on request.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Change notifications</div>
+      <div class="trust-doc-text">
+        We update this page when subprocessors change. If your organization requires formal notification terms (for example, 30 days’ notice),
+        contact us and we’ll coordinate.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Contact Trust & Security →", trust_doc_url_for("contact"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Infrastructure & hosting subprocessors</div>
+
+      <div class="trust-lines">
+        <div class="trust-line">
+          <div class="trust-line-title">DigitalOcean</div>
+          <div class="trust-line-desc">
+            Purpose: application hosting (droplets), load balancing, managed database.<br>
+            Data: customer account data, workspace configuration, derived metadata and reporting data.<br>
+            Region: configured region.
+          </div>
+        </div>
+
+        <div class="trust-line">
+          <div class="trust-line-title">Amazon Web Services (AWS) – Amazon SageMaker</div>
+          <div class="trust-line-desc">
+            Purpose: secure processing for classification and culture inference.<br>
+            Data: short-lived inputs required for inference; derived results returned to the application.<br>
+            Region: configured region.
+          </div>
+        </div>
+
+        <div class="trust-doc-section">
+        <div class="trust-doc-section-title">AI assistance subprocessors (optional feature)</div>
+        <div class="trust-doc-text">
+          Workplace.io offers an optional interactive chat feature that can help users interpret dashboards and metrics. When enabled and used,
+          this feature may send customer-provided prompts and limited dashboard context to a third-party AI provider. This is separate from our
+          culture classification system, which runs on AWS SageMaker.
+        </div>
+
+        <div class="trust-lines">
+          <div class="trust-line">
+            <div class="trust-line-title">OpenAI</div>
+            <div class="trust-line-desc">
+              Purpose: interactive chat and explanation feature (customer-initiated).<br>
+              Data: customer prompts and limited dashboard context required to respond (minimized).<br>
+              Notes: not used for classification; classification and inference runs on AWS SageMaker. API data is not used to train OpenAI models.
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+        <div class="trust-doc-callout trust-doc-callout--note">
+          <div class="trust-doc-callout-title">Inference note</div>
+          <div class="trust-doc-callout-text">
+            Inference workloads run on AWS SageMaker. We do not publicly disclose model architecture, training data, or internal signal taxonomy.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Communications subprocessors</div>
+
+      <div class="trust-lines">
+        <div class="trust-line">
+          <div class="trust-line-title">Postmark</div>
+          <div class="trust-line-desc">
+            Purpose: transactional email delivery.<br>
+            Data: email address and email content for system emails (for example invites, notices).<br>
+            Region: varies by provider configuration.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Billing subprocessors</div>
+
+      <div class="trust-lines">
+        <div class="trust-line">
+          <div class="trust-line-title">Stripe</div>
+          <div class="trust-line-desc">
+            Purpose: payment processing and billing.<br>
+            Data: billing contact details and payment-related metadata.<br>
+            Region: varies by provider configuration.
+          </div>
+        </div>
+      </div>
+
+      <div class="trust-doc-callout trust-doc-callout--note">
+        <div class="trust-doc-callout-title">Note</div>
+        <div class="trust-doc-callout-text">
+          If Stripe is not used for your account, it will not process your data.
+        </div>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Partner Program subprocessors</div>
+      <div class="trust-doc-text">
+        The following vendor is used only for Partner Program payout operations. It is not used for core Workplace.io
+        analytics, Slack/Teams ingestion, or customer reporting.
+      </div>
+
+      <div class="trust-lines">
+        <div class="trust-line">
+          <div class="trust-line-title">Trolley</div>
+          <div class="trust-line-desc">
+            Purpose: partner/affiliate payout processing.<br>
+            Data: partner contact details and payout method information (and tax documentation if applicable).<br>
+            Region: varies by provider configuration.
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Third-party data sources (offline)</div>
+      <div class="trust-doc-text">
+        These providers supply licensed datasets that we download and use internally. They do not receive customer IP addresses or other customer
+        data from us as part of this use.
+      </div>
+
+      <div class="trust-lines">
+        <div class="trust-line">
+          <div class="trust-line-title">MaxMind</div>
+          <div class="trust-line-desc">
+            Purpose: IP geolocation reference data.<br>
+            How used: we download a dataset and perform lookups internally; customer IP addresses are not sent to MaxMind.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Third-party platforms (customer-controlled)</div>
+      <div class="trust-doc-text">
+        Some third-party platforms may be involved in (1) user authentication (SSO) and/or (2) customer-authorized data source integrations.
+        These platforms are connected and authorized by the customer. Workplace.io only accesses them under the permissions granted by your
+        administrators and configuration.
+      </div>
+
+      <div class="trust-lines">
+        <div class="trust-line">
+          <div class="trust-line-title">Slack</div>
+          <div class="trust-line-desc">
+            Role(s): user sign-in (SSO), customer-authorized collaboration data source.<br>
+            Notes: access is scoped by authorization and configured features; disconnecting the integration stops future ingestion.
+          </div>
+        </div>
+
+        <div class="trust-line">
+          <div class="trust-line-title">Microsoft Teams (Microsoft Entra ID)</div>
+          <div class="trust-line-desc">
+            Role(s): user sign-in (SSO), customer-authorized collaboration data source.<br>
+            Notes: access is scoped by authorization and configured features; some tenants require admin consent for certain permissions.
+          </div>
+        </div>
+
+        <div class="trust-line">
+          <div class="trust-line-title">Google</div>
+          <div class="trust-line-desc">
+            Role(s): optional identity provider for user sign-in (SSO).<br>
+            Notes: used only for authentication when selected by the user; does not grant access to Slack/Teams workspace data.
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <div class="trust-doc-footer">
+      <div class="trust-doc-footer-title">Questions about vendors?</div>
+      <div class="trust-doc-footer-text">
+        Contact us for the latest list, notification terms, or procurement documentation.
+      </div>
+      <div class="trust-doc-footer-actions">
+        <%= link_to "Contact Trust & Security", trust_doc_url_for("contact"), class: "trust-doc-button" %>
+        <%= link_to "Back to Trust Center", trust_home_url, class: "trust-doc-button trust-doc-button--secondary" %>
+      </div>
+    </div>
+  </div>
+</div>

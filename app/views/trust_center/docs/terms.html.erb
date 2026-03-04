@@ -1,0 +1,317 @@
+<%# app/views/trust_center/docs/terms.html.erb %>
+
+<div class="trust-doc">
+  <div class="trust-doc-header">
+    <div class="trust-doc-breadcrumb">
+      <%= link_to "Trust Center", trust_home_url, class: "trust-doc-breadcrumb-link" %>
+      <span class="trust-doc-breadcrumb-sep">/</span>
+      <span class="trust-doc-breadcrumb-current">Terms of Service</span>
+    </div>
+
+    <div class="trust-doc-title-row">
+      <%= image_tag "logo.png", class: "trust-doc-logo", alt: "Workplace.io" %>
+      <div class="trust-doc-title">Terms of Service</div>
+    </div>
+
+    <div class="trust-doc-subtitle">
+      These Terms of Service (“Terms”) govern access to and use of Workplace.io (the “Service”). By creating an account,
+      signing in, or using the Service, you agree to these Terms.
+    </div>
+
+    <div class="trust-doc-updated">
+      Last updated: <%= @trust_center_stamp %>
+    </div>
+  </div>
+
+  <div class="trust-doc-body">
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">1. Company and service</div>
+      <div class="trust-doc-text">
+        Workplace.io is a product operated by <strong>5 Voices Inc.</strong>, a Delaware corporation (“5 Voices,” “Company,” “we,” “us,” or “our”).
+        These Terms govern your access to and use of the Service, including any websites, dashboards, and related features provided by the Company.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">2. Definitions</div>
+      <ul class="trust-doc-list">
+        <li><strong>“Account”</strong> means an individual user account used to access the Service.</li>
+        <li><strong>“Workspace”</strong> means a tenant or organization space within the Service, typically representing a team or company.</li>
+        <li><strong>“Workspace Owner”</strong> and <strong>“Admin”</strong> mean users with elevated permissions to manage settings, integrations, roles, and billing (as applicable).</li>
+        <li><strong>“Viewer”</strong> means a user with read-only access to dashboards and content (as configured by the Workspace).</li>
+        <li><strong>“Customer Data”</strong> means data submitted to or processed by the Service on behalf of a Workspace, including data from connected integrations.</li>
+        <li><strong>“Content”</strong> means text, data, or other information processed through the Service.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">3. Eligibility and authority</div>
+      <div class="trust-doc-text">
+        You must be at least 18 years old (or the age of majority where you live) to use the Service.
+        If you use the Service on behalf of an organization (for example, your employer), you represent that you have authority to bind that
+        organization to these Terms, and that your use is authorized by that organization.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">4. Accounts and authentication</div>
+      <div class="trust-doc-text">
+        You may access the Service using supported sign-in methods, including single sign-on (SSO) providers and/or email and password.
+        You are responsible for maintaining the confidentiality of your credentials and for all activity under your Account.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Accurate information:</strong> you agree to provide accurate account information and keep it up to date.</li>
+        <li><strong>Account security:</strong> you agree to promptly notify us if you suspect unauthorized access to your Account.</li>
+        <li><strong>One account per person:</strong> you will not share accounts or credentials with others.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">5. Workspace roles and administrator authority</div>
+      <div class="trust-doc-text">
+        The Service is organized around Workspaces. Workspace Owners and Admins may invite or remove users, assign roles, connect or disconnect
+        integrations, and configure Workspace settings. Your permissions depend on your role.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Authority:</strong> if you are a Workspace Owner or Admin, you represent you are authorized to take actions on behalf of your organization.</li>
+        <li><strong>Responsibility:</strong> Workspace Owners/Admins are responsible for configuring integrations, access, and governance consistent with law and internal policy.</li>
+        <li><strong>Viewer/member access:</strong> if you are a Viewer or standard user, your access may be limited by the Workspace’s configuration and your assigned role.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">6. Integrations and third-party platforms</div>
+      <div class="trust-doc-text">
+        The Service may connect to third-party platforms (such as Slack and Microsoft Teams) as customer-authorized data sources. Integrations are
+        enabled and configured by Workspace Owners/Admins. We access third-party platforms only under the permissions granted by your Workspace.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Third-party terms:</strong> your use of third-party platforms is governed by the third party’s terms and policies.</li>
+        <li><strong>Availability:</strong> third-party outages or API limitations may affect Service functionality.</li>
+        <li><strong>Disconnect:</strong> Workspace admins may disconnect integrations to stop future ingestion.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Subprocessors →", trust_doc_url_for("subprocessors"), class: "trust-doc-link" %>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <%= link_to "Architecture & Data Flow →", trust_doc_url_for("architecture"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">7. Acceptable use</div>
+      <div class="trust-doc-text">
+        You agree not to misuse the Service. You must comply with applicable law and your organization’s policies. You may not access data you are
+        not authorized to access, interfere with the Service, or attempt to extract or reverse engineer proprietary components.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>No unauthorized access:</strong> do not attempt to access Workspaces, accounts, or systems without authorization.</li>
+        <li><strong>No interference:</strong> do not disrupt the Service, attempt denial-of-service activity, or abuse API/integration workflows.</li>
+        <li><strong>No misuse for surveillance:</strong> do not use the Service for unlawful individual monitoring or targeting that violates policy or law.</li>
+        <li><strong>No reverse engineering:</strong> do not reverse engineer the Service, including attempts to extract proprietary analytics methods or internal mappings.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Acceptable Use (Culture Insights) →", trust_doc_url_for("acceptable-use"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">8. Culture insights; limitations</div>
+      <div class="trust-doc-text">
+        The Service provides aggregate insights intended to support organizational improvement. Outputs are informational and must be interpreted in
+        context. The Service is not legal, HR, or compliance advice and is not a substitute for professional judgment.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>No automated employment decisions:</strong> you agree not to use outputs as the sole basis for hiring, firing, compensation, or discipline.</li>
+        <li><strong>Context matters:</strong> insights may reflect incomplete signals and should be evaluated alongside human context.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">9. Data handling</div>
+      <div class="trust-doc-text">
+        We process data to operate the Service, maintain integrations, generate insights, and support security and reliability. Message content is
+        processed for a short period during analysis and then removed; derived metadata and aggregated results are retained to power reporting and trends.
+        Additional details are described in our Trust Center documentation.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Data Handling & Retention →", trust_doc_url_for("data-handling"), class: "trust-doc-link" %>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <%= link_to "Privacy Policy →", trust_doc_url_for("privacy"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">10. Fees and billing</div>
+      <div class="trust-doc-text">
+        Some features may require payment. If your Workspace is on a paid plan, you agree to pay applicable fees and taxes. Billing terms may be
+        provided at checkout, in an order form, and/or in Workspace billing settings. Unless otherwise stated, fees are non-refundable except as
+        required by law or expressly stated in an order form.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Taxes:</strong> you are responsible for applicable taxes unless we are required to collect them.</li>
+        <li><strong>Changes:</strong> we may change pricing with reasonable notice as permitted by law.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">11. Intellectual property</div>
+      <div class="trust-doc-text">
+        The Service (including software, design, and documentation) is owned by the Company and its licensors and is protected by intellectual property laws.
+        Except for the limited rights granted to you, we reserve all rights in the Service.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Your data:</strong> you retain rights to Customer Data, subject to the rights you grant to us to operate the Service.</li>
+        <li><strong>Our IP:</strong> we retain all rights in the Service and proprietary methods used to provide it.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">12. License to operate the Service</div>
+      <div class="trust-doc-text">
+        You grant the Company a limited, non-exclusive, worldwide license to host, process, transmit, and display Customer Data solely as needed to
+        provide, maintain, secure, and improve the Service, comply with law, and enforce these Terms. This includes processing by approved subprocessors.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Subprocessors →", trust_doc_url_for("subprocessors"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">13. Confidentiality</div>
+      <div class="trust-doc-text">
+        If we exchange confidential information (including during procurement), each party will protect the other’s confidential information using
+        reasonable measures and will use it only for the permitted purpose. Confidential information does not include information that is publicly
+        available through no fault of the receiving party.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">14. Security</div>
+      <div class="trust-doc-text">
+        We implement security controls designed to protect the Service and Customer Data. No system is perfectly secure, but we work to maintain
+        appropriate safeguards and to respond to incidents.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Security Overview →", trust_doc_url_for("security-overview"), class: "trust-doc-link" %>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <%= link_to "Incident Response →", trust_doc_url_for("incident-response"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">15. Suspension and termination</div>
+      <div class="trust-doc-text">
+        You may stop using the Service at any time. We may suspend or terminate access if we reasonably believe you violated these Terms, to protect
+        the Service or others, or if required by law. Workspace Owners/Admins may remove users from a Workspace at any time.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Suspension:</strong> may occur for abuse prevention, security, or legal compliance.</li>
+        <li><strong>Termination:</strong> may occur for repeated or severe violations.</li>
+        <li><strong>Effect:</strong> upon termination, your right to access the Service ends.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">16. Disclaimers</div>
+      <div class="trust-doc-text">
+        THE SERVICE IS PROVIDED “AS IS” AND “AS AVAILABLE.” TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE COMPANY DISCLAIMS ALL WARRANTIES,
+        EXPRESS OR IMPLIED, INCLUDING IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
+        WE DO NOT WARRANT THAT THE SERVICE WILL BE UNINTERRUPTED, ERROR-FREE, OR MEET YOUR REQUIREMENTS.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">17. Limitation of liability</div>
+      <div class="trust-doc-text">
+        TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE COMPANY WILL NOT BE LIABLE FOR INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES,
+        OR ANY LOSS OF PROFITS, REVENUE, DATA, OR GOODWILL ARISING OUT OF OR RELATED TO THE SERVICE.
+        TO THE EXTENT THE COMPANY IS LIABLE, OUR AGGREGATE LIABILITY FOR ALL CLAIMS RELATING TO THE SERVICE WILL NOT EXCEED THE AMOUNTS PAID BY YOU
+        (OR YOUR ORGANIZATION) TO THE COMPANY FOR THE SERVICE IN THE TWELVE (12) MONTHS PRECEDING THE EVENT GIVING RISE TO THE CLAIM, OR $100 IF NO
+        FEES WERE PAID, WHICHEVER IS GREATER.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">18. Indemnification</div>
+      <div class="trust-doc-text">
+        You agree to defend, indemnify, and hold harmless the Company and its officers, directors, employees, and agents from and against any claims,
+        liabilities, damages, and expenses (including reasonable attorneys’ fees) arising from your use of the Service, your violation of these Terms,
+        or your violation of law or third-party rights.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">19. Governing law; venue</div>
+      <div class="trust-doc-text">
+        These Terms are governed by the laws of the State of <strong>Delaware</strong>, excluding its conflict of laws rules.
+        Any dispute arising out of or relating to these Terms or the Service will be brought in the state or federal courts located in
+        <strong>New Castle County, Delaware</strong>, and each party consents to jurisdiction and venue in those courts.
+      </div>
+
+      <div class="trust-doc-callout trust-doc-callout--note">
+        <div class="trust-doc-callout-title">Optional: arbitration</div>
+        <div class="trust-doc-callout-text">
+          Many SaaS companies include arbitration and class action waiver provisions. If you want that structure, it should be drafted and reviewed by counsel.
+        </div>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">20. Changes to these Terms</div>
+      <div class="trust-doc-text">
+        We may update these Terms from time to time. If we make material changes, we will post updated Terms and update the effective date. Your
+        continued use of the Service after the effective date constitutes acceptance of the updated Terms.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">21. Partner / affiliate accounts</div>
+      <div class="trust-doc-text">
+        If you enroll in our partner or affiliate program (“Partner Program”), additional terms apply to your participation, including commission
+        eligibility, payout rules, and marketing requirements. If there is a conflict between these Terms and the Partner Program Terms, the Partner
+        Program Terms control for Partner Program matters.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Partner Program Terms →", trust_doc_url_for("partner-terms"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">22. Policies</div>
+      <div class="trust-doc-text">
+        Additional policies are incorporated by reference:
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><%= link_to "Privacy Policy →", trust_doc_url_for("privacy"), class: "trust-doc-link" %></li>
+        <li><%= link_to "Cookie Policy →", trust_doc_url_for("cookies"), class: "trust-doc-link" %></li>
+        <li><%= link_to "Acceptable Use (Culture Insights) →", trust_doc_url_for("acceptable-use"), class: "trust-doc-link" %></li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-footer">
+      <div class="trust-doc-footer-title">Questions?</div>
+      <div class="trust-doc-footer-text">
+        Contact us if you have questions about these Terms.
+      </div>
+      <div class="trust-doc-footer-actions">
+        <%= link_to "Contact Trust & Security", trust_doc_url_for("contact"), class: "trust-doc-button" %>
+        <%= link_to "Back to Trust Center", trust_home_url, class: "trust-doc-button trust-doc-button--secondary" %>
+      </div>
+    </div>
+  </div>
+</div>

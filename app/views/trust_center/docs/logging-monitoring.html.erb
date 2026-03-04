@@ -1,0 +1,121 @@
+<%# app/views/trust_center/docs/logging-monitoring.html.erb %>
+
+<div class="trust-doc">
+  <div class="trust-doc-header">
+    <div class="trust-doc-breadcrumb">
+      <%= link_to "Trust Center", trust_home_url, class: "trust-doc-breadcrumb-link" %>
+      <span class="trust-doc-breadcrumb-sep">/</span>
+      <span class="trust-doc-breadcrumb-current">Logging & Monitoring</span>
+    </div>
+
+    <div class="trust-doc-title-row">
+      <%= image_tag "logo.png", class: "trust-doc-logo", alt: "Workplace.io" %>
+      <div class="trust-doc-title">Logging & Monitoring</div>
+    </div>
+
+    <div class="trust-doc-subtitle">
+      Workplace.io collects operational telemetry and security-relevant logs to support reliability, performance, and incident
+      investigation. We minimize sensitive data in logs and avoid logging message content or credentials.
+    </div>
+
+    <div class="trust-doc-updated">
+      Last updated: <%= @trust_center_stamp %>
+    </div>
+  </div>
+
+  <div class="trust-doc-body">
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">At a glance</div>
+      <div class="trust-doc-bullets">
+        <ul class="trust-doc-bullet-list">
+          <li><strong>Operational monitoring:</strong> we track service health, job processing, and error rates to keep the platform stable.</li>
+          <li><strong>Security visibility:</strong> we log key events needed for investigation and auditability.</li>
+          <li><strong>Log hygiene:</strong> we minimize sensitive payload logging and avoid logging message content and credentials.</li>
+          <li><strong>Incident support:</strong> logs and metrics support incident response and post-incident review.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">What we log</div>
+      <div class="trust-doc-text">
+        Logging is designed to support troubleshooting, operational reliability, and investigation. Examples of logged information include
+        service errors, integration sync status, background job execution status, and administrative actions.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Application events:</strong> request errors, performance signals, and service health indicators.</li>
+        <li><strong>Background processing:</strong> job execution status and failures for asynchronous workflows.</li>
+        <li><strong>Integration activity:</strong> connection events, sync state transitions, and ingestion processing counts.</li>
+        <li><strong>Administrative actions:</strong> access-controlled changes such as role updates, integration connects/disconnects, and workspace archiving.</li>
+      </ul>
+
+      <div class="trust-doc-callout trust-doc-callout--note">
+        <div class="trust-doc-callout-title">Message content and credentials</div>
+        <div class="trust-doc-callout-text">
+          We avoid logging message bodies and OAuth credentials. Operational logs focus on status, counts, timing, and error diagnostics.
+          Where external payloads are used (e.g., webhooks), payload logging is minimized and authenticated requests are validated.
+        </div>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Monitoring</div>
+      <div class="trust-doc-text">
+        We monitor the platform to detect operational issues and potential security events. Monitoring helps us identify elevated error rates,
+        processing delays, and abnormal patterns that may indicate misuse or service degradation.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Availability:</strong> health checks and uptime monitoring for core services.</li>
+        <li><strong>Performance:</strong> latency and throughput indicators, background queue depth, and processing delays.</li>
+        <li><strong>Errors:</strong> alerting on error spikes and recurring failures.</li>
+        <li><strong>Integration health:</strong> ingestion and sync monitoring to detect provider outages or permission failures.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Security-relevant events</div>
+      <div class="trust-doc-text">
+        We log security-relevant events to support investigation and response. These include authentication activity, administrative actions,
+        integration authorization changes, and other events that affect access or data flow.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Authentication:</strong> sign-in activity and failures (at an appropriate level for investigation).</li>
+        <li><strong>Authorization:</strong> role changes and privileged actions performed by workspace administrators.</li>
+        <li><strong>Integration security:</strong> connect/disconnect events and OAuth state changes.</li>
+        <li><strong>Webhook authentication:</strong> validation outcomes for authenticated webhook requests.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Retention and access</div>
+      <div class="trust-doc-text">
+        Log retention is managed to balance investigation needs with data minimization. Access to operational logs is restricted to authorized
+        personnel and systems that require it for support, security review, and incident response.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Access restriction:</strong> least privilege access for operational and security staff.</li>
+        <li><strong>Change control:</strong> controlled changes to monitoring and alerting configuration.</li>
+        <li><strong>Minimization:</strong> sensitive data is avoided or redacted where appropriate.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Incident Response →", trust_doc_url_for("incident-response"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-footer">
+      <div class="trust-doc-footer-title">Need operational details?</div>
+      <div class="trust-doc-footer-text">
+        If your team needs additional monitoring or logging information as part of due diligence, contact us and we’ll help.
+      </div>
+      <div class="trust-doc-footer-actions">
+        <%= link_to "Contact Trust & Security", trust_doc_url_for("contact"), class: "trust-doc-button" %>
+        <%= link_to "Back to Trust Center", trust_home_url, class: "trust-doc-button trust-doc-button--secondary" %>
+      </div>
+    </div>
+  </div>
+</div>

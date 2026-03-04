@@ -1,0 +1,17 @@
+.main-global-box {
+  width: 100%;
+}
+
+.category-scores {
+  justify-content: flex-start;
+}
+
+#chart-container {
+ width: 100%;      /* Full width of parent container */
+ height: 400px;    /* Explicit fixed height, adjust as needed */
+}
+
+#global_scores_chart {
+ width: 100%;      /* Ensures the inner chart fills the container */
+ height: 100%;     /* Chart fills entire fixed-height container */
+}

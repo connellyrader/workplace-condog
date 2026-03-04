@@ -1,0 +1,20 @@
+/*
+ *= require base
+ *= require layouts
+ *= require partners
+ *= require analyze
+ *= require components
+ *= require onboarding
+ *= require info
+ *= require navigation
+ *= require insights
+ *= require settings
+ *= require trust_center
+ *= require ai_chat_widget
+ *= require mobile
+ *= require masquerade
+ *= require_self
+*/
+
+/* Keep layer order declaration here (no layer() on imports) */
+@layer base, layout, components, onboarding, info, partners, analyze, navigation, insights, settings, trust_center, ai_chat_widget, masquerade, mobile;

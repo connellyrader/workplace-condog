@@ -1,0 +1,47 @@
+<% if teams.present? %>
+  <div class="onboarding-member-channel-section">
+    <div class="onboarding-member-channel-label">Teams</div>
+    <div class="onboarding-member-channel-row">
+      <div class="onboarding-member-channel active" data-filter-type="channel" data-filter-id="pseudo_everyone">Everyone</div>
+
+      <% teams.each do |team| %>
+        <div class="onboarding-member-channel"
+             data-filter-type="team"
+             data-filter-id="<%= team.id %>">
+          <%= team.name %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+<% end %>
+
+<div class="onboarding-member-channel-section">
+  <% if teams.present? %>
+    <div class="onboarding-member-channel-label">Channels</div>
+  <% end %>
+  <div class="onboarding-member-channel-row">
+    <% unless teams.present? %>
+      <div class="onboarding-member-channel active" data-filter-type="channel" data-filter-id="pseudo_everyone">#everyone</div>
+    <% end %>
+
+    <% if teams_channels.present? %>
+      <% teams_channels.each do |channel| %>
+        <div class="onboarding-member-channel"
+             data-filter-type="channel"
+             data-filter-id="<%= channel.id %>">
+          <%= channel.name %>
+        </div>
+      <% end %>
+    <% end %>
+
+    <% if slack_channels.present? %>
+      <% slack_channels.each do |channel| %>
+        <div class="onboarding-member-channel"
+             data-filter-type="channel"
+             data-filter-id="<%= channel.id %>">
+          #<%= channel.name %>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+</div>

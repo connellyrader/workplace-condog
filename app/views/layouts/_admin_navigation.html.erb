@@ -1,0 +1,57 @@
+<% if user_signed_in? && current_user.admin? %>
+  <div class="navigation">
+    <%= image_tag('logo-large.png', class: 'pp-logo') %>
+
+    <%#= icon "sidebar", class_name: "navigation-toggle" %>
+    <div class="navigation-toggle"></div>
+    <div style="height:10px;"></div>
+
+    <%= link_to admin_path, class: 'navigation-link' do %>
+      <%= icon "home", class_name: "navigation-icon" %>
+      <span>Dashboard</span>
+    <% end %>
+
+    <%= link_to admin_users_path, class: 'navigation-link' do %>
+      <%= icon "users", class_name: "navigation-icon" %>
+      <span>Users</span>
+    <% end %>
+
+    <%= link_to admin_insights_studio_path, class: 'navigation-link' do %>
+      <%= icon "activity", class_name: "navigation-icon" %>
+      <span>Insights Studio</span>
+    <% end %>
+    <%= link_to admin_prompts_path, class: 'navigation-link' do %>
+      <%= icon "sparkle", class_name: "navigation-icon" %>
+      <span>Prompts</span>
+    <% end %>
+
+    <%= link_to admin_benchmark_reviews_path, class: 'navigation-link' do %>
+      <%= icon "list", class_name: "navigation-icon" %>
+      <span>Benchmark Reviews</span>
+    <% end %>
+  <% if false %>
+    <%= link_to model_tests_path, class: 'navigation-link' do %>
+      <%= icon "sparkle", class_name: "navigation-icon" %>
+      <span>Model tests</span>
+    <% end %>
+
+    <%= link_to admin_models_path, class: 'navigation-link' do %>
+      <%= icon "pie-chart", class_name: "navigation-icon" %>
+      <span>Models</span>
+    <% end %>
+  <% end %>
+    <div class="navigation-footer">
+      <%= link_to root_path, class: 'navigation-link' do %>
+        <%= icon "left-arrow", class_name: "navigation-icon" %>
+        <span>Exit</span>
+      <% end %>
+
+      <%= link_to destroy_user_session_path, class: 'navigation-link', method: :delete do %>
+        <%= icon "logout", class_name: "navigation-icon" %>
+        <span>Logout</span>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="backdrop" aria-hidden="true"></div>
+<% end %>

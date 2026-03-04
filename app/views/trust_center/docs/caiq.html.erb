@@ -1,0 +1,323 @@
+<%# app/views/trust_center/docs/caiq.html.erb %>
+
+<div class="trust-doc">
+  <div class="trust-doc-header">
+    <div class="trust-doc-breadcrumb">
+      <%= link_to "Trust Center", trust_home_url, class: "trust-doc-breadcrumb-link" %>
+      <span class="trust-doc-breadcrumb-sep">/</span>
+      <span class="trust-doc-breadcrumb-current">CSA CAIQ</span>
+    </div>
+
+    <div class="trust-doc-title-row">
+      <%= image_tag "logo.png", class: "trust-doc-logo", alt: "Workplace.io" %>
+      <div class="trust-doc-title">CSA CAIQ</div>
+    </div>
+
+    <div class="trust-doc-subtitle">
+      This page provides CSA CAIQ-aligned responses for Workplace.io. Responses are written in a customer-facing way and focus
+      on how our service is operated today. Where an item is partially implemented or evolving, we note that explicitly.
+    </div>
+
+    <div class="trust-doc-updated">
+      Last updated: <%= @trust_center_stamp %>
+    </div>
+  </div>
+
+  <div class="trust-doc-body">
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Scope and environment</div>
+      <div class="trust-doc-text">
+        Workplace.io is a multi-tenant SaaS product. The application is hosted on DigitalOcean droplets behind a DigitalOcean
+        load balancer and uses DigitalOcean Managed Databases. Classification and culture inference workloads run on AWS using
+        Amazon SageMaker. Collaboration platform sources currently supported are Slack and Microsoft Teams.
+      </div>
+
+      <div class="trust-doc-callout trust-doc-callout--note">
+        <div class="trust-doc-callout-title">About this CAIQ summary</div>
+        <div class="trust-doc-callout-text">
+          CSA CAIQ is a large questionnaire. This page summarizes the most commonly requested control areas using CAIQ-style
+          questions and concise answers. If your procurement process requires a full CAIQ workbook, we can provide it during
+          due diligence.
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================== -->
+    <!-- Security Governance -->
+    <!-- ====================================================== -->
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Security governance</div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Do you maintain an information security program?</strong><br>
+          Yes. We maintain security policies and operational practices designed to protect confidentiality, integrity, and availability of customer data.</li>
+
+        <li><strong>Do you perform periodic risk assessments?</strong><br>
+          In progress. We perform security review of high-risk areas (integrations, authentication, data processing) and expand formal risk assessment practices as the program matures.</li>
+
+        <li><strong>Do you define security roles and responsibilities?</strong><br>
+          Yes. Internal access to production systems and customer data is restricted to authorized personnel and systems with a business need.</li>
+
+        <li><strong>Do you provide security documentation for customer due diligence?</strong><br>
+          Yes. This Trust Center includes security, privacy, and compliance resources. Additional due diligence materials are available upon request.</li>
+      </ul>
+    </div>
+
+    <!-- ====================================================== -->
+    <!-- Asset Management / Data Classification -->
+    <!-- ====================================================== -->
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Asset management and data classification</div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Do you identify and classify data handled by the service?</strong><br>
+          Yes. We treat collaboration message content and integration credentials as sensitive. We design processing to minimize retention of message content where feasible and to protect credentials and derived results.</li>
+
+        <li><strong>Do you maintain an inventory of major systems and third-party services?</strong><br>
+          Yes. Primary infrastructure providers include DigitalOcean (app hosting and managed databases) and AWS (SageMaker for inference). Additional subprocessors are documented in our Subprocessors page.</li>
+      </ul>
+    </div>
+
+    <!-- ====================================================== -->
+    <!-- Identity & Access Management -->
+    <!-- ====================================================== -->
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Identity and access management</div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Do you support single sign-on (SSO)?</strong><br>
+          Yes. Users can sign in using Slack, Microsoft, or Google SSO.</li>
+
+        <li><strong>Do you support username/password authentication?</strong><br>
+          Yes. Customers may also use email/password accounts for direct login.</li>
+
+        <li><strong>Do you protect sessions from common web risks?</strong><br>
+          Yes. Sessions use secure, HTTP-only cookies with CSRF protection on state-changing requests.</li>
+
+        <li><strong>Do you enforce role-based access control (RBAC) within the application?</strong><br>
+          Yes. Access is scoped by workspace membership and roles; administrative actions are restricted to authorized roles.</li>
+
+        <li><strong>Do you restrict administrative privileges?</strong><br>
+          Yes. Administrative settings (integrations, billing, user management, archiving) are restricted to authorized roles.</li>
+
+        <li><strong>Do you restrict internal access to production systems?</strong><br>
+          Yes. Internal access is restricted to authorized personnel and systems, following least privilege practices.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Access Controls →", trust_doc_url_for("access-controls"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <!-- ====================================================== -->
+    <!-- Application Security -->
+    <!-- ====================================================== -->
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Application security</div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Do you use secure development practices?</strong><br>
+          Yes. We follow secure development practices including review, testing, dependency hygiene, and controlled deployments.</li>
+
+        <li><strong>Do you manage software vulnerabilities?</strong><br>
+          Yes. We monitor dependencies and address known issues through updates and remediation.</li>
+
+        <li><strong>Do you implement protections to reduce exposure of sensitive data?</strong><br>
+          Yes. We avoid logging message content and credentials, restrict access to integration credentials, and design reporting for aggregate insight.</li>
+
+        <li><strong>Do you validate and authenticate inbound webhook requests?</strong><br>
+          In progress. We support authenticated webhook handling and implement request verification and replay protection where webhooks are used.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Secure Development →", trust_doc_url_for("secure-development"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <!-- ====================================================== -->
+    <!-- Encryption & Key Management -->
+    <!-- ====================================================== -->
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Encryption and key management</div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Is data encrypted in transit?</strong><br>
+          Yes. TLS is used for communication between browsers, Workplace.io services, and third-party providers.</li>
+
+        <li><strong>Is data encrypted at rest?</strong><br>
+          Yes. Data stored in hosting environments is protected using encryption at rest.</li>
+
+        <li><strong>Do you protect integration credentials (OAuth tokens and secrets)?</strong><br>
+          Yes. Integration credentials are treated as sensitive and access-restricted to operational services that require them.</li>
+
+        <li><strong>Do you document your encryption approach?</strong><br>
+          Yes. We publish an Encryption page describing protections at a level suitable for enterprise review.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Encryption →", trust_doc_url_for("encryption"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <!-- ====================================================== -->
+    <!-- Logging, Monitoring & Audit -->
+    <!-- ====================================================== -->
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Logging, monitoring, and audit</div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Do you monitor service health and availability?</strong><br>
+          Yes. We monitor service health, errors, and processing status to detect outages and degradation.</li>
+
+        <li><strong>Do you log security-relevant events?</strong><br>
+          Yes. We maintain operational logs and security-relevant logging to support investigation and incident response.</li>
+
+        <li><strong>Do you avoid logging sensitive data?</strong><br>
+          Yes. We minimize logging of sensitive content and avoid logging message bodies and credentials.</li>
+
+        <li><strong>Do you restrict access to logs?</strong><br>
+          Yes. Access to operational logs is restricted to authorized personnel and systems.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Logging & Monitoring →", trust_doc_url_for("logging-monitoring"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <!-- ====================================================== -->
+    <!-- Data Lifecycle / Retention -->
+    <!-- ====================================================== -->
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Data lifecycle, retention, and deletion</div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Do you document what data is collected and how it is used?</strong><br>
+          Yes. We document data handling and retention practices in Trust Center resources and customer policies.</li>
+
+        <li><strong>Do you support deletion or removal of customer data?</strong><br>
+          Yes. We support customer requests for data deletion/cleanup, and we provide administrative controls for disconnecting integrations and archiving workspaces.</li>
+
+        <li><strong>Do you minimize retention of message content?</strong><br>
+          Yes. Message content is processed for analysis and is intended to be short-lived; derived metadata and aggregated results are retained to support reporting and trends.</li>
+
+        <li><strong>Are archived workspaces accessible?</strong><br>
+          No. Archived workspaces are removed from normal selection and cannot be activated for use.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Data Handling & Retention →", trust_doc_url_for("data-handling"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <!-- ====================================================== -->
+    <!-- Incident Response -->
+    <!-- ====================================================== -->
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Incident response</div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Do you maintain an incident response process?</strong><br>
+          Yes. We maintain an incident response process to triage, contain, remediate, and communicate about incidents.</li>
+
+        <li><strong>Do you have a mechanism to notify customers?</strong><br>
+          Yes. When customer notification is warranted, we provide timely, actionable information appropriate to the scope and impact.</li>
+
+        <li><strong>Do you perform post-incident review?</strong><br>
+          Yes. We review incidents to identify root causes and improve controls and operational practices.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Incident Response →", trust_doc_url_for("incident-response"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <!-- ====================================================== -->
+    <!-- Business Continuity / DR -->
+    <!-- ====================================================== -->
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Business continuity and disaster recovery</div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Do you maintain backups?</strong><br>
+          Yes. We maintain backups and recovery procedures appropriate for a production SaaS environment.</li>
+
+        <li><strong>Do you test recovery procedures?</strong><br>
+          In progress. Recovery procedures are exercised and improved over time as part of operational maturity.</li>
+
+        <li><strong>Do you separate application hosting from inference workloads?</strong><br>
+          Yes. Application serving is hosted on DigitalOcean; inference workloads run on AWS SageMaker in secured, separated environments.</li>
+      </ul>
+    </div>
+
+    <!-- ====================================================== -->
+    <!-- Vendor Management / Subprocessors -->
+    <!-- ====================================================== -->
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Vendor management and subprocessors</div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Do you maintain a list of subprocessors?</strong><br>
+          Yes. We publish a subprocessor list and update it as vendors change.</li>
+
+        <li><strong>Do you assess vendor risk?</strong><br>
+          Yes. We evaluate vendors based on service criticality and data access scope and apply contractual and operational controls where appropriate.</li>
+
+        <li><strong>Do you use AWS and DigitalOcean?</strong><br>
+          Yes. DigitalOcean is used for application hosting and managed databases. AWS SageMaker is used for inference workloads.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Subprocessors →", trust_doc_url_for("subprocessors"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <!-- ====================================================== -->
+    <!-- Privacy / GDPR -->
+    <!-- ====================================================== -->
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Privacy and data protection</div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Do you provide a privacy policy?</strong><br>
+          Yes. We publish a Privacy Policy describing how personal data is handled.</li>
+
+        <li><strong>Do you support data subject requests?</strong><br>
+          Yes. We support appropriate requests and coordinate with customers for workplace data under their control.</li>
+
+        <li><strong>Do you offer a DPA for B2B customers?</strong><br>
+          Yes. We provide a DPA for customers that require one as part of procurement.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Privacy Policy →", trust_doc_url_for("privacy"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <!-- ====================================================== -->
+    <!-- Notes / gaps -->
+    <!-- ====================================================== -->
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Notes on current maturity</div>
+      <div class="trust-doc-text">
+        We continuously improve security controls and documentation as the platform evolves. If your review requires a specific control
+        (for example, a specific questionnaire format, a pen test summary, or formal attestations), contact us and we’ll coordinate what we
+        can provide.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Contact Trust & Security →", trust_doc_url_for("contact"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-footer">
+      <div class="trust-doc-footer-title">Need a full CAIQ workbook?</div>
+      <div class="trust-doc-footer-text">
+        We can provide CAIQ responses and supporting materials during due diligence.
+      </div>
+      <div class="trust-doc-footer-actions">
+        <%= link_to "Contact Trust & Security", trust_doc_url_for("contact"), class: "trust-doc-button" %>
+        <%= link_to "Back to Trust Center", trust_home_url, class: "trust-doc-button trust-doc-button--secondary" %>
+      </div>
+    </div>
+  </div>
+</div>

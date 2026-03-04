@@ -1,0 +1,432 @@
+<script>
+/* ============================== Chat Widget — Communication & Interactions (spinner until first token) ============================== */
+(function (global){
+  var W = global.AiChatWidget; if (!W) return;
+  function csrf(){ var m=document.querySelector('meta[name="csrf-token"]'); return m && m.content; }
+
+  /* ---- open + socket ---- */
+  W.prototype.openConversation = async function(id){
+    if (this.subscription && this.subscription.unsubscribe) this.subscription.unsubscribe();
+    this.currentConversationId = id;
+    this.renderConversationList();
+
+    var res = await fetch(this.showUrl.replace(":id", id), { headers: { "Accept":"application/json" } });
+    if(!res.ok) throw new Error("Failed to open conversation");
+    var data = await res.json();
+
+    if (this.threadEl) {
+      this.threadEl.innerHTML = "";
+      var self = this;
+      (data.messages || []).forEach(function(m){
+        var bubble = self.appendMessageBubble(m.role, m.content);
+        self.processInlineMarkers && self.processInlineMarkers(bubble);
+
+        if (Array.isArray(m.inline_blocks) && m.inline_blocks.length) {
+          for (var i = 0; i < m.inline_blocks.length; i++) {
+            var b = m.inline_blocks[i];
+            if (b && b.anchor) self.insertInlineBlock && self.insertInlineBlock(b.anchor, b);
+          }
+        }
+      });
+
+      if (!data.messages || !data.messages.length) {
+        this.renderEmptyIntro && this.renderEmptyIntro();
+      } else {
+        this.clearEmptyIntro && this.clearEmptyIntro();
+      }
+    }
+
+    this._streamingActive = false;
+    this._scroll && this._scroll();
+    this.showScrollToBottom && this.showScrollToBottom(false);
+
+    var self = this;
+    this.subscription = this.consumer.subscriptions.create(
+      { channel: "AiChat::ChatChannel", conversation_id: id },
+      {
+        received: function(payload){
+          var root = self.root || document;
+          self.threadEl = self.threadEl || root.querySelector(".ai-chat__thread");
+          if (!self.threadEl) return;
+
+          if (payload.type === "stream_start") {
+            self._currentStreamId = payload.stream_id || null;
+            self._currentStreamSeq = 0;
+            self._streamingActive = true;
+            self._updateStickyState && self._updateStickyState();
+            var bStart = self.ensureAssistantBubble && self.ensureAssistantBubble();
+            if (self.resetStreamBubble) self.resetStreamBubble(bStart, { keepSpinner: true });
+            return;
+          }
+
+          if (payload.type === "token") {
+            if (payload.stream_id && self._currentStreamId && payload.stream_id !== self._currentStreamId) return;
+            if (payload.stream_id && !self._currentStreamId) self._currentStreamId = payload.stream_id;
+            if (typeof payload.seq === "number") {
+              self._currentStreamSeq = self._currentStreamSeq || 0;
+              if (payload.seq <= self._currentStreamSeq) return;
+              self._currentStreamSeq = payload.seq;
+            }
+            self.handleToken(payload.token, payload.output_index);     // hides spinner on first token
+            return;
+          }
+
+          if (payload.type === "status") {
+            self.updateStatus && self.updateStatus(payload);
+            return;
+          }
+
+
+          if (payload.type === "embed" && payload.kind === "sparkline" && payload.url) {
+            var last = self.ensureAssistantBubble(); if (!last) return;
+            self.removeSpinner(last);            // just in case
+            var blocksEl = self.ensureBlocksContainer(last);
+            var fig = document.createElement("figure"); fig.className = "ai-chart ai-widget";
+            var img = document.createElement("img");
+            img.src = payload.url; img.alt = (payload.label || "Chart"); img.className = "ai-chat__sparkline"; img.loading = "lazy";
+            fig.appendChild(img);
+            if (payload.label) {
+              var cap = document.createElement("figcaption"); cap.className = "ai-chart__caption"; cap.textContent = payload.label;
+              fig.appendChild(cap);
+            }
+            blocksEl.appendChild(fig);
+            return;
+          }
+
+
+          if (payload.type === "rename" && payload.conversation) {
+            var c = payload.conversation || {};
+            var id = c.id, title = c.title || ("Conversation #" + id);
+            // update local cache
+            if (Array.isArray(self.conversations)) {
+              for (var i=0; i<self.conversations.length; i++) {
+                if (self.conversations[i].id === id) {
+                  self.conversations[i].title = title;
+                  break;
+                }
+              }
+            }
+            // re-render list highlighting the current row
+            self.renderConversationList();
+            return;
+          }
+
+          if (payload.type === "error") {
+            var bErr = self.ensureAssistantBubble();
+            self.removeSpinner(bErr);
+            self.appendSystem("[Error] " + (payload.message || "Unknown error"));
+            if (self.setComposerEnabled) self.setComposerEnabled(true);
+            return;
+          }
+
+          if (payload.type === "done") {
+            var bDone = self.findLastAssistantBubble() || self.ensureAssistantBubble();
+            self.removeSpinner(bDone);
+            self.clearStatusWidget && self.clearStatusWidget(bDone);
+
+            if (payload.inline_blocks && payload.inline_blocks.length) {
+              self._pendingInlineBlocks = self._pendingInlineBlocks || {};
+              (payload.inline_blocks || []).forEach(function(b){
+                if (b && b.anchor) self._pendingInlineBlocks[b.anchor] = b;
+              });
+            }
+
+            if (payload.content) {
+              var msg = self.ensureMsgContainer(bDone);
+              if (msg) {
+                msg.__raw = String(payload.content);
+                msg.__node = null;
+              }
+            }
+
+            if (bDone) {
+              // 1) Convert accumulated markdown to HTML
+              self.flushMarkdown(bDone);
+              // 2) Replace {{block:ID}} with slots and insert queued inline widgets
+              self.processInlineMarkers && self.processInlineMarkers(bDone);
+            }
+
+            if (self.setComposerEnabled) self.setComposerEnabled(true);
+            self._streamingActive = false;
+            self._scroll();
+            self.showScrollToBottom && self.showScrollToBottom(false);
+            return;
+          }
+        }
+      }
+    );
+  };
+
+  /* ---- sending ---- */
+  W.prototype.send = async function(e){
+    if (e && e.preventDefault) e.preventDefault();
+    if (!this.inputEl || !this.subscription || !this.subscription.perform) return;
+
+    // If we're already waiting on a reply, ignore further sends
+    if (this.sendBtnEl && this.sendBtnEl.disabled) return;
+
+    var content = this.inputEl.value.trim();
+    if (!content) return;
+
+    // Hide intro once user starts a real thread
+    this.clearEmptyIntro && this.clearEmptyIntro();
+
+    // 🔹 Disable composer + add loading state
+    if (this.setComposerEnabled) {
+      this.setComposerEnabled(false);
+    } else if (this.sendBtnEl) {
+      this.sendBtnEl.disabled = true;
+    }
+
+    this.inputEl.value = "";
+    this._resizeInput && this._resizeInput();
+    this._updateSendReady && this._updateSendReady();
+    this.appendMessageBubble("user", content);
+
+    // create placeholder assistant bubble + spinner while waiting for first token
+    var pending = this.appendMessageBubble("assistant", "");
+    this.showSpinner && this.showSpinner(pending, "Thinking…");
+
+    var payload = {
+      content: content,
+      options: { timeframe: "last_14_days" }
+    };
+
+    this.subscription.perform("send_message", payload);
+    // no auto-scroll on send
+  };
+
+  /* ---- async delete conversation ---- */
+  W.prototype.deleteConversation = async function(id){
+    try{
+      var url = this.showUrl.replace(":id", id);
+      var res = await fetch(url, {
+        method: "DELETE",
+        headers: { "X-CSRF-Token": csrf(), "Accept":"application/json" }
+      });
+      if (!res.ok && res.status !== 204) throw new Error("Delete failed");
+
+      this.conversations = (this.conversations || []).filter(function(c){ return c.id !== id; });
+      this.removeConversationFromUI(id);
+
+      if (this.currentConversationId === id) {
+        if (this.conversations.length) {
+          this.openConversation(this.conversations[0].id);
+        } else {
+          await this.createConversation();
+        }
+      }
+    } catch(e){
+      console.error("deleteConversation", e);
+      if (global.AiConfirm && typeof global.AiConfirm.toast === "function") {
+        global.AiConfirm.toast("Failed to delete conversation.");
+      }
+    }
+  };
+
+  W.prototype.removeConversationFromUI = function(id){
+    if (this.conversationListEl) {
+      var row = this.conversationListEl.querySelector('.ai-chat__list-item[data-id="'+id+'"]');
+      if (row && row.parentNode) row.parentNode.removeChild(row);
+    }
+    this.renderConversationList();
+  };
+
+    // Update spinner label + optional "thinking widget" inside the assistant bubble
+  W.prototype.updateStatus = function(status){
+    var bubble = this.ensureAssistantBubble && this.ensureAssistantBubble();
+    if (!bubble) return;
+
+    var msg = status.message || (status.tool && status.tool.label ? ("Thinking — " + status.tool.label) : "Thinking…");
+    this.showSpinner && this.showSpinner(bubble, msg);
+
+    // no auto-scroll on status updates
+  };
+
+  // Render a small card that shows what tool is running + facets/date window/etc.
+  W.prototype.renderStatusWidget = function(bubble, status){
+    var tool   = status.tool   || {};
+    var ctx    = status.context || {};
+    var kind   = tool.kind || "other";
+    var phase  = status.phase || "tool_call";
+
+    // Create or reuse a container inside the assistant bubble
+    var container = bubble.querySelector(".ai-chat__status");
+    if (!container) {
+      container = document.createElement("div");
+      container.className = "ai-chat__status";
+      bubble.appendChild(container);
+    }
+    container.innerHTML = "";
+
+    var card = document.createElement("div");
+    card.className = "ai-chat__status-card ai-chat__status-card--" + kind;
+
+    var title = document.createElement("div");
+    title.className = "ai-chat__status-title";
+    title.textContent = tool.label || "Working…";
+    card.appendChild(title);
+
+    var meta = document.createElement("div");
+    meta.className = "ai-chat__status-meta";
+
+    var pieces = [];
+
+    // Facet(s)
+    var facet = ctx.facet || (Array.isArray(ctx.facets) && ctx.facets[0]);
+    if (facet) pieces.push(facet);
+
+    // Range (single)
+    if (ctx.range && (ctx.range.from || ctx.range.to)) {
+      var rf = ctx.range.from || "…";
+      var rt = ctx.range.to   || "…";
+      pieces.push(rf + " → " + rt);
+    }
+
+    // Metric
+    if (ctx.metric) {
+      pieces.push(ctx.metric);
+    }
+
+    // Batch count
+    if (typeof ctx.operations_count === "number") {
+      pieces.push(ctx.operations_count + " op" + (ctx.operations_count === 1 ? "" : "s"));
+    }
+
+    // Guidance query
+    if (ctx.query && tool.kind === "guidance") {
+      pieces.push("“" + ctx.query + "”");
+    }
+
+    meta.textContent = pieces.join(" · ");
+    card.appendChild(meta);
+
+    // Placeholder visual – looks like a little loading chart/cards area
+    // var placeholder = document.createElement("div");
+    // placeholder.className = "ai-chat__status-placeholder";
+    // card.appendChild(placeholder);
+
+    // container.appendChild(card);
+  };
+
+
+  W.prototype.clearStatusWidget = function(bubble){
+    bubble = bubble || (this.ensureAssistantBubble && this.ensureAssistantBubble());
+    if (!bubble) return;
+    var container = bubble.querySelector(".ai-chat__status");
+    if (container && container.parentNode) {
+      container.parentNode.removeChild(container);
+    }
+  };
+
+
+  // ---- empty thread intro helpers ----
+  W.prototype.clearEmptyIntro = function(){
+    if (!this.threadEl) return;
+    var el = this.threadEl.querySelector(".ai-chat__intro");
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+  };
+
+  W.prototype.renderEmptyIntro = function(){
+    if (!this.threadEl) return;
+
+    this.clearEmptyIntro();
+
+    function pickRandom(arr, n){
+      // Fisher–Yates shuffle copy, then take n
+      var a = arr.slice();
+      for (var i = a.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+      }
+      return a.slice(0, n);
+    }
+
+    var allPrompts = [
+      "Summarize the biggest risks in the last 14 days.",
+      "What are the top negative signals and where are they coming from?",
+      "Compare this week vs last week for burnout and engagement.",
+      "Explain Psychological Safety and how to improve it.",
+      "What’s driving execution risk right now?",
+      "Show me the biggest week-over-week changes by submetric.",
+      "Which channels have the highest conflict signals?",
+      "What are the top positive signals we should reinforce?",
+      "Give me 3 concrete actions to reduce burnout this month.",
+      "Where are we seeing misalignment and why?",
+      "Which teams are trending worse over the last 30 days?",
+      "Summarize the key themes for leadership in plain English.",
+      "What’s the healthiest area of the culture right now?",
+      "What’s the riskiest area of the culture right now?",
+      "Break down engagement signals by subcategory.",
+      "Compare the last 30 days to the prior 30 days.",
+      "What do the signals suggest about communication quality?",
+      "Highlight any early warning signs we should watch.",
+      "What’s the most common source of negative sentiment?",
+      "Which metric improved most over the last two weeks?",
+      "What’s the best next step for managers this week?",
+      "Draft a short message leaders can send to address the top issue.",
+      "What questions should I ask in 1:1s based on these signals?",
+      "Identify the top 3 drivers of conflict and how to mitigate them.",
+      "Are we seeing signs of overload or unsustainable pace?",
+      "Which areas show signs of low trust or fear of speaking up?",
+      "What’s the likely root cause of execution risk signals?",
+      "Give me a simple action plan for the next 7 days.",
+      "Summarize signals by channel and flag outliers.",
+      "Explain what “Alignment” means in this context with examples."
+    ];
+
+    var prompts = pickRandom(allPrompts, 3);
+
+    var wrap = document.createElement("div");
+    wrap.className = "ai-chat__intro";
+
+    var title = document.createElement("div");
+    title.className = "ai-chat__intro-title";
+    title.textContent = "Get started with CLARA";
+    wrap.appendChild(title);
+
+    var desc = document.createElement("div");
+    desc.className = "ai-chat__intro-desc";
+    desc.textContent = "Try one of these prompts, or ask a question about your culture signals:";
+    wrap.appendChild(desc);
+
+    var list = document.createElement("div");
+    list.className = "ai-chat__intro-prompts";
+
+    var self = this;
+    prompts.forEach(function(p){
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "ai-chat__intro-prompt";
+      btn.textContent = p;
+
+      btn.addEventListener("click", function(){
+        if (!self.inputEl) return;
+        self.inputEl.value = p;
+
+        // Hide intro immediately and submit
+        self.clearEmptyIntro && self.clearEmptyIntro();
+        self.send && self.send(); // send() now tolerates no event
+      });
+
+      list.appendChild(btn);
+    });
+
+    wrap.appendChild(list);
+
+    var links = document.createElement("div");
+    links.className = "ai-chat__intro-links";
+    links.innerHTML =
+      'Ready to learn more? Read our ' +
+      '<a href="<%= j clara_docs_path %>">CLARA Docs</a>';
+    wrap.appendChild(links);
+
+    this.threadEl.appendChild(wrap);
+    this._scroll && this._scroll();
+    this.showScrollToBottom && this.showScrollToBottom(false);
+  };
+
+
+
+})(window);
+</script>

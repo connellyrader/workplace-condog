@@ -1,0 +1,14 @@
+<h1>Users in <%= @workspace.name %></h1>
+
+<ul>
+  <% @users.each do |user| %>
+    <li>
+      <%= user.email %>
+      <% if user.first_name.present? %>
+        (<%= user.first_name %> <%= user.last_name %>)
+      <% end %>
+    </li>
+  <% end %>
+</ul>
+
+<%= link_to "Invite New User", new_workspace_user_path(@workspace), class: "btn btn-primary" %>

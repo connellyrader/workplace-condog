@@ -1,0 +1,81 @@
+<%# app/views/dashboard/components/_recent_insights.html.erb (or whatever you named it) %>
+
+<%
+  ws_id     = @active_workspace&.id
+  metric_id = @metric&.id
+  user_id   = current_user&.id
+
+  insights =
+    if ws_id && metric_id && user_id
+      integration_user_ids =
+        IntegrationUser
+          .joins(:integration)
+          .where(integrations: { workspace_id: ws_id })
+          .where(user_id: user_id)
+          .pluck(:id)
+
+      scope = Insight.where(workspace_id: ws_id, metric_id: metric_id)
+      scope = scope.where(subject_type: "User", subject_id: user_id)
+      if integration_user_ids.any?
+        scope = scope.or(
+          Insight.where(workspace_id: ws_id, metric_id: metric_id, subject_type: "IntegrationUser", subject_id: integration_user_ids)
+        )
+      end
+
+      scope
+        .order(Arel.sql("COALESCE(window_end_at, created_at) DESC"))
+        .limit(3)
+        .to_a
+    else
+      []
+    end
+
+  format_day = ->(t) do
+    return "" unless t
+    tz = "Eastern Time (US & Canada)"
+    d  = t.in_time_zone(tz).to_date
+    today = Time.zone.today
+
+    return t.in_time_zone(tz).strftime("%-I:%M%p") if d == today
+    return "Yesterday" if d == (today - 1)
+    d.strftime("%b %-d")
+  end
+
+  body_text = ->(ins) do
+    ins.summary_body.presence || ins.summary_title.presence || "(Insight pending)"
+  end
+%>
+
+<div class="recent-insights">
+  <div class="metric-recent-insights-top">
+    <div class="metric-footer-title">Recent Insights</div>
+    <div class="metric-recent-insights-metric-name">
+      <%= icon @metric.name.to_s.parameterize %>
+      <%= @metric.name %>
+    </div>
+  </div>
+
+  <% if insights.any? %>
+    <div class="recent-insight-rows">
+      <% insights.each do |ins| %>
+        <div class="recent-insight-row">
+          <div class="recent-insight-row-meta">
+            <div class="recent-insight-tag">Personal</div>
+            <div class="recent-insight-date"><%= format_day.call(ins.window_end_at || ins.created_at) %></div>
+          </div>
+          <%= body_text.call(ins) %>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="recent-insights-null">
+      <div class="recent-insights-null-box">
+        There are no recent insights for <%= @metric.name %>.
+      </div>
+    </div>
+  <% end %>
+
+  <%= link_to insights_path, class: "recent-insights-button" do %>
+    <%= icon "list-bullet" %> View all insights
+  <% end %>
+</div>

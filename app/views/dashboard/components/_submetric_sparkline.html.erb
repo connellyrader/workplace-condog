@@ -1,0 +1,171 @@
+<%# app/views/dashboard/components/_submetric_sparkline.html.erb %>
+<%
+  # Mini sparkline (no axes/labels/legend/text)
+  # - Fixed 0..100 domain (50 is midline)
+  # - Nil/non-numeric points default to 50
+  # - Includes subtle blue fade under the line (area fill) like the large sparkline
+  #
+  # Locals:
+  #   points: Array of 0..100 values (required)
+  #   width:  default 100
+  #   height: default 30
+  #   curve: :smooth (default) or :linear
+  #   curve_tension: default 0.7
+  #   curve_pad_px: default 2
+  #   color: CSS color string (defaults to var(--accent))
+  #   area_opacity: default 0.22 (top stop opacity)
+  #   area_color: CSS color string (defaults to #3b82f6 to match metric sparkline)
+
+  # Inline helper for smooth paths (Catmull-Rom -> cubic Bezier)
+  def spark_smooth_path(points, tension: 0.7, y_min: nil, y_max: nil)
+    return "" if points.empty?
+    return "M #{points.first[0].round(2)} #{points.first[1].round(2)}" if points.size < 2
+
+    t = [[tension.to_f, 0.0].max, 1.0].min
+
+    clamp_y = ->(y) do
+      yy = y.to_f
+      if !y_min.nil? && !y_max.nil?
+        [[yy, y_min.to_f].max, y_max.to_f].min
+      else
+        yy
+      end
+    end
+
+    p = points.map { |x, y| [x.to_f, y.to_f] }
+
+    fetch = ->(idx) do
+      i = [[idx, 0].max, p.length - 1].min
+      p[i]
+    end
+
+    d = +"M #{p[0][0].round(2)} #{p[0][1].round(2)}"
+
+    (0...(p.length - 1)).each do |i|
+      p0 = fetch.call(i - 1)
+      p1 = fetch.call(i)
+      p2 = fetch.call(i + 1)
+      p3 = fetch.call(i + 2)
+
+      c1x = p1[0] + (p2[0] - p0[0]) * (t / 6.0)
+      c1y = p1[1] + (p2[1] - p0[1]) * (t / 6.0)
+      c2x = p2[0] - (p3[0] - p1[0]) * (t / 6.0)
+      c2y = p2[1] - (p3[1] - p1[1]) * (t / 6.0)
+
+      c1y = clamp_y.call(c1y)
+      c2y = clamp_y.call(c2y)
+
+      d << " C #{c1x.round(2)} #{c1y.round(2)} #{c2x.round(2)} #{c2y.round(2)} #{p2[0].round(2)} #{p2[1].round(2)}"
+    end
+
+    d
+  end
+
+  raw = Array(points)
+  raw = [nil, nil] if raw.empty?
+
+  # Default nil/non-numeric to 50; clamp 0..100
+  pts =
+    raw.map do |v|
+      f =
+        begin
+          Float(v)
+        rescue
+          nil
+        end
+
+      f = 50.0 if f.nil? || (f.respond_to?(:finite?) && !f.finite?)
+      [[f, 0.0].max, 100.0].min
+    end
+
+  pts = Array.new(2, pts.first) if pts.size < 2
+
+  w = (local_assigns[:width]  || 100).to_f
+  h = (local_assigns[:height] || 30).to_f
+
+  # Tight padding for small canvas
+  pad = { l: 2.0, r: 2.0, t: 2.0, b: 2.0 }
+  iw  = w - pad[:l] - pad[:r]
+  ih  = h - pad[:t] - pad[:b]
+
+  n  = [pts.size, 2].max
+  sx = n > 1 ? (iw / (n - 1)) : 0.0
+
+  # Curve options
+  curve         = (local_assigns[:curve] || :smooth).to_sym
+  curve_tension = (local_assigns[:curve_tension] || 0.7).to_f
+  curve_pad_px  = (local_assigns[:curve_pad_px] || 2).to_f
+
+  # If the series is flat (common when no data -> all 50), smooth curves can look bumpy
+  # on a 30px canvas due to subpixel rendering. Fall back to a straight line.
+  min_v = pts.min
+  max_v = pts.max
+  flat_series = (max_v - min_v) <= 1.0
+  curve = :linear if flat_series
+
+  inset = (curve == :smooth) ? curve_pad_px : 0.0
+  inset = [[inset, 0.0].max, (ih / 2.0 - 0.5)].min
+
+  y_draw_min = pad[:t] + inset
+  y_draw_max = pad[:t] + ih - inset
+
+  # Map 0..100 => y (0 bottom, 100 top)
+  map_y = ->(v) do
+    frac = 1.0 - (v.to_f / 100.0)
+    y_draw_min + (y_draw_max - y_draw_min) * frac
+  end
+
+  xy = pts.each_with_index.map do |v, i|
+    x = pad[:l] + i * sx
+    y = map_y.call(v)
+    [x, y]
+  end
+
+  d_line =
+    if curve == :smooth
+      spark_smooth_path(xy, tension: curve_tension, y_min: y_draw_min, y_max: y_draw_max)
+    else
+      xy.map.with_index { |(x, y), i|
+        i.zero? ? "M #{x.round(2)} #{y.round(2)}" : "L #{x.round(2)} #{y.round(2)}"
+      }.join(" ")
+    end
+
+  base_y = (pad[:t] + ih).round(2)
+  d_area =
+    if xy.any?
+      "#{d_line} L #{xy.last[0].round(2)} #{base_y} L #{xy.first[0].round(2)} #{base_y} Z"
+    else
+      ""
+    end
+
+  stroke_color = (local_assigns[:color] || "var(--accent)")
+  area_color   = (local_assigns[:area_color] || "#3b82f6")
+  area_opacity = (local_assigns[:area_opacity] || 0.22).to_f
+
+  uid = "sspark-#{(Time.now.to_f * 1000).to_i}-#{rand(1000)}"
+%>
+
+<svg class="submetric-mini-sparkline"
+     width="<%= w.to_i %>" height="<%= h.to_i %>"
+     viewBox="0 0 <%= w %> <%= h %>"
+     preserveAspectRatio="none"
+     role="img" aria-label="submetric trend">
+  <defs>
+    <linearGradient id="<%= uid %>-area" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="<%= area_color %>" stop-opacity="<%= area_opacity %>"/>
+      <stop offset="100%" stop-color="<%= area_color %>" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <%# Area first (behind the line) %>
+  <path d="<%= d_area %>" fill="url(#<%= uid %>-area)"/>
+
+  <%# Line on top %>
+  <path d="<%= d_line %>"
+        fill="none"
+        stroke="<%= stroke_color %>"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        vector-effect="non-scaling-stroke"/>
+</svg>

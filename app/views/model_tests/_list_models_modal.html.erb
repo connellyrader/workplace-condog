@@ -1,0 +1,30 @@
+<div id="list-models-modal" class="modal hidden">
+  <div class="modal-content" style="width:900px; max-height: 80vh; overflow:scroll;">
+    <span class="close-models-btn">&times;</span>
+    <h2>Existing Models</h2>
+    <button id="new-model-btn" style="margin:24px 0px;" class="btn-primary">Add Model</button>
+
+    <table class="models-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Description</th>
+          <th>Instance Type</th>
+          <th>Max Instances</th>
+          <th>Max Connections</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% Model.all.each do |model| %>
+          <tr>
+            <td><%= model.name %></td>
+            <td><%= model.description %></td>
+            <td><%= model.deployment_type %></td>
+            <td><%= model.max_server_instances %></td>
+            <td><%= model.concurrent_requests %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>

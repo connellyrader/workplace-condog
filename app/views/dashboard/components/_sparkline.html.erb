@@ -1,0 +1,20 @@
+<!-- /dashboard/components/_sparkline.html.erb -->
+
+<% paths = sparkline_paths(points, height: 110, curve: :smooth) %>
+
+<svg viewBox="0 0 320 110" preserveAspectRatio="none">
+  <defs>
+    <linearGradient id="spark-fade" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#F1F5F9" stop-opacity="1"/>
+      <stop offset="1" stop-color="#F1F5F9" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="spark-soft"><feGaussianBlur stdDeviation="1.5"/></filter>
+  </defs>
+
+  <!-- area under line -->
+  <path d="<%= paths[:area] %>" fill="url(#spark-fade)" filter="url(#spark-soft)"></path>
+
+  <!-- line -->
+  <path d="<%= paths[:line] %>" fill="none" stroke="#CBD5E1"
+        stroke-width="2" stroke-linecap="round"></path>
+</svg>

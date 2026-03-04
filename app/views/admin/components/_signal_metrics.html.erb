@@ -1,0 +1,53 @@
+<article class="admin-card">
+  <h3>Signal Metrics — Top Categories</h3>
+  <canvas id="signals-by-category-chart" class="admin-chart"></canvas>
+</article>
+
+<article class="admin-card">
+  <h3>Signal Metrics — Last 30 Days</h3>
+  <canvas id="signals-over-time-chart" class="admin-chart"></canvas>
+</article>
+
+<script>
+(() => {
+  const ctxA = document.getElementById('signals-by-category-chart');
+  new Chart(ctxA, {
+    type: 'bar',
+    data: {
+      labels: ['Harassment', 'Sensitive Info', 'Spam', 'Profanity', 'Other'],
+      datasets: [{
+        label: 'Detections',
+        data: [130, 78, 52, 39, 18],
+        backgroundColor: 'rgba(99, 102, 241, .55)',
+        borderColor: 'rgba(99,102,241,1)', borderWidth: 1, borderRadius: 6
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: { x: { grid: { color:'#223' } }, y:{ grid:{ display:false } } }
+    }
+  });
+
+  const ctxB = document.getElementById('signals-over-time-chart');
+  new Chart(ctxB, {
+    type: 'line',
+    data: {
+      labels: Array.from({length: 30}, (_,i)=>`Day ${i+1}`),
+      datasets: [{
+        label: 'Signals',
+        data: Array.from({length: 30}, ()=>Math.round(20 + Math.random()*30)),
+        tension: .35,
+        fill: true,
+        backgroundColor: 'rgba(78,168,255,.18)',
+        borderColor: 'rgba(78,168,255,1)',
+        pointRadius: 0
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: { y: { grid: { color:'#223' } }, x:{ grid:{ display:false } } }
+    }
+  });
+})();
+</script>

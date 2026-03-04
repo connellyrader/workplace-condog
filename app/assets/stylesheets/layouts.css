@@ -1,0 +1,85 @@
+@layer layout {
+  /* ===== Shell (3 columns via CSS variables) ===== */
+  .layout{
+    --nav-mini-w: 60px;       /* sidebar mini width */
+    --nav-w: 240px;           /* full sidebar width */
+    --chat-w: 400px;           /* right panel closed */
+    display: grid;
+    grid-template-columns: var(--nav-w) 1fr var(--chat-w);
+    grid-template-areas: "nav main chat";
+    min-height: 100dvh;
+    transition: grid-template-columns .25s ease;
+    height: 100dvh;                          /* lock to viewport */
+    overflow: hidden;                        /* nothing outside scrolls */
+  }
+  .layout.nav-mini { --nav-w: var(--nav-mini-w); }   /* was 60px literal */
+  .layout.nav-full   { --nav-w: 240px; }
+  .layout.nav-closed   { --nav-w: 0px; }
+  .layout.chat-open { --chat-w: 360px; }
+  .layout.chat-closed { --chat-w: 0px; }
+
+  /* Mini state: hide text, keep icons */
+  .layout.nav-mini .navigation { padding: 16px 8px 16px 18px; }
+
+  .layout.nav-mini .navigation-link {
+    justify-content: center;      /* center icons in the 40px row */
+    gap: 0;                       /* no gap when labels are hidden */
+    padding: 0;
+  }
+
+  .layout.nav-mini .navigation-link span,
+  .layout.nav-mini .navigation-link .bubble,
+  .layout.nav-mini .navigation .pp-logo {
+    display: none;
+  }
+
+
+  .devise-container, .onboarding-container{
+    position: absolute;
+    top:0;
+    bottom:0;
+    right:0;
+    left:0;
+    background-color:#F7F9FA;
+  }
+
+
+  /* ===== Main content & optional right aside ===== */
+  .main{
+    grid-area: main;
+    display: flex; flex-direction: column; min-width: 0;
+  }
+
+  .content{
+    padding: 8px;
+  }
+
+  .content-inner{
+    background: var(--slate-0);
+    border: 1px solid var(--slate-200);
+    border-radius: 20px;
+    height: calc(100dvh - 16px);
+    padding: 24px;
+    box-shadow: 0 0 8px 2px rgba(0,0,0,0.04);
+    font-size:14px;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    scrollbar-width: none;    /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge Legacy */
+    position: relative;
+  }
+
+  .content-inner::-webkit-scrollbar {
+    display: none;            /* Chrome, Safari, newer Edge */
+  }
+
+  .chat{
+    grid-area: chat;
+    display: none;
+    height:100%;
+  }
+
+  .chat.is-visible {
+    display: block;
+  }
+}

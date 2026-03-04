@@ -1,0 +1,99 @@
+<%# app/views/trust_center/docs/contact.html.erb %>
+
+<div class="trust-doc">
+  <div class="trust-doc-header">
+    <div class="trust-doc-breadcrumb">
+      <%= link_to "Trust Center", trust_home_url, class: "trust-doc-breadcrumb-link" %>
+      <span class="trust-doc-breadcrumb-sep">/</span>
+      <span class="trust-doc-breadcrumb-current">Contact</span>
+    </div>
+
+    <div class="trust-doc-title-row">
+      <%= image_tag "logo.png", class: "trust-doc-logo", alt: "Workplace.io" %>
+      <div class="trust-doc-title">Trust & Security Contact</div>
+    </div>
+
+    <div class="trust-doc-subtitle">
+      For security, privacy, or compliance questions—or if your organization needs procurement materials such as a questionnaire response—
+      please reach out.
+    </div>
+
+    <div class="trust-doc-updated">
+      Last updated: <%= @trust_center_stamp %>
+    </div>
+  </div>
+
+  <div class="trust-doc-body">
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Primary contact</div>
+
+      <div class="trust-contact-card">
+        <div class="trust-contact-name">Lucas Taylor</div>
+        <div class="trust-contact-role">Trust & Security</div>
+
+        <div class="trust-contact-lines">
+          <div class="trust-contact-line">
+            <span class="trust-contact-label">Email</span>
+            <span class="trust-contact-value">
+              <a class="trust-contact-link" href="mailto:security@workplace.io">security@workplace.io</a>
+            </span>
+          </div>
+
+          <div class="trust-contact-line">
+            <span class="trust-contact-label">Alternate</span>
+            <span class="trust-contact-value">
+              <a class="trust-contact-link" href="mailto:lucas@workplace.io">lucas@workplace.io</a>
+            </span>
+          </div>
+        </div>
+
+        <div class="trust-contact-note">
+          If you include your company name, timeline, and the materials you need (e.g., CAIQ, subprocessor list, DPA),
+          we can respond faster.
+        </div>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">What we can provide</div>
+      <div class="trust-doc-text">
+        We regularly support procurement and security reviews. Depending on your needs, we can share documentation and respond
+        to questionnaires to help your team complete due diligence.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li>CAIQ-aligned responses and security questionnaires</li>
+        <li>Subprocessor list and hosting/architecture summaries</li>
+        <li>Security program overview and incident response summary</li>
+        <li>Privacy and data handling details (retention, deletion, access controls)</li>
+        <li>SOC 2 and ISO 27001 roadmap status (not yet attested/certified)</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">How to report a security issue</div>
+      <div class="trust-doc-text">
+        If you believe you’ve discovered a security vulnerability, please email us with a clear description and steps to reproduce.
+        If possible, include the impacted workspace and timeframe. We will confirm receipt and coordinate next steps.
+      </div>
+
+      <div class="trust-doc-callout trust-doc-callout--note">
+        <div class="trust-doc-callout-title">Please do not include sensitive data</div>
+        <div class="trust-doc-callout-text">
+          Avoid sending real customer message content, credentials, or payment details in your report. We’ll request what we need securely.
+        </div>
+      </div>
+    </div>
+
+    <div class="trust-doc-footer">
+      <div class="trust-doc-footer-title">Prefer a scheduled review?</div>
+      <div class="trust-doc-footer-text">
+        Email us and we’ll coordinate a time to walk through your security and compliance questions.
+      </div>
+      <div class="trust-doc-footer-actions">
+        <a class="trust-doc-button" href="mailto:security@workplace.io">Email Trust & Security</a>
+        <%= link_to "Back to Trust Center", trust_home_url, class: "trust-doc-button trust-doc-button--secondary" %>
+      </div>
+    </div>
+  </div>
+</div>

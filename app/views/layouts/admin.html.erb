@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html data-theme="dark">
+  <% content_for :stylesheets do %>
+    <%= stylesheet_link_tag "admin_application", media: "all", "data-turbo-track": "reload" %>
+  <% end %>
+
+  <%= render "layouts/header" %>
+  <body>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3"></script>
+    <div class="layout nav-full chat-closed admin-layout">
+      <%= render "layouts/notifications" %>
+
+      <%= render "layouts/admin_navigation" %>
+
+      <%= render "shared/masquerade_banner" %>
+
+      <%= render "layouts/admin_main" %>
+    </div>
+
+    <%= render "layouts/js" %>
+  </body>
+</html>

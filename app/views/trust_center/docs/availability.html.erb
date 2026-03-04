@@ -1,0 +1,112 @@
+<%# app/views/trust_center/docs/availability.html.erb %>
+
+<div class="trust-doc">
+  <div class="trust-doc-header">
+    <div class="trust-doc-breadcrumb">
+      <%= link_to "Trust Center", trust_home_url, class: "trust-doc-breadcrumb-link" %>
+      <span class="trust-doc-breadcrumb-sep">/</span>
+      <span class="trust-doc-breadcrumb-current">Availability & Uptime</span>
+    </div>
+
+    <div class="trust-doc-title-row">
+      <%= image_tag "logo.png", class: "trust-doc-logo", alt: "Workplace.io" %>
+      <div class="trust-doc-title">Availability & Uptime</div>
+    </div>
+
+    <div class="trust-doc-subtitle">
+      How we design for availability and monitor service health, performance, and operational stability.
+    </div>
+
+    <div class="trust-doc-updated">
+      Last updated: <%= @trust_center_stamp %>
+    </div>
+  </div>
+
+  <div class="trust-doc-body">
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">At a glance</div>
+      <div class="trust-doc-bullets">
+        <ul class="trust-doc-bullet-list">
+          <li><strong>Monitoring:</strong> we monitor service health, errors, and processing workflows to detect degradation.</li>
+          <li><strong>Separation:</strong> application hosting (DigitalOcean) and inference workloads (AWS SageMaker) are separated.</li>
+          <li><strong>Operational response:</strong> alerts and logs support rapid diagnosis and remediation.</li>
+          <li><strong>Continuous improvement:</strong> reliability practices evolve as usage grows and customer needs mature.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Availability approach</div>
+      <div class="trust-doc-text">
+        Workplace.io is designed as a SaaS platform with operational monitoring and controlled deployments. We monitor core service health and
+        key processing workflows so we can detect issues quickly and restore normal operation.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Application layer:</strong> DigitalOcean droplets behind a load balancer serve the application.</li>
+        <li><strong>Database layer:</strong> DigitalOcean Managed Databases store application state and derived metadata.</li>
+        <li><strong>Inference layer:</strong> AWS SageMaker runs classification and culture inference workloads.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Monitoring and alerting</div>
+      <div class="trust-doc-text">
+        We monitor system health to identify outages, elevated error rates, and processing backlogs. Monitoring includes application performance
+        and key workflow success/failure signals for integrations and analysis.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Service health:</strong> uptime checks and error-rate monitoring.</li>
+        <li><strong>Performance:</strong> latency and throughput indicators for key services.</li>
+        <li><strong>Processing stability:</strong> workflow success/failure and backlog indicators for asynchronous processing.</li>
+        <li><strong>Integration health:</strong> sync failures and permission errors are monitored to detect provider issues.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Logging & Monitoring →", trust_doc_url_for("logging-monitoring"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Degradation handling</div>
+      <div class="trust-doc-text">
+        When a degradation or outage is detected, we triage and remediate. Depending on impact, remediation may include scaling resources,
+        reprocessing workflows, temporary feature limitation, or vendor coordination.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Triage:</strong> assess impacted components and customer-facing symptoms.</li>
+        <li><strong>Remediation:</strong> restore service and validate recovery through monitoring.</li>
+        <li><strong>Follow-up:</strong> post-incident review to reduce recurrence risk.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Incident Response →", trust_doc_url_for("incident-response"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Customer expectations</div>
+      <div class="trust-doc-text">
+        Availability requirements vary by organization. If your procurement process requires a specific SLA, uptime target, or reporting format,
+        contact us and we can discuss expectations and available options.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Contact Trust & Security →", trust_doc_url_for("contact"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-footer">
+      <div class="trust-doc-footer-title">Need an uptime review?</div>
+      <div class="trust-doc-footer-text">
+        If your organization needs additional availability information as part of a review, contact us and we’ll help.
+      </div>
+      <div class="trust-doc-footer-actions">
+        <%= link_to "Contact Trust & Security", trust_doc_url_for("contact"), class: "trust-doc-button" %>
+        <%= link_to "Back to Trust Center", trust_home_url, class: "trust-doc-button trust-doc-button--secondary" %>
+      </div>
+    </div>
+  </div>
+</div>

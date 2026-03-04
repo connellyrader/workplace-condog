@@ -1,0 +1,246 @@
+<div class="benchmark-review-page">
+  <div class="benchmark-review-header">
+    <h1>Benchmark Review</h1>
+    <div class="meta">
+      Set: <strong><%= @benchmark_set %></strong>
+      <span>•</span>
+      Scenario groups: <strong><%= @total_groups %></strong>
+      <span>•</span>
+      Page <strong><%= @page %></strong> of <strong><%= @total_pages %></strong>
+    </div>
+
+    <div class="pager">
+      <% prev_page = [@page - 1, 1].max %>
+      <% next_page = [@page + 1, @total_pages].min %>
+      <%= link_to "← Prev", admin_benchmark_reviews_path(benchmark_set: @benchmark_set, page: prev_page), class: "pager-btn #{'disabled' if @page <= 1}" %>
+      <%= link_to "Next →", admin_benchmark_reviews_path(benchmark_set: @benchmark_set, page: next_page), class: "pager-btn #{'disabled' if @page >= @total_pages}" %>
+    </div>
+  </div>
+
+  <% @grouped_messages.each do |group_key, rows| %>
+    <% primary_label, scenario_id = group_key %>
+    <% state = @scenario_state_map[[primary_label, scenario_id]] %>
+    <section class="group-card <%= 'is-done' if state&.dig(:done) %>" data-scenario-wrap="<%= primary_label %>||<%= scenario_id %>" data-done="<%= state&.dig(:done) ? '1' : '0' %>">
+      <div class="group-title">
+        <%= primary_label %>
+        <span class="admin-tooltip" tabindex="0" aria-label="Signal definition">i
+          <span class="admin-tooltip-content"><%= @signal_definition_by_label[primary_label] %></span>
+        </span>
+      </div>
+      <div class="scenario-header">
+        <div class="scenario-title">Scenario: <%= scenario_id %> (<%= rows.size %> msgs)</div>
+        <div class="scenario-actions">
+          <input class="scenario-comment" type="text" placeholder="comment for this scenario (optional)" value="<%= state&.dig(:comment) %>" />
+          <button class="done-btn <%= 'is-open-btn' if state&.dig(:done) %>" data-benchmark-set="<%= @benchmark_set %>" data-label-primary="<%= primary_label %>" data-scenario-id="<%= scenario_id %>">
+            <%= state&.dig(:done) ? 'Mark scenario as open' : 'Mark scenario done' %>
+          </button>
+        </div>
+      </div>
+
+      <table class="review-table">
+        <thead>
+          <tr>
+            <th style="width:72%">Message</th>
+            <th style="width:28%">Labels & Review</th>
+            <%# <th>Add label</th> %>
+          </tr>
+        </thead>
+        <tbody>
+          <% rows.each do |message| %>
+            <% existing_labels = message.benchmark_labels.map(&:label_name).sort %>
+            <tr>
+              <td>
+                <div class="msg-meta">
+                  <code><%= message.external_message_id %></code>
+                  • <%= message.length_bucket %>/<%= message.style_bucket %>
+                </div>
+                <div class="msg-text"><%= message.message_text %></div>
+              </td>
+
+              <td>
+                <div class="pill-stack" data-message-id="<%= message.id %>">
+                  <% existing_labels.each do |lbl| %>
+                    <% rec = @my_recommendations[[message.id, lbl]] %>
+                    <% state_class = rec&.recommendation == 'disagree' ? 'disagree' : 'agree' %>
+                    <div class="label-pill <%= state_class %>" data-label-name="<%= lbl %>" data-existing="true">
+                      <span class="pill-text"><%= lbl %></span>
+                      <button class="pill-btn js-rec" data-recommendation="agree" title="Agree">👍</button>
+                      <button class="pill-btn js-rec" data-recommendation="disagree" title="Disagree">👎</button>
+                    </div>
+                  <% end %>
+
+                  <% @my_recommendations.each do |(msg_id, lbl), rec| %>
+                    <% next unless msg_id == message.id && rec.recommendation == 'add' && !existing_labels.include?(lbl) %>
+                    <div class="label-pill agree" data-label-name="<%= lbl %>" data-existing="false">
+                      <span class="pill-text"><%= lbl %></span>
+                      <button class="pill-btn js-remove" title="Remove recommendation">✕</button>
+                    </div>
+                  <% end %>
+                </div>
+              </td>
+
+              <%# <td>
+                <select class="js-add-label" data-message-id="<%= message.id %>">
+                  <option value="">select label…</option>
+                  <% @all_labels.each do |lbl| %>
+                    <option value="<%= lbl %>"><%= lbl %></option>
+                  <% end %>
+                </select>
+              </td> %>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </section>
+  <% end %>
+</div>
+
+<style>
+.benchmark-review-page{color:#0f172a;background:#f8fafc;padding:16px}
+.benchmark-review-header{display:flex;gap:14px;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap}
+.meta{font-size:13px;color:#334155;display:flex;gap:8px;align-items:center}
+.pager{display:flex;gap:8px}
+.pager-btn{border:1px solid #cbd5e1;border-radius:8px;padding:6px 10px;background:#fff;color:#0f172a;text-decoration:none}
+.pager-btn.disabled{pointer-events:none;opacity:.4}
+.group-card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin:14px 0}
+.group-card.is-done{background:#f1f5f9;border-color:#cbd5e1;opacity:.72}
+.group-title{font-size:18px;font-weight:700;margin-bottom:8px}
+.scenario-header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0 8px}
+.scenario-title{font-weight:600;color:#334155}
+.scenario-actions{display:flex;gap:8px;align-items:center}
+.scenario-comment{height:34px;min-width:320px;border:1px solid #cbd5e1;border-radius:8px;padding:0 8px}
+.done-btn{height:34px;border:1px solid #16a34a;background:#16a34a;color:#fff;border-radius:8px;padding:0 12px;cursor:pointer}
+.done-btn.is-open-btn{border-color:#64748b;background:#64748b}
+.review-table{width:100%;border-collapse:separate;border-spacing:0}
+.review-table th,.review-table td{border:1px solid #e2e8f0;padding:10px;vertical-align:top}
+.review-table th{background:#f1f5f9;text-align:left}
+.msg-meta{font-size:12px;color:#64748b;margin-bottom:6px}
+.msg-text{color:#0f172a}
+.pill-stack{display:flex;flex-wrap:wrap;gap:8px}
+.label-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;border:1px solid #93c5fd;background:#eff6ff}
+.label-pill.agree{border-color:#86efac;background:#f0fdf4}
+.label-pill.disagree{border-color:#fca5a5;background:#fef2f2}
+.pill-text{font-size:12px;font-weight:600}
+.pill-btn{border:none;background:transparent;cursor:pointer;font-size:13px;line-height:1}
+.js-add-label{width:100%;min-width:260px;height:34px;border:1px solid #cbd5e1;border-radius:8px;background:#fff}
+</style>
+
+<script>
+(function(){
+  async function postRecommendation(messageId, labelName, recommendation){
+    const res = await fetch('<%= admin_upsert_benchmark_review_path %>', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','X-CSRF-Token':document.querySelector('meta[name="csrf-token"]').content, 'Accept':'application/json'},
+      body: JSON.stringify({ benchmark_message_id: messageId, label_name: labelName, recommendation })
+    });
+    const data = await res.json();
+    if(!res.ok || !data.ok) throw new Error(data.error || 'Save failed');
+    if(window.showToast) window.showToast('Saved!');
+  }
+
+  async function removeRecommendation(messageId, labelName){
+    const url = '<%= admin_destroy_benchmark_review_path %>' + '?' + new URLSearchParams({benchmark_message_id: messageId, label_name: labelName}).toString();
+    const res = await fetch(url, {
+      method: 'DELETE',
+      headers: {'X-CSRF-Token':document.querySelector('meta[name="csrf-token"]').content, 'Accept':'application/json'}
+    });
+    const data = await res.json();
+    if(!res.ok || !data.ok) throw new Error(data.error || 'Remove failed');
+    if(window.showToast) window.showToast('Saved!');
+  }
+
+  async function toggleScenarioDone(btn){
+    const wrap = btn.closest('.group-card');
+    const comment = wrap.querySelector('.scenario-comment')?.value || '';
+    const isDone = wrap.dataset.done === '1';
+    const payload = {
+      benchmark_set: btn.dataset.benchmarkSet,
+      label_primary: btn.dataset.labelPrimary,
+      scenario_id: btn.dataset.scenarioId,
+      comment: comment
+    };
+
+    const endpoint = isDone
+      ? '<%= admin_mark_scenario_open_benchmark_review_path %>'
+      : '<%= admin_mark_scenario_done_benchmark_review_path %>';
+
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','X-CSRF-Token':document.querySelector('meta[name="csrf-token"]').content, 'Accept':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if(!res.ok || !data.ok) throw new Error(data.error || 'Scenario update failed');
+
+    const nowDone = !isDone;
+    wrap.dataset.done = nowDone ? '1' : '0';
+    wrap.classList.toggle('is-done', nowDone);
+    btn.classList.toggle('is-open-btn', nowDone);
+    btn.textContent = nowDone ? 'Mark scenario as open' : 'Mark scenario done';
+    if(window.showToast) window.showToast('Saved!');
+  }
+
+  document.addEventListener('click', async (e)=>{
+    const doneBtn = e.target.closest('.done-btn');
+    if(doneBtn){
+      try { await toggleScenarioDone(doneBtn); } catch(err){ if(window.showToast) window.showToast(err.message, null, true); }
+      return;
+    }
+
+    const btn = e.target.closest('.js-rec');
+    if(!btn) return;
+    const pill = btn.closest('.label-pill');
+    const stack = btn.closest('.pill-stack');
+    const messageId = stack.dataset.messageId;
+    const labelName = pill.dataset.labelName;
+    const recommendation = btn.dataset.recommendation;
+
+    try {
+      await postRecommendation(messageId, labelName, recommendation);
+      pill.classList.remove('agree','disagree');
+      pill.classList.add(recommendation === 'disagree' ? 'disagree' : 'agree');
+    } catch(err){
+      if(window.showToast) window.showToast(err.message, null, true);
+    }
+  });
+
+  document.addEventListener('change', async (e)=>{
+    const sel = e.target.closest('.js-add-label');
+    if(!sel || !sel.value) return;
+    const messageId = sel.dataset.messageId;
+    const labelName = sel.value;
+
+    try {
+      await postRecommendation(messageId, labelName, 'add');
+      const row = sel.closest('tr');
+      const stack = row.querySelector('.pill-stack');
+      if(!stack.querySelector(`.label-pill[data-label-name="${CSS.escape(labelName)}"]`)){
+        const div = document.createElement('div');
+        div.className = 'label-pill agree';
+        div.dataset.labelName = labelName;
+        div.dataset.existing = 'false';
+        div.innerHTML = `<span class="pill-text">${labelName}</span><button class="pill-btn js-remove" title="Remove recommendation">✕</button>`;
+        stack.appendChild(div);
+      }
+      sel.value='';
+    } catch(err){
+      if(window.showToast) window.showToast(err.message, null, true);
+    }
+  });
+
+  document.addEventListener('click', async (e)=>{
+    const btn = e.target.closest('.js-remove');
+    if(!btn) return;
+    const pill = btn.closest('.label-pill');
+    const stack = btn.closest('.pill-stack');
+    const messageId = stack.dataset.messageId;
+    const labelName = pill.dataset.labelName;
+    try {
+      await removeRecommendation(messageId, labelName);
+      pill.remove();
+    } catch(err){
+      if(window.showToast) window.showToast(err.message, null, true);
+    }
+  });
+})();
+</script>

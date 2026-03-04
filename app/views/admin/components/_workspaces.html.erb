@@ -1,0 +1,41 @@
+<article class="admin-card">
+  <h3>Workspaces Overview — New Workspaces</h3>
+  <canvas id="new-workspaces-chart" class="admin-chart"></canvas>
+</article>
+
+<article class="admin-card">
+  <h3>Subscription Status Breakdown</h3>
+  <canvas id="subscription-status-chart" class="admin-chart"></canvas>
+</article>
+
+<script>
+(() => {
+  const ctx1 = document.getElementById('new-workspaces-chart');
+  new Chart(ctx1, {
+    type: 'bar',
+    data: {
+      labels: ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'],
+      datasets: [{
+        label: 'New Workspaces',
+        data: [7,9,12,14,18,16,20,22,19,24,28,31],
+        backgroundColor: 'rgba(78,168,255,.6)',
+        borderColor: 'rgba(78,168,255,1)', borderWidth: 1, borderRadius: 6
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: { y: { grid: { color: '#223' } }, x:{ grid:{ display:false } } }
+    }
+  });
+
+  const ctx2 = document.getElementById('subscription-status-chart');
+  new Chart(ctx2, {
+    type: 'doughnut',
+    data: {
+      labels: ['Active Paid','Trial','Cancelled'],
+      datasets: [{ data: [78,15,7], backgroundColor: ['#4ea8ff','#22d3ee','#ef4444'] }]
+    },
+    options: { cutout: '62%', plugins: { legend: { position: 'bottom', labels:{ color:'#cbd5e1' } } } }
+  });
+})();
+</script>

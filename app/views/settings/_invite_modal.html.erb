@@ -1,0 +1,321 @@
+<% #_invite_modal partial %>
+<%= form_with url: settings_send_invites_path,
+              method: :post,
+              local: true,
+              id: "invite-users-form" do %>
+
+  <div class="invite-modal">
+    <div class="invite-modal-heading">
+      <div class="invite-modal-heading-left">
+        <div class="invite-modal-title">Invite to your account</div>
+        <div class="invite-modal-subtitle">
+          People you invite here are billed to your account and can be given access to dashboards,
+          view data, and connect more of your team’s communication tools.
+        </div>
+      </div>
+      <div class="invite-modal-heading-close">
+        <%= icon "x-mark" %>
+      </div>
+    </div>
+
+    <div class="invite-modal-section-top">
+      <div class="invite-modal-section-top-left">
+        Members (<span class="js-invite-selected-count">0</span>/<%= @modal_invitable_total %>)
+      </div>
+      <div class="invite-modal-section-top-right js-invite-select-toggle">Select All</div>
+    </div>
+
+    <div class="invite-modal-search-wrapper">
+      <input class="invite-modal-search" placeholder="Search by name or email...">
+      <button type="button"
+              class="invite-modal-search-clear"
+              aria-label="Clear search">
+        Clear
+      </button>
+    </div>
+
+    <div class="invite-modal-people"
+         data-invite-people-url="<%= settings_invite_users_path %>">
+      <%= render "settings/invite_users",
+                 invitable_users: @modal_invitable_users,
+                 search_query: nil %>
+    </div>
+
+    <div class="invite-modal-footer">
+      <div class="invite-modal-cancel">Cancel</div>
+      <div class="invite-modal-send">Send Invites</div>
+    </div>
+
+    <%= hidden_field_tag "invite[integration_user_ids]",
+                         "",
+                         id: "invite-selected-ids" %>
+  </div>
+
+<% end %>
+
+<div class="invite-modal-backdrop"></div>
+
+<script>
+  document.addEventListener("turbo:load", initInviteModal);
+
+  function initInviteModal() {
+    var modal     = document.querySelector(".invite-modal");
+    var backdrop  = document.querySelector(".invite-modal-backdrop");
+    var trigger   = document.querySelector(".settings-topbar-button");
+    var closeX    = document.querySelector(".invite-modal-heading-close");
+    var cancelBtn = document.querySelector(".invite-modal-cancel");
+
+    if (!modal || !backdrop || !trigger) return;
+
+    // ---- Basic open/close wiring (always) ----
+
+    hideInviteModal();
+
+    trigger.addEventListener("click", function() {
+      showInviteModal();
+    });
+
+    if (closeX) {
+      closeX.addEventListener("click", function() {
+        hideInviteModal();
+      });
+    }
+
+    if (cancelBtn) {
+      cancelBtn.addEventListener("click", function() {
+        hideInviteModal();
+      });
+    }
+
+    backdrop.addEventListener("click", function() {
+      hideInviteModal();
+    });
+
+    document.addEventListener("keydown", function(event) {
+      if (event.key === "Escape" || event.key === "Esc") {
+        hideInviteModal();
+      }
+    });
+
+    function showInviteModal() {
+      modal.style.display    = "flex";
+      backdrop.style.display = "block";
+
+      // Always reload the list from the server when opening,
+      // so newly invitable users (canceled/expired invites) appear.
+      if (typeof performSearch === "function") {
+        var query = (searchInput && searchInput.value) ? searchInput.value : "";
+        performSearch(query);
+      }
+    }
+
+    function hideInviteModal() {
+      modal.style.display    = "none";
+      backdrop.style.display = "none";
+    }
+
+    // ---- Advanced behavior (only if elements exist) ----
+
+    var peopleContainer = modal.querySelector(".invite-modal-people");
+    var selectToggle    = modal.querySelector(".js-invite-select-toggle");
+    var searchInput     = modal.querySelector(".invite-modal-search");
+    var clearBtn        = modal.querySelector(".invite-modal-search-clear");
+    var selectedCountEl = modal.querySelector(".js-invite-selected-count");
+
+    var sendBtn     = modal.querySelector(".invite-modal-send");
+    var inviteForm  = document.getElementById("invite-users-form");
+    var hiddenInput = document.getElementById("invite-selected-ids");
+
+    if (!peopleContainer || !selectToggle || !searchInput) {
+      return; // basic open/close still works
+    }
+
+    var selectedIds = new Set();
+    var searchTimer = null;
+
+    function isRowChecked(row) {
+      var btn = row.querySelector(".invite-modal-person-add");
+      return btn && btn.classList.contains("checked");
+    }
+
+    function setRowChecked(row, checked) {
+      var btn = row.querySelector(".invite-modal-person-add");
+      if (!btn) return;
+
+      if (checked) {
+        btn.classList.add("checked");
+      } else {
+        btn.classList.remove("checked");
+      }
+
+      var id = row.getAttribute("data-user-id");
+      if (!id) return;
+
+      if (checked) {
+        selectedIds.add(id);
+      } else {
+        selectedIds.delete(id);
+      }
+    }
+
+    function toggleRow(row) {
+      var checked = !isRowChecked(row);
+      setRowChecked(row, checked);
+      updateSelectToggleLabel();
+    }
+
+    function updateSendButtonLabel() {
+      if (!sendBtn) return;
+
+      var count = selectedIds.size;
+
+      if (count === 0) {
+        sendBtn.textContent = "Send Invites";
+      } else if (count === 1) {
+        sendBtn.textContent = "Send 1 invite";
+      } else {
+        sendBtn.textContent = "Send " + count + " invites";
+      }
+    }
+
+    function updateSelectToggleLabel() {
+      var rows = peopleContainer.querySelectorAll(".invite-modal-person");
+      if (rows.length === 0) {
+        selectToggle.textContent = "Select All";
+        if (selectedCountEl) selectedCountEl.textContent = "0";
+        updateSendButtonLabel();
+        return;
+      }
+
+      var checkedCount = 0;
+      rows.forEach(function(row) {
+        if (isRowChecked(row)) checkedCount++;
+      });
+
+      // Select All / Deselect All label based on visible rows
+      if (checkedCount === rows.length) {
+        selectToggle.textContent = "Deselect All";
+      } else {
+        selectToggle.textContent = "Select All";
+      }
+
+      // Members (X / total) – X = selectedIds.size across all pages/searches
+      if (selectedCountEl) {
+        selectedCountEl.textContent = String(selectedIds.size);
+      }
+
+      updateSendButtonLabel();
+    }
+
+    function applySelectionStateToRows() {
+      var rows = peopleContainer.querySelectorAll(".invite-modal-person");
+      rows.forEach(function(row) {
+        var id = row.getAttribute("data-user-id");
+        var checked = id && selectedIds.has(id);
+        var btn = row.querySelector(".invite-modal-person-add");
+        if (!btn) return;
+
+        if (checked) {
+          btn.classList.add("checked");
+        } else {
+          btn.classList.remove("checked");
+        }
+      });
+
+      updateSelectToggleLabel();
+    }
+
+    function performSearch(query) {
+      var url = peopleContainer.getAttribute("data-invite-people-url");
+      if (!url || typeof $ === "undefined") {
+        console.warn("Invite search requires jQuery and data-invite-people-url");
+        return;
+      }
+
+      $.get(url, { q: query }, function(html) {
+        peopleContainer.innerHTML = html;
+        applySelectionStateToRows();
+      });
+    }
+
+    function updateSearchClearVisibility() {
+      if (!clearBtn) return;
+
+      if (searchInput.value.trim().length > 0) {
+        clearBtn.style.display = "inline-flex";
+      } else {
+        clearBtn.style.display = "none";
+      }
+    }
+
+    // ---- Event bindings (advanced) ----
+
+    // Row click → toggle checkbox
+    peopleContainer.addEventListener("click", function(event) {
+      var row = event.target.closest(".invite-modal-person");
+      if (!row || !peopleContainer.contains(row)) return;
+      toggleRow(row);
+    });
+
+    // Select All / Deselect All
+    selectToggle.addEventListener("click", function() {
+      var rows = peopleContainer.querySelectorAll(".invite-modal-person");
+      if (rows.length === 0) return;
+
+      var allChecked = true;
+      rows.forEach(function(row) {
+        if (!isRowChecked(row)) allChecked = false;
+      });
+
+      rows.forEach(function(row) {
+        setRowChecked(row, !allChecked);
+      });
+
+      updateSelectToggleLabel();
+    });
+
+    // Search input with debounce
+    searchInput.addEventListener("input", function() {
+      if (searchTimer) clearTimeout(searchTimer);
+      updateSearchClearVisibility();
+
+      searchTimer = setTimeout(function() {
+        performSearch(searchInput.value);
+      }, 300);
+    });
+
+    // Clear button inside search bar
+    if (clearBtn) {
+      clearBtn.addEventListener("click", function() {
+        searchInput.value = "";
+        updateSearchClearVisibility();
+        performSearch(""); // reload full list (no query)
+      });
+    }
+
+    // Send Invites → use NOTICE modal when nothing selected
+    if (sendBtn && inviteForm && hiddenInput) {
+      sendBtn.addEventListener("click", function() {
+        var count = selectedIds.size;
+
+        if (count === 0) {
+          if (typeof notice === "function") {
+            notice("Please select at least one person to invite.", {
+              confirmLabel: "OK"
+            });
+          } else {
+            alert("Please select at least one person to invite.");
+          }
+          return;
+        }
+
+        hiddenInput.value = Array.from(selectedIds).join(",");
+        inviteForm.submit();
+      });
+    }
+
+    // Initial state
+    updateSelectToggleLabel();
+    updateSearchClearVisibility();
+  }
+</script>

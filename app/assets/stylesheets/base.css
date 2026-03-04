@@ -1,0 +1,139 @@
+@layer base {
+
+
+  /* ========== TOKENS ========== */
+
+  :root {
+    /* brand palette */
+    --slate-0:      #ffffff;
+    --slate-50:     #F8FAFC;
+    --slate-100:    #F1F5F9;
+    --slate-200:    #e2e8f0;
+    --slate-300:    #CBD5E1;
+    --slate-400:    #94A3B8;
+    --slate-500:    #64748B;
+    --slate-700:    #334155;
+    --slate-800:    #1E293B;
+    --slate-900:    #0F172A;
+
+    --teal-500:     #00AD9C;
+    --yellow-400:   #FACC15;
+    --red-500:      #EF4444;
+    --red-500-hover:#FF5B57;
+
+    --accent:       #0086FC;
+    --accent-hover: #009AFF;
+    --accent-light: #E3F2FF;
+    --elevated:     #F6F8FA;
+    --dark:         #313131;
+    --off-dark:     #6B6F76;
+
+    --meter-track:  #E5EBF2;   /* light gray */
+    --meter-low:    #EF4444;   /* below t1  */
+    --meter-mid:    #F4B400;   /* t1..t2    */
+    --meter-high:   #10B981;   /* above t2  */
+    --meter-thickness: 9px;
+
+
+    /* radius & spacing */
+    --radius: 16px;
+    --s-2: .5rem; --s-4: 1rem; --s-6: 1.5rem; --s-8: 2rem;
+
+    /* fluid type */
+    --fs-0: clamp(1rem, .95rem + .3vw, 1.125rem);
+    --fs-1: clamp(1.1rem, 1rem + .6vw, 1.35rem);
+    --fs-2: clamp(1.35rem, 1.1rem + 1vw, 1.75rem);
+
+    /* shadows */
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.10);
+    --shadow-lg: 0 10px 15px rgba(0,0,0,0.15);
+
+    --shadow-blue: 0 2px 5px rgba(0,134,252,0.3);
+
+    --shadow-soft: 0 0 8px 2px rgba(0, 0, 0, 0.04);
+
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #111827;
+    --surface: #1F2937;
+    --border: #374151;
+    --text: #F9FAFB;
+    --muted: #9CA3AF;
+
+    /* typically reduce perceived elevation in dark mode */
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.40);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.50);
+    --shadow-lg: 0 10px 15px rgba(0,0,0,0.60);
+  }
+
+
+/* ========== RESET (yours) ========== */
+
+/* Box sizing rules */
+*, *::before, *::after { box-sizing: border-box; }
+
+/* Remove default margin */
+body, h1, h2, h3, h4, p, figure, blockquote, dl, dd { margin: 0; }
+
+/* Remove list styles on ul, ol with role=list */
+ul[role='list'], ol[role='list'] { list-style: none; }
+
+/* Core root defaults */
+html:focus-within { scroll-behavior: smooth; }
+
+/* Core body defaults */
+body {
+  min-height: 100dvh;             /* use dvh for mobile browser chrome */
+  text-rendering: optimizeSpeed;
+  line-height: 1.5;
+  background: var(--slate-50);
+}
+
+/* A elements without class get default styles */
+a:not([class]) { text-decoration-skip-ink: auto; }
+
+/* Inherit fonts for inputs and buttons */
+input, button, textarea, select { font: inherit; }
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  html:focus-within { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ========== ELEMENT DEFAULTS (light touch) ========== */
+
+html, body { height: 100%; } /* safe default for full-height layouts */
+
+body {
+  background: var(--slate-50);
+  color: var(--slate-700);
+  font-family: "Geist", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+img, svg, video { display: block; max-width: 100%; height: auto; }
+
+svg{
+  stroke-width:2;
+  display: inline-block;
+  vertical-align: top;
+}
+
+a { color: var(--brand); text-decoration: none; cursor:pointer; }
+a:hover { text-decoration: none; }
+
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+h1 { font-size: var(--fs-2); margin: 0 0 var(--s-6); }
+h2 { font-size: var(--fs-1); margin: 0 0 var(--s-4); }
+p  { font-size: var(--fs-0); margin: 0 0 var(--s-4); }
+}

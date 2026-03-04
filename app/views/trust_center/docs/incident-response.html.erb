@@ -1,0 +1,145 @@
+<%# app/views/trust_center/docs/incident-response.html.erb %>
+
+<div class="trust-doc">
+  <div class="trust-doc-header">
+    <div class="trust-doc-breadcrumb">
+      <%= link_to "Trust Center", trust_home_url, class: "trust-doc-breadcrumb-link" %>
+      <span class="trust-doc-breadcrumb-sep">/</span>
+      <span class="trust-doc-breadcrumb-current">Incident Response</span>
+    </div>
+
+    <div class="trust-doc-title-row">
+      <%= image_tag "logo.png", class: "trust-doc-logo", alt: "Workplace.io" %>
+      <div class="trust-doc-title">Incident Response</div>
+    </div>
+
+    <div class="trust-doc-subtitle">
+      How we detect, triage, contain, remediate, and communicate security incidents. This page describes our process at a level
+      suitable for customer security review.
+    </div>
+
+    <div class="trust-doc-updated">
+      Last updated: <%= @trust_center_stamp %>
+    </div>
+  </div>
+
+  <div class="trust-doc-body">
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">At a glance</div>
+      <div class="trust-doc-bullets">
+        <ul class="trust-doc-bullet-list">
+          <li><strong>Detection:</strong> monitoring and alerts surface reliability and security issues.</li>
+          <li><strong>Triage:</strong> we assess severity, scope, and customer impact.</li>
+          <li><strong>Containment:</strong> we limit blast radius and prevent further impact.</li>
+          <li><strong>Remediation:</strong> we address root cause and validate recovery.</li>
+          <li><strong>Communication:</strong> we notify customers when warranted by scope and impact.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">What we consider an incident</div>
+      <div class="trust-doc-text">
+        An incident is an event that impacts confidentiality, integrity, or availability of the service. Examples include unauthorized access,
+        credential exposure, data integrity issues, or service outages that materially affect customers.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Detection and intake</div>
+      <div class="trust-doc-text">
+        We use operational monitoring and security-relevant logging to detect abnormal behavior and failures. Incidents may also be reported
+        by customers or external researchers.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Operational alerts:</strong> error spikes, processing delays, and availability issues.</li>
+        <li><strong>Security signals:</strong> unusual authentication activity and privileged action patterns.</li>
+        <li><strong>External reports:</strong> vulnerability disclosures and customer-reported issues.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Logging & Monitoring →", trust_doc_url_for("logging-monitoring"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Triage</div>
+      <div class="trust-doc-text">
+        When an event is detected, we triage to determine severity, affected systems, and customer impact. We prioritize response based on
+        potential risk and breadth of impact.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Severity assessment:</strong> impact to confidentiality, integrity, or availability.</li>
+        <li><strong>Scope:</strong> which components are affected (application, integrations, inference workloads).</li>
+        <li><strong>Customer impact:</strong> whether access, processing, or reporting is impaired.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Containment</div>
+      <div class="trust-doc-text">
+        We take steps to limit blast radius and prevent further impact. Containment measures depend on incident type and may include disabling
+        integrations, restricting access paths, rotating credentials, or isolating affected components.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Access restriction:</strong> limit privileged access if needed.</li>
+        <li><strong>Credential actions:</strong> rotate or invalidate credentials where warranted.</li>
+        <li><strong>Component isolation:</strong> isolate malfunctioning or suspicious components.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Remediation and recovery</div>
+      <div class="trust-doc-text">
+        We remediate root cause and validate recovery. Recovery may include fixes, configuration changes, and verification through monitoring and
+        targeted testing.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Root cause analysis:</strong> identify what happened and why.</li>
+        <li><strong>Fix and validate:</strong> deploy corrections and verify normal operation.</li>
+        <li><strong>Hardening:</strong> implement control improvements to reduce recurrence risk.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Secure Development →", trust_doc_url_for("secure-development"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Customer communication</div>
+      <div class="trust-doc-text">
+        When warranted by scope and impact, we notify customers with actionable information. Notifications include what happened, what was affected,
+        what we did to remediate, and recommended customer actions (if any).
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Timeliness:</strong> communications are provided as appropriate to severity and confirmed facts.</li>
+        <li><strong>Actionability:</strong> recommended customer actions are included when applicable.</li>
+        <li><strong>Follow-up:</strong> we provide updates as remediation progresses.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Post-incident review</div>
+      <div class="trust-doc-text">
+        We review incidents to improve controls and reduce recurrence. This includes remediation tracking, monitoring improvements, and updates to
+        operational procedures where appropriate.
+      </div>
+    </div>
+
+    <div class="trust-doc-footer">
+      <div class="trust-doc-footer-title">Need to report an issue?</div>
+      <div class="trust-doc-footer-text">
+        If you believe you’ve discovered a security issue, contact us.
+      </div>
+      <div class="trust-doc-footer-actions">
+        <%= link_to "Contact Trust & Security", trust_doc_url_for("contact"), class: "trust-doc-button" %>
+        <%= link_to "Back to Trust Center", trust_home_url, class: "trust-doc-button trust-doc-button--secondary" %>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,18 @@
+<div style="max-width:720px; margin:0 auto; padding:48px 20px; text-align:left;">
+  <div style="font-size:13px; opacity:0.7; margin-bottom:10px;">500</div>
+  <h1 style="margin:0 0 10px 0;">Something went wrong</h1>
+  <div style="opacity:0.8; line-height:1.5;">
+    We hit an unexpected error. Try again in a minute.
+  </div>
+
+  <div style="margin-top:14px; opacity:0.8;">
+    If this keeps happening, email
+    <a href="mailto:<%= ApplicationMailer::SUPPORT_EMAIL %>" style="color:inherit; text-decoration:underline;">
+      <%= ApplicationMailer::SUPPORT_EMAIL %>
+    </a>.
+  </div>
+
+  <div style="margin-top:24px; display:flex; gap:12px; flex-wrap:wrap;">
+    <a href="/" class="settings-section-general-button" style="text-decoration:none;">Go to dashboard</a>
+  </div>
+</div>

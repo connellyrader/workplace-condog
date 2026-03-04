@@ -1,0 +1,6 @@
+<% if masquerading? %>
+  <div class="masquerade-banner">
+    <span>Masquerading as <strong><%= current_user.full_name.presence || current_user.email %></strong></span>
+    <%= button_to "Exit", admin_stop_masquerade_path, method: :delete, class: "masquerade-banner-exit", form_class: "masquerade-inline-form" %>
+  </div>
+<% end %>

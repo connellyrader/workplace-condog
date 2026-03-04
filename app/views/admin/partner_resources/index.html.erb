@@ -1,0 +1,95 @@
+<% content_for :page_title do %>
+  Partner Resources
+<% end %>
+
+<% content_for :page_subtitle do %>
+  Manage files/links shown on the Partner Dashboard → Resources page.
+<% end %>
+
+<section class="admin-section">
+  <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+    <div style="opacity:0.75;">Categories are hardcoded; category controls which section the resource appears under.</div>
+    <%= link_to "Add resource", new_admin_partner_resource_path, class: "admin-btn" %>
+  </div>
+
+  <div style="margin-top:14px;" class="admin-card">
+    <table class="admin-table" style="width:100%;">
+      <thead>
+        <tr>
+          <th style="text-align:left;">Category</th>
+          <th style="text-align:left;">Title</th>
+          <th style="text-align:left;">URL</th>
+          <th style="text-align:right;">Pos</th>
+          <th style="text-align:right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @partner_resources.each do |r| %>
+          <tr>
+            <td><%= PartnerResource::CATEGORIES[r.category] || r.category %></td>
+            <td><%= r.title %></td>
+            <td style="max-width:520px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+              <% if r.resource_type.to_s == 'color' %>
+                <span class="pp-mono"><%= r.hex %></span>
+              <% elsif r.file.attached? %>
+                <%= r.file.filename.to_s %>
+              <% else %>
+                <a href="<%= r.url %>" target="_blank" rel="noopener"><%= r.url %></a>
+              <% end %>
+            </td>
+            <td style="text-align:right;"><%= r.position %></td>
+            <td style="text-align:right; white-space:nowrap;">
+              <%= link_to "Edit", edit_admin_partner_resource_path(r), class: "admin-btn" %>
+
+              <%= button_to "Delete",
+                            admin_partner_resource_path(r),
+                            method: :delete,
+                            form: {
+                              data: {
+                                confirm_modal: "1",
+                                confirm_title: "Delete resource",
+                                confirm_message: "Delete '#{j r.title}'?",
+                                confirm_button: "Delete"
+                              }
+                            },
+                            class: "admin-btn",
+                            style: "display:inline-block;" %>
+            </td>
+          </tr>
+        <% end %>
+
+        <% if @partner_resources.blank? %>
+          <tr>
+            <td colspan="5" style="opacity:0.7;">No resources yet.</td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<script>
+  (function() {
+    function handler(e) {
+      var form = e.target;
+      if (!form || !form.matches || !form.matches('form[data-confirm-modal="1"]')) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      var title = form.getAttribute('data-confirm-title') || 'Confirm';
+      var msg   = form.getAttribute('data-confirm-message') || 'Are you sure?';
+      var btn   = form.getAttribute('data-confirm-button') || 'Continue';
+
+      if (window.warning) {
+        window.warning(msg, { title: title, confirmLabel: btn, cancelLabel: 'Cancel' }).then(function(ok) {
+          if (ok) form.submit();
+        });
+      } else {
+        if (window.confirm(msg)) form.submit();
+      }
+    }
+
+    document.addEventListener('submit', handler);
+  })();
+</script>

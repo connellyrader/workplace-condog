@@ -1,0 +1,12 @@
+<h1>Your Workspaces</h1>
+
+<% @workspaces.each do |workspace| %>
+  <div class="workspace">
+    <strong><%= link_to workspace.name || workspace.slack_team_id, workspace_path(workspace) %></strong>
+
+    <%# Example of showing subscription status if you store it %>
+    <p>Subscription: <%= workspace.subscription_status || "none" %></p>
+  </div>
+<% end %>
+
+<%= link_to "New Workspace", new_workspace_path, class: "btn btn-primary" %>

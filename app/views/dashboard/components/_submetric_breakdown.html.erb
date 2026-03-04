@@ -1,0 +1,409 @@
+<%# app/views/dashboard/components/_submetric_breakdown.html.erb %>
+
+<div class="submetric-breakdown">
+  <div class="submetric-breakdown-title">Submetric Breakdown</div>
+
+  <% subs = metric.submetrics.order(:name) %>
+
+  <%# allow either locals (preferred) or instance vars (fallback) %>
+  <%
+    sub_det_counts =
+      (defined?(submetric_detection_counts) && submetric_detection_counts) ||
+      (defined?(@submetric_detection_counts) && @submetric_detection_counts) ||
+      {}
+
+    sc_rates =
+      (defined?(signal_category_rates) && signal_category_rates) ||
+      (defined?(@signal_category_rates) && @signal_category_rates) ||
+      {}
+
+    sc_det_counts =
+      (defined?(signal_category_detection_counts) && signal_category_detection_counts) ||
+      (defined?(@signal_category_detection_counts) && @signal_category_detection_counts) ||
+      {}
+
+    submetric_spark_points_lookup =
+      (defined?(submetric_spark_points) && submetric_spark_points) ||
+      (defined?(@submetric_spark_points) && @submetric_spark_points) ||
+      {}
+
+    submetric_last30_counts_lookup =
+      (defined?(submetric_last30_counts) && submetric_last30_counts) ||
+      (defined?(@submetric_last30_counts) && @submetric_last30_counts) ||
+      {}
+
+    # Build static modals (one per signal category)
+    sc_modals = []
+
+    range_end_for_label =
+      if defined?(@range_end) && @range_end.present?
+        @range_end.to_date
+      else
+        Time.zone.today
+      end
+
+    submetric_modal_title =
+      if range_end_for_label == Time.zone.today
+        "Signals last 30 days"
+      else
+        "Signals in 30 days ending #{range_end_for_label.strftime("%b %-d, %Y")}"
+      end
+  %>
+
+  <%
+    warn_score_max = 60
+    k             = 25.0
+    n_cap         = 500.0
+    p_exp         = 1.25
+
+    scored =
+      subs.map do |sub|
+        score_raw = (submetric_rates[sub.id] || submetric_rates[sub.id.to_s])
+        next if score_raw.nil?
+
+        last30_key =
+          if submetric_last30_counts_lookup.key?(sub.id)
+            sub.id
+          elsif submetric_last30_counts_lookup.key?(sub.id.to_s)
+            sub.id.to_s
+          end
+
+        if last30_key
+          last30_count = submetric_last30_counts_lookup[last30_key].to_i
+          next if last30_count < 3
+        end
+
+        score = score_raw.to_i.clamp(0, 100)
+
+        dets =
+          sub.signal_categories.sum do |sc|
+            (sc_det_counts[sc.id] || sc_det_counts[sc.id.to_s] || 0).to_i
+          end
+
+        next if score > warn_score_max
+        next if dets <= 5
+
+        severity = (warn_score_max - score).to_f / warn_score_max
+        severity = [[severity, 0.0].max, 1.0].min
+
+        impact = Math.log10(dets + 1.0) / Math.log10(n_cap + 1.0)
+        impact = [impact, 1.0].min
+
+        count_weight = dets.to_f / (dets.to_f + k)
+
+        priority = (severity ** p_exp) * impact * count_weight
+
+        { sub: sub, score: score, dets: dets, priority: priority }
+      end.compact
+
+    top = scored.sort_by { |x| -x[:priority] }.first(3)
+
+    warning_lookup =
+      top.each_with_object({}) do |x, h|
+        sub   = x[:sub]
+        score = x[:score]
+        dets  = x[:dets]
+        h[sub.id] = "Warning: The score for #{sub.name} is #{score} across #{dets} signals. Flagged because it combines low scores with meaningful volume."
+      end
+  %>
+
+  <div class="submetric-breakdown-list" data-submetric-breakdown-list>
+    <% subs.each do |sub| %>
+      <%
+        det_count = (sub_det_counts[sub.id] || sub_det_counts[sub.id.to_s]).to_i
+        raw_value = (submetric_rates[sub.id] || submetric_rates[sub.id.to_s])
+        raw_value = raw_value.to_i.clamp(0, 100) if raw_value
+
+        last30_key =
+          if submetric_last30_counts_lookup.key?(sub.id)
+            sub.id
+          elsif submetric_last30_counts_lookup.key?(sub.id.to_s)
+            sub.id.to_s
+          end
+
+        last30_count = last30_key ? submetric_last30_counts_lookup[last30_key].to_i : nil
+        show_value   = last30_count ? (last30_count >= 3) : (det_count >= 3)
+        dial_value   = show_value && raw_value ? raw_value : 0
+        label        = show_value && raw_value ? raw_value : "--"
+
+        submetric_score_val = show_value && raw_value ? raw_value : nil
+
+        dial_band =
+          if raw_value.to_i <= 24
+            "is-red"
+          elsif raw_value.to_i <= 74
+            "is-yellow"
+          else
+            "is-green"
+          end
+
+        detections_count =
+          sub.signal_categories.sum do |sc|
+            (sc_det_counts[sc.id] || sc_det_counts[sc.id.to_s] || 0).to_i
+          end
+
+        ordered_scs = sub.signal_categories.order(:name).to_a
+        default_modal_id =
+          if ordered_scs.first
+            "sc-#{ordered_scs.first.id}"
+          else
+            "sub-#{sub.id}"
+          end
+
+        # Fallback modal if no signal categories exist
+        if ordered_scs.empty?
+          sc_modals << {
+            modal_id: "sub-#{sub.id}",
+            submetric_name: sub.name,
+            submetric_overview: sub.description.to_s,
+            signals: [],
+            signal_categories: [],
+            open_signal_id: nil,
+            submetric_score: submetric_score_val
+          }
+        end
+
+        signals_payload =
+          ordered_scs.map do |x|
+            {
+              id: x.id,
+              name: x.name,
+              desc: x.description,
+              score: (sc_rates[x.id] || sc_rates[x.id.to_s])
+            }
+          end
+
+        signal_categories_payload =
+          ordered_scs.map do |x|
+            {
+              id: x.id,
+              name: x.name,
+              desc: x.description
+            }
+          end
+
+        # Prebuild modals (one per signal category) for this submetric
+        ordered_scs.each do |sc|
+          sc_modals << {
+            modal_id: "sc-#{sc.id}",
+            submetric_name: sub.name,
+            submetric_overview: sub.description.to_s,
+            signal_overview: sc.description,
+            signals: signals_payload,
+            signal_categories: signal_categories_payload,
+            open_signal_id: sc.id,
+            submetric_score: submetric_score_val
+          }
+        end
+      %>
+
+      <div class="submetric-breakdown-row"
+           role="button"
+           tabindex="0"
+           <%= default_modal_id ? "data-open-modal-id=\"#{default_modal_id}\"" : "" %>>
+
+        <div class="submetric-breakdown-row-score-dial <%= dial_band %>" style="--p:<%= dial_value %>">
+          <span><%= label %></span>
+        </div>
+
+        <div class="submetric-breakdown-row-name" data-submetric-name-cell>
+          <%= sub.name %>
+
+          <% if (tip = warning_lookup[sub.id]) %>
+            <span data-tooltip="<%= tip %>">
+              <%= icon "warning" %>
+            </span>
+          <% end %>
+        </div>
+
+        <div class="submetric-breakdown-row-desc"><%= sub.short_description %></div>
+
+        <div class="submetric-breakdown-row-signals">
+          Detections: <span><%= detections_count %></span>
+
+          <div class="submetric-breakdown-modal">
+            <div class="submetric-breakdown-modal-title"><%= submetric_modal_title %></div>
+
+            <div class="submetric-breakdown-modal-list">
+              <% ordered_scs.each do |sc| %>
+                <%
+                  sc_count = (sc_det_counts[sc.id] || sc_det_counts[sc.id.to_s]).to_i
+                  sc_raw   = (sc_rates[sc.id]      || sc_rates[sc.id.to_s])
+
+                  modal_enabled = show_value
+                  sc_has_data   = sc_count > 0 && !sc_raw.nil?
+
+                  sc_score = (modal_enabled && sc_has_data) ? sc_raw.to_i.clamp(0, 100) : nil
+                  sc_label = sc_score.nil? ? "--" : sc_score.to_s
+
+                  sc_dial =
+                    if sc_score.nil?
+                      0
+                    elsif sc_score == 0
+                      1
+                    else
+                      sc_score
+                    end
+
+                  sc_band =
+                    if sc_score.nil?
+                      ""
+                    elsif sc_score <= 24
+                      "is-red"
+                    elsif sc_score <= 74
+                      "is-yellow"
+                    else
+                      "is-green"
+                    end
+
+                  modal_id = "sc-#{sc.id}"
+                %>
+
+                <div class="submetric-breakdown-modal-row"
+                     role="button"
+                     tabindex="0"
+                     data-open-modal-id="<%= modal_id %>">
+                  <div class="submetric-breakdown-modal-dial <%= sc_band %>" style="--p:<%= sc_dial %>">
+                    <span><%= sc_label %></span>
+                  </div>
+
+                  <div class="submetric-breakdown-modal-name"><%= sc.name %></div>
+
+                  <div class="submetric-breakdown-modal-score">Detections: <%= sc_count %></div>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        </div>
+
+        <div class="submetric-breakdown-row-sparkline">
+          <%= render "dashboard/components/submetric_sparkline",
+                points: (submetric_spark_points_lookup[sub.id] ||
+                         submetric_spark_points_lookup[sub.id.to_s] ||
+                         [nil, nil]),
+                width: 100,
+                height: 30,
+                curve: :smooth,
+                curve_tension: 0.7,
+                curve_pad_px: 2 %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Backdrop (one) -->
+  <div class="submetric-info-modal-backdrop" data-submetric-modal-backdrop style="display:none;"></div>
+
+  <!-- Static fixed modal for each signal category row -->
+  <% sc_modals.each do |m| %>
+    <div class="submetric-info-modal"
+         data-submetric-modal
+         data-submetric-modal-id="<%= m[:modal_id] %>"
+         style="display:none;">
+
+      <%
+        sm_score = m[:submetric_score]
+        sm_label = sm_score.nil? ? "--" : sm_score.to_i.clamp(0, 100).to_s
+
+        sm_p =
+          if sm_score.nil?
+            0
+          else
+            v = sm_score.to_i.clamp(0, 100)
+            v == 0 ? 1 : v
+          end
+
+        sm_band =
+          if sm_score.nil?
+            ""
+          elsif sm_score.to_i <= 24
+            "is-red"
+          elsif sm_score.to_i <= 74
+            "is-yellow"
+          else
+            "is-green"
+          end
+      %>
+
+      <div class="submetric-info-modal-top">
+        <div class="submetric-info-modal-top-left">
+          <div class="submetric-info-modal-submetric-dial <%= sm_band %>" style="--p:<%= sm_p %>">
+            <span><%= sm_label %></span>
+          </div>
+
+          <div class="submetric-info-modal-top-submetric"><%= m[:submetric_name] %></div>
+          <div class="submetric-info-modal-metric-pill"><%= metric.name %></div>
+        </div>
+
+        <button type="button" class="submetric-info-modal-close" aria-label="Close" data-submetric-modal-close>
+          <%= icon 'x-mark' %>
+        </button>
+      </div>
+
+      <div class="submetric-info-modal-title">Overview</div>
+
+      <div class="submetric-info-modal-text">
+        <%= m[:submetric_overview].to_s.gsub("\n", "<br>").html_safe %>
+      </div>
+
+      <div class="submetric-info-modal-line"></div>
+
+      <div class="submetric-info-modal-title submetric-info-modal-title--with-count">
+        Signals
+        <!--div class="submetric-info-modal-count"><%= m[:signals].size %></div-->
+      </div>
+
+      <div class="submetric-info-modal-signals" data-submetric-accordion>
+        <% m[:signals].each do |sig| %>
+          <%
+            is_open = (sig[:id].to_i == m[:open_signal_id].to_i)
+
+            sig_score = sig[:score]
+            sig_label = sig_score.nil? ? "--" : sig_score.to_i.clamp(0, 100).to_s
+
+            sig_p =
+              if sig_score.nil?
+                0
+              else
+                v = sig_score.to_i.clamp(0, 100)
+                v == 0 ? 1 : v
+              end
+
+            sig_band =
+              if sig_score.nil?
+                ""
+              elsif sig_score.to_i <= 24
+                "is-red"
+              elsif sig_score.to_i <= 74
+                "is-yellow"
+              else
+                "is-green"
+              end
+          %>
+
+          <div class="submetric-info-modal-signal-box <%= is_open ? "is-open" : "" %>" data-accordion-item>
+            <button type="button"
+                    class="submetric-info-modal-signal-title"
+                    data-accordion-toggle
+                    aria-expanded="<%= is_open ? "true" : "false" %>">
+
+              <span class="submetric-info-modal-signal-left">
+                <span class="submetric-info-modal-signal-dial <%= sig_band %>" style="--p:<%= sig_p %>">
+                  <span><%= sig_label %></span>
+                </span>
+                <span class="submetric-info-modal-signal-name"><%= sig[:name] %></span>
+              </span>
+
+              <span class="submetric-info-modal-signal-chevron"><%= icon 'chevron-down' %></span>
+            </button>
+
+            <div class="submetric-info-modal-signal-description" data-accordion-panel>
+              <%= sig[:desc].to_s %>
+            </div>
+          </div>
+
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div>

@@ -1,0 +1,58 @@
+<% if user_signed_in? && @active_workspace && @show_right_panel && !@show_integration_modal %>
+  <div class="chat <%= 'is-visible' if @show_chat_panel %>" id="right-panel-chat">
+    <%= render 'ai_chat/chatbox' %>
+  </div>
+
+  <div class="chat <%= 'is-visible' if @show_analyze_panel %>" id="right-panel-analyze">
+    <%= render 'dashboard/components/analyze' %>
+  </div>
+
+  <% if @show_right_panel %>
+    <div class="right-panel-toggle-button"><%= icon 'chat' %></div>
+  <% end %>
+<% end %>
+
+<script>
+  $(function(){
+    const MOBILE_PANEL_BREAKPOINT = '(max-width: 1280px)';
+
+    function forceOpenAnalyzePanelOnSmallScreens() {
+      const isSmall = window.matchMedia(MOBILE_PANEL_BREAKPOINT).matches;
+      const analyzeVisible = $('#right-panel-analyze').hasClass('is-visible');
+      const chatVisible = $('#right-panel-chat').hasClass('is-visible');
+
+      // If analyzer is the active panel on smaller screens, auto-open it so
+      // users can see onboarding/analyze progress without discovering the FAB first.
+      if (isSmall && analyzeVisible && !chatVisible) {
+        $('body').addClass('right-panel-open');
+      }
+    }
+
+    forceOpenAnalyzePanelOnSmallScreens();
+
+    const mediaQuery = window.matchMedia(MOBILE_PANEL_BREAKPOINT);
+    if (mediaQuery && typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', function (e) {
+        if (e.matches) forceOpenAnalyzePanelOnSmallScreens();
+      });
+    } else if (mediaQuery && typeof mediaQuery.addListener === 'function') {
+      mediaQuery.addListener(function (e) {
+        if (e.matches) forceOpenAnalyzePanelOnSmallScreens();
+      });
+    }
+
+    $(window).on('resize.rightPanelAutoOpen', forceOpenAnalyzePanelOnSmallScreens);
+
+    $('.right-panel-toggle-button').on('click', function(){
+      $('body').addClass('right-panel-open');
+    });
+
+    $('.backdrop').on('click', function(){
+      $('body').removeClass('right-panel-open');
+    });
+
+    $('.ai-chat__topbar-close').on('click', function(){
+      $('body').removeClass('right-panel-open');
+    });
+  });
+</script>

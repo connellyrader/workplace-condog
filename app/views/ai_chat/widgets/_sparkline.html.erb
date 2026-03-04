@@ -1,0 +1,101 @@
+<%
+  pts     = (points || [0,0]).map(&:to_f)
+  w       = (local_assigns[:width]  || 800).to_f  # base viewBox width
+  h       = (local_assigns[:height] || 260).to_f  # base viewBox height
+  pad     = { l: 56.0, r: 16.0, t: 18.0, b: 42.0 }
+  iw, ih  = w - pad[:l] - pad[:r], h - pad[:t] - pad[:b]
+  n       = [pts.size, 2].max
+  sx      = n > 1 ? (iw / (n - 1)) : 0.0
+  sy      = ih / 100.0
+  y_ticks = [0,25,50,75,100]
+  tick_ix = if n <= 6
+               (0...n).to_a
+             else
+               [0, (n*0.2).round, (n*0.4).round, (n*0.6).round, (n*0.8).round, n-1].uniq
+             end
+
+  xy = pts.each_with_index.map { |v,i| [pad[:l] + i*sx, pad[:t] + ih - (v*sy)] }
+  d_line = xy.map.with_index { |(x,y),i| i.zero? ? "M #{x.round(2)} #{y.round(2)}" : "L #{x.round(2)} #{y.round(2)}" }.join(' ')
+  d_area = xy.any? ? ("M #{xy.first[0].round(2)} #{xy.first[1].round(2)} " \
+                      "#{xy.drop(1).map{ |x,y| "L #{x.round(2)} #{y.round(2)}" }.join(' ')} " \
+                      "L #{xy.last[0].round(2)} #{(pad[:t]+ih).round(2)} " \
+                      "L #{xy.first[0].round(2)} #{(pad[:t]+ih).round(2)} Z") : ""
+  uid = "mspark-#{(Time.now.to_f*1000).to_i}-#{rand(1000)}"
+%>
+
+<div class="metric-spark-wrap" style="--spark-ratio: <%= w %>/<%= h %>;">
+  <svg class="metric-spark"
+       viewBox="0 0 <%= w %> <%= h %>"
+       preserveAspectRatio="xMidYMid meet"
+       role="img" aria-label="metric trend">
+    <defs>
+      <linearGradient id="<%= uid %>-area" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="#3b82f6" stop-opacity="0.22"/>
+        <stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+
+    <!-- gridlines -->
+    <g stroke="#e5e7eb" stroke-width="1" shape-rendering="crispEdges">
+      <% y_ticks.each do |t| y = (pad[:t] + ih - (t*sy)).round(2) %>
+        <line x1="<%= pad[:l] %>" y1="<%= y %>" x2="<%= w - pad[:r] %>" y2="<%= y %>"/>
+      <% end %>
+    </g>
+
+    <!-- axes -->
+    <g stroke="#e5e7eb" stroke-width="1" shape-rendering="crispEdges">
+      <line x1="<%= pad[:l] %>" y1="<%= h - pad[:b] %>" x2="<%= w - pad[:r] %>" y2="<%= h - pad[:b] %>"/>
+      <line x1="<%= pad[:l] %>" y1="<%= pad[:t] %>" x2="<%= pad[:l] %>" y2="<%= h - pad[:b] %>"/>
+    </g>
+
+    <!-- y labels -->
+    <g fill="#94a3b8" font-size="12" text-anchor="end" dominant-baseline="middle">
+      <% y_ticks.each do |t| y = (pad[:t] + ih - (t*sy)).round(2) %>
+        <text x="<%= pad[:l] - 8 %>" y="<%= y %>"><%= "#{t}%" %></text>
+      <% end %>
+    </g>
+
+    <!-- x labels -->
+    <g fill="#94a3b8" font-size="12" dominant-baseline="hanging">
+      <%
+        # Tick spacing logic (can be overridden by x_labels if present & small enough)
+        min_gap_px = 90.0
+        max_ticks  = [[(iw / min_gap_px).floor + 1, 2].max, n].min
+        k          = max_ticks
+        step       = (n - 1).fdiv(k - 1)
+        tick_ix    = []
+        k.times do |j|
+          idx = (j * step).round
+          idx = [idx, (tick_ix.last || -1) + 1].max
+          idx = [idx, n - 1].min
+          tick_ix << idx
+        end
+        tick_ix[-1] = n - 1
+
+        if local_assigns[:x_labels] && x_labels && x_labels.size == n && n <= 12 && (iw / (n - 1)) >= 60
+          tick_ix = (0...n).to_a
+        end
+      %>
+
+      <% tick_ix.each do |i|
+           x = (pad[:l] + i*sx).round(2)
+           label = (local_assigns[:x_labels] && x_labels && x_labels[i]) || ""
+      %>
+        <text x="<%= x %>" y="<%= h - pad[:b] + 8 %>"
+              text-anchor="<%= i==0 ? 'start' : (i==n-1 ? 'end' : 'middle') %>"><%= label %></text>
+      <% end %>
+    </g>
+
+    <% if local_assigns[:y_title] %>
+      <text x="12" y="<%= (pad[:t] + ih/2).round(2) %>" fill="#94a3b8" font-size="12"
+            transform="rotate(-90 12 <%= (pad[:t]+ih/2).round(2) %>)"
+            text-anchor="middle"><%= y_title %></text>
+    <% end %>
+
+    <!-- area + line -->
+    <path d="<%= d_area %>" fill="url(#<%= uid %>-area)"/>
+    <path d="<%= d_line %>" fill="none" stroke="#3b82f6" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round"
+          vector-effect="non-scaling-stroke"/>
+  </svg>
+</div>

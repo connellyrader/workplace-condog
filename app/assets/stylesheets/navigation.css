@@ -1,0 +1,504 @@
+/* ===== Left navigation (your classes kept) ===== */
+.navigation{
+  grid-area: nav;
+  color: var(--slate-700);
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 1.2;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-sizing: border-box;
+  height:100vh;
+  overflow: hidden;
+}
+
+/* Collapse-friendly header row: empty div + toggle icon */
+.navigation > :first-child {
+  /*height: 16px;*/
+} /* your leading empty div spacer */
+
+.navigation > :second-child {
+    margin-left: 3px;
+}
+
+.navigation-top{
+  display: flex;
+  align-items: center;
+  margin-top: 8px;
+  height:40px;
+  margin-bottom:8px;
+
+  svg{
+    margin-left:auto;
+    height: 16px;
+    width: 16px;
+  }
+}
+
+  .navigation-workspace-button{
+    flex:1;
+    margin-right:20px;
+    height:40px;
+    line-height: 40px;
+    padding:0 8px;
+    border-radius:10px;
+    display: flex;
+    align-items: center;   /* vertical alignment */
+    gap: 8px;
+    cursor: pointer;
+  }
+
+    .navigation-workspace-button:hover{
+      background: var(--slate-100);
+    }
+
+    .navigation-workspace-button-icon{
+      width:24px;
+      height:24px;
+      border-radius: 4px;
+      border: 0;
+      line-height: 24px;
+      text-align: center;
+      font-weight: 600;
+      font-size: 9px;
+      color: var(--slate-700);
+      background-color: var(--slate-200);
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    .navigation-workspace-button-name{
+      max-width: 100px;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+
+
+  .navigation-toggle{
+    width: 18px; height: 18px;
+    color: var(--slate-500);
+    cursor: pointer;
+    flex-shrink: 0;
+    margin: 8px auto 8px;
+
+  }
+
+    .navigation-toggle:hover{ color: var(--slate-700); }
+
+
+.navigation-link{
+  display: flex; align-items: center; gap: 8px;
+  height: 40px; padding: 0 11px;
+  border-radius: 10px;
+  text-decoration: none; color: inherit;
+}
+.navigation-link:hover{ background: var(--slate-100); }
+
+.navigation-inline-form{
+  margin: 0;
+}
+.navigation-inline-form .navigation-link{
+  width: 100%;
+  background: transparent;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+
+  .layout.nav-mini .navigation{
+    padding: 16px 0px 16px 10px;
+  }
+
+  .layout.nav-mini .navigation .navigation-link{
+    padding: 0 11px;
+  }
+
+  .layout.nav-mini .navigation-workspace-button{
+    display: none;
+  }
+
+  .layout.nav-mini .navigation-toggle{
+    margin-left:17px;
+  }
+
+  .layout.nav-mini .bubble{
+    display: none;
+  }
+
+  .layout.nav-mini .navigation-integration-connect{
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: 10px;
+    justify-content: center;
+    margin: 0 auto 12px;
+    gap: 0;
+  }
+
+  .layout.nav-mini .navigation-integration-connect-text,
+  .layout.nav-mini .navigation-integration-connect-chevron-icon{
+    display: none;
+  }
+
+  .layout.nav-mini .navigation-integration-connect-warning-icon{
+    width: 18px;
+    height: 18px;
+    margin: 0;
+  }
+
+.navigation-icon{
+  width: 18px; height: 18px; flex: 0 0 auto;
+  stroke-width: 2; color: var(--slate-700);
+}
+
+/* your bubble kept as .bubble (no nesting in plain CSS) */
+.navigation-link .bubble{
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 16px; min-width: 16px; padding: 0 8px;
+  font-size: 12px; line-height: 1;
+  margin-left: 8px;
+  border-radius: 10px;
+  background: var(--slate-200);
+  color: var(--slate-500);
+}
+
+.navigation-footer{
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;   /* ✅ stack items vertically */
+  gap: 10px;                /* optional spacing */
+}
+
+
+.navigation-integration-connect{
+  padding: 8px 12px;
+  border-radius: 24px;
+  background: var(--slate-50);
+  border: 1px solid var(--slate-200);
+
+  font-size: 14px;
+  line-height: 1.2em;
+  color: var(--slate-700);
+  font-weight: 500;
+
+  display: flex;
+  align-items: center;   /* ✅ vertical centering */
+  gap: 6px;
+
+  margin-bottom: 12px;
+
+  text-decoration: none; /* since it's now a link */
+  cursor: pointer;
+}
+
+  .navigation-integration-connect:hover{
+    background: var(--slate-100);
+  }
+
+  .navigation-integration-connect-warning-icon{
+    stroke: var(--red-500);
+    color: white;
+    height: 18px;
+    width: 18px;
+    flex: 0 0 auto;
+  }
+
+  .navigation-integration-connect-text{
+    flex: 0 0 auto;
+  }
+
+  .navigation-integration-connect-chevron-icon{
+    color: var(--slate-500);
+    height: 14px;
+    width: 14px;
+    flex: 0 0 auto;
+    margin-left: auto;   /* ✅ pushes to far right */
+  }
+
+
+.navigation-link-footer{
+  display: flex;
+  align-items: center;   /* vertical centering for all children */
+  gap: 8px;
+  width: 100%;           /* so the kebab can push to the edge */
+}
+
+  .navigation-footer-avatar{
+    width:34px;
+    height:34px;
+    border-radius: 8px;
+    background-color: var(--slate-200);
+    background-size: cover;
+    flex: 0 0 auto;        /* never shrink */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .navigation-footer-avatar svg{
+    display: block;
+    margin: 0;
+  }
+
+  .navigation-footer-meta{
+    flex: 1 1 auto;        /* fill remaining space */
+    min-width: 0;          /* critical for ellipsis inside flex */
+  }
+
+  .navigation-footer-name,
+  .navigation-footer-email{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .navigation-footer-name{
+    font-size: 14px;
+    color:var(--slate-700);
+    font-weight: 500;
+    line-height: 1.2em;
+  }
+
+  .navigation-footer-email{
+    font-size: 12px;
+    color:var(--slate-400);
+    line-height: 1.2em;
+  }
+
+  .navigation-footer-kebab{
+    margin-left: auto;     /* push to far right */
+    display: flex;
+    align-items: center;   /* center the icon vertically */
+    flex: 0 0 auto;
+  }
+
+  .navigation-footer-kebab svg{
+    width: 18px;           /* optional */
+    height: 18px;
+    color: var(--slate-400);
+  }
+
+
+.navigation-top-dropdown{
+  width: 270px;
+  padding:8px;
+  border-radius:10px;
+  border:1px solid var(--slate-200);
+  position: fixed;
+  top:72px;
+  left:16px;
+  z-index:41;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(4px);
+  display:none;
+  box-shadow: 0px 8px 8px 0px rgba(54, 54, 54, 0.05);
+}
+
+.navigation-workspace-button.is-open{
+  background: var(--slate-100);
+}
+
+/* chevron itself */
+.navigation-workspace-button-chevron{
+  width: 9px;
+  transition: transform 0.15s ease;
+}
+
+/* when open, rotate chevron */
+.navigation-workspace-button.is-open .navigation-workspace-button-chevron{
+  transform: rotate(180deg);
+}
+
+  .navigation-top-dropdown-heading{
+    color: var(--slate-400);
+    font-size: 13px;
+    line-height: 1.2em;
+    font-weight: 500;
+    margin:8px;
+  }
+
+  .navigation-top-dropdown-workspace{
+    padding:8px;
+    display: flex;
+    gap: 8px;
+    color: var(--slate-400);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.2em;
+    align-items: center;
+    cursor:pointer;
+    border-radius: 12px;
+  }
+
+    .navigation-top-dropdown-workspace:hover{
+      background: var(--slate-50);
+    }
+
+    .navigation-top-dropdown-workspace--active{
+      color: var(--slate-700);
+      font-weight: 500;
+      background-color: var(--slate-50);
+
+      .navigation-top-dropdown-icon{
+        /*border: 1px solid var(--slate-700);*/
+      }
+    }
+
+    .navigation-top-dropdown-icon{
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      border: 0;
+      line-height: 24px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 10px;
+      color: var(--slate-500);
+      background-color: var(--slate-100);
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+  .navigation-top-dropdown-name{
+    color: var(--slate-700);
+  }
+
+  .navigation-top-dropdown-line{
+    height:1px;
+    width:100%;
+    background: var(--slate-200);
+    margin-top:8px;
+    margin-bottom:8px;
+  }
+
+  .navigation-top-dropdown-link{
+    height:40px;
+    line-height: 40px;
+    display: flex;
+    gap:8px;
+    color: var(--slate-700);
+    font-family: Geist, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius:4px;
+    align-items: center;
+
+    svg{
+      margin-left:10px;
+      height:18px;
+      width:18px;
+    }
+  }
+
+    .navigation-top-dropdown-link:hover{
+      background: var(--slate-50);
+    }
+
+
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: rgba(0,0,0,.28);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s ease;
+}
+
+  .backdrop.backdrop--workspace-modal {
+    z-index: 40;  /* higher than nav dropdown / chat */
+  }
+
+  .backdrop.backdrop--workspace-modal-visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+.navigation-new-workspace-modal{
+  position: fixed;
+  width: 460px;
+  border-radius: 16px;
+  background: white;
+  border: 1px solid var(--slate-200);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 32px;
+  z-index:42;
+  display: none;
+}
+
+  .navigation-new-workspace-modal-heading{
+    font-size: 16px;
+    color: var(--slate-700);
+    line-height: 1.2em;
+    font-weight: 500;
+  }
+
+  .navigation-new-workspace-modal-line{
+    height:1px;
+    background: var(--slate-100);
+    margin-top:8px;
+  }
+
+  .navigation-new-workspace-modal-label{
+    color: var(--slate-400);
+    font-size: 13px;
+    line-height: 1.2em;
+    font-weight: 500;
+    margin-top:20px;
+  }
+
+  .navigation-new-workspace-modal-field{
+    margin-top:4px;
+    height: 36px;
+    border-radius: 4px;
+    border: 1px solid var(--slate-200);
+    font-size: 13px;
+    color: var(--slate-700);
+    padding: 0 12px;
+    width: 100%;
+    outline: none;
+  }
+
+    .navigation-new-workspace-modal-field.is-invalid {
+      border: 1px solid var(--red-500);
+    }
+
+  .navigation-new-workspace-modal-button{
+    background: var(--accent);
+    color: var(--slate-0);
+    font-size: 13px;
+    padding: 10px 12px;
+    text-align: center;
+    margin-top: 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: block;
+    border: none;
+    width:100%;
+  }
+
+  .navigation-new-workspace-modal-close{
+    position: absolute;
+    top:16px;
+    right:16px;
+    height:32px;
+    width:32px;
+    padding:8px;
+    color: var(--slate-400);
+    cursor: pointer;
+
+    svg{
+      width:16px;
+      height:16px;
+    }
+  }

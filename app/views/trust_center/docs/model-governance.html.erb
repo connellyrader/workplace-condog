@@ -1,0 +1,104 @@
+<%# app/views/trust_center/docs/model-governance.html.erb %>
+
+<div class="trust-doc">
+  <div class="trust-doc-header">
+    <div class="trust-doc-breadcrumb">
+      <%= link_to "Trust Center", trust_home_url, class: "trust-doc-breadcrumb-link" %>
+      <span class="trust-doc-breadcrumb-sep">/</span>
+      <span class="trust-doc-breadcrumb-current">Model Governance</span>
+    </div>
+
+    <div class="trust-doc-title-row">
+      <%= image_tag "logo.png", class: "trust-doc-logo", alt: "Workplace.io" %>
+      <div class="trust-doc-title">Model Governance</div>
+    </div>
+
+    <div class="trust-doc-subtitle">
+      How Workplace.io manages changes to automated classification and scoring to support consistency, quality, and customer trust—without
+      disclosing proprietary model architecture, training data, or internal taxonomy.
+    </div>
+
+    <div class="trust-doc-updated">Last updated: <%= @trust_center_stamp %></div>
+  </div>
+
+  <div class="trust-doc-body">
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Governance goals</div>
+      <div class="trust-doc-bullets">
+        <ul class="trust-doc-bullet-list">
+          <li><strong>Consistency:</strong> changes should not cause unexpected reporting shifts without clear rationale.</li>
+          <li><strong>Quality:</strong> evaluation and review help ensure outputs are stable and fit for purpose.</li>
+          <li><strong>Auditability:</strong> changes are tracked and can be reviewed during customer due diligence.</li>
+          <li><strong>Security:</strong> inference runs in secured environments with restricted access paths.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Change management</div>
+      <div class="trust-doc-text">
+        We use controlled change management for updates that affect scoring or reporting outputs. Changes are reviewed, tested, and monitored after
+        deployment to detect regressions.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Review:</strong> changes affecting analytics are reviewed prior to release.</li>
+        <li><strong>Testing:</strong> evaluation and targeted testing are performed before rollout.</li>
+        <li><strong>Monitoring:</strong> post-release monitoring helps detect unexpected behavior.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Secure Development →", trust_doc_url_for("secure-development"), class: "trust-doc-link" %>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <%= link_to "Logging & Monitoring →", trust_doc_url_for("logging-monitoring"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Evaluation approach</div>
+      <div class="trust-doc-text">
+        We evaluate updates using internal test and validation processes appropriate to the sensitivity of the change. We intentionally do not
+        publish proprietary details of training data or signal taxonomy, but we do maintain internal evaluation artifacts.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Regression checks:</strong> ensure changes do not introduce broad quality regressions.</li>
+        <li><strong>Stability checks:</strong> confirm outputs remain consistent for comparable inputs over time.</li>
+        <li><strong>Operational checks:</strong> validate inference throughput, error rates, and processing stability.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Access and separation</div>
+      <div class="trust-doc-text">
+        Inference workloads run on AWS SageMaker and are separated from the application serving layer. Access to inference configuration and
+        operational credentials is restricted to authorized personnel and systems.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Architecture & Data Flow →", trust_doc_url_for("architecture"), class: "trust-doc-link" %>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <%= link_to "Subprocessors →", trust_doc_url_for("subprocessors"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Customer impact and transparency</div>
+      <div class="trust-doc-text">
+        When changes materially affect how metrics appear, we aim to provide clear, practical explanations in release notes or customer
+        communications as appropriate to the change scope.
+      </div>
+    </div>
+
+    <div class="trust-doc-footer">
+      <div class="trust-doc-footer-title">Need governance materials?</div>
+      <div class="trust-doc-footer-text">
+        If your organization needs due diligence support, contact us and we’ll coordinate what we can provide.
+      </div>
+      <div class="trust-doc-footer-actions">
+        <%= link_to "Contact Trust & Security", trust_doc_url_for("contact"), class: "trust-doc-button" %>
+        <%= link_to "Back to Trust Center", trust_home_url, class: "trust-doc-button trust-doc-button--secondary" %>
+      </div>
+    </div>
+  </div>
+</div>

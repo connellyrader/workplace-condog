@@ -1,0 +1,39 @@
+<div style="position:relative;">
+<%
+  selected_types   = Array(local_assigns[:selected_types]).map(&:to_s)
+  dropdown_scope   = local_assigns[:dropdown_scope] || "permissions"
+  account_type     = local_assigns[:account_type]
+  disabled         = local_assigns[:disabled]
+  selector_classes = ["settings-row-dropdown-selector"]
+  selector_classes << "is-disabled" if disabled
+
+  type_titles = {
+    "personal_insights"   => "Personal Insights",
+    "all_group_insights"  => "All Group Insights",
+    "my_group_insights"   => "My Group Insights",
+    "executive_summaries" => "Executive Summaries"
+  }
+%>
+
+<div class="<%= selector_classes.join(' ') %>"
+     data-dropdown-scope="<%= dropdown_scope %>"
+     data-account-type="<%= account_type %>">
+  <span class="settings-row-dropdown-label"><%= label %></span>
+  <%= icon "chevron-down" %>
+</div>
+
+<div class="settings-row-dropdown-menu">
+  <div class="settings-row-dropdown-menu-item" data-notification-type="all">
+    <div class="settings-row-dropdown-menu-item-checkbox <%= 'is-checked' if selected_types.sort == NotificationPreference::TYPE_KEYS.sort %>"><%= icon "check" %></div>
+    <div class="settings-row-dropdown-menu-item-heading">All Notifications</div>
+  </div>
+
+  <% NotificationPreference::TYPE_KEYS.each do |type_key| %>
+    <% title = type_titles[type_key] || type_key.to_s.humanize %>
+    <div class="settings-row-dropdown-menu-item" data-notification-type="<%= type_key %>">
+      <div class="settings-row-dropdown-menu-item-checkbox <%= 'is-checked' if selected_types.include?(type_key) %>"><%= icon "check" %></div>
+      <div class="settings-row-dropdown-menu-item-heading"><%= title %></div>
+    </div>
+  <% end %>
+</div>
+</div>

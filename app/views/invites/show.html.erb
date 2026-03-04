@@ -1,0 +1,141 @@
+<!-- app/views/invites/show.html.erb -->
+<div class="onboarding-bg"></div>
+
+<div class="onboarding-content">
+
+    <% inviter = @invite.invited_by %>
+    <% inviter_name =
+         if inviter&.respond_to?(:full_name) && inviter.full_name.present?
+           inviter.full_name
+         else
+           inviter&.email.to_s
+         end
+    %>
+
+    <div class="info-card-images">
+      <div class="info-card-icon" style="background-image: url('<%= image_path("apps/workplace.png") %>')"></div>
+
+      <div class="info-card-icon-connect">
+        <div class="info-card-icon-connect-dot-small"></div>
+        <div class="info-card-icon-connect-dot-large"></div>
+        <div class="info-card-icon-connect-dot-small"></div>
+      </div>
+
+      <% avatar_url = @invite&.integration_user&.avatar_url.to_s %>
+
+      <div
+        class="info-card-icon"
+        style="<%= "background-image: url('#{avatar_url}')" if avatar_url.present? %>">
+        <% unless avatar_url.present? %>
+          <%= icon "user" %>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="info-card-header">
+       You have been invited to join Workplace.io
+    </div>
+
+    <div class="info-card-content">
+      <div class="info-card-row">
+        <div class="info-card-row-label">From</div>
+        <div class="info-card-row-value"><%= inviter_name %></div>
+      </div>
+
+      <div class="info-card-row">
+        <div class="info-card-row-label">Workspace</div>
+        <div class="info-card-row-value"><%= @invite.workspace&.name.to_s %></div>
+      </div>
+
+      <div class="info-card-row">
+        <div class="info-card-row-label">Sent to</div>
+        <div class="info-card-row-value"><%= @invite.email.to_s %></div>
+      </div>
+
+      <% if @invite.role.present? %>
+        <div class="info-card-row">
+          <div class="info-card-row-label">Role</div>
+          <div class="info-card-row-value"><%= @invite.role.to_s.titleize %></div>
+        </div>
+      <% end %>
+
+      <% if @invite.expires_at.present? %>
+        <div class="info-card-row">
+          <div class="info-card-row-label">Expires</div>
+          <div class="info-card-row-value">
+            <%= @invite.expires_at.in_time_zone.strftime("%B %-d, %Y at %-I:%M %p %Z") %>
+          </div>
+        </div>
+      <% end %>
+
+      <% if @invite.pending_status? %>
+        <div class="info-card-state">
+
+          <div class="info-card-actions">
+            <%= button_to "Decline",
+                          decline_invite_path(@invite_token),
+                          method: :post,
+                          class: "info-card-button-secondary",
+                          form: { data: { turbo: false } } %>
+
+            <%= button_to "Accept invite",
+                          accept_invite_path(@invite_token),
+                          method: :post,
+                          class: "info-card-button-primary" %>
+          </div>
+
+        </div>
+
+      <% elsif @invite.accepted_status? %>
+        <div class="info-card-state">
+          <div class="info-card-state-title">Already accepted</div>
+          <div class="info-card-state-text">
+            This invitation has already been accepted.
+          </div>
+
+          <div class="info-card-actions">
+            <%= link_to "Go to dashboard", dashboard_path, class: "info-card-button-primary" %>
+          </div>
+        </div>
+
+      <% elsif @invite.expired_status? %>
+        <div class="info-card-state">
+          <div class="info-card-state-title">Invite expired</div>
+          <div class="info-card-state-text">
+            This invitation is no longer valid. Please ask the workspace admin to send a new invite.
+          </div>
+
+          <div class="info-card-actions">
+            <%= link_to "Go to dashboard", dashboard_path, class: "info-card-button-primary" %>
+          </div>
+        </div>
+
+      <% elsif @invite.canceled_status? %>
+        <div class="info-card-state">
+          <div class="info-card-state-title">Invite canceled</div>
+          <div class="info-card-state-text">
+            This invitation has been canceled. If you still need access, ask the workspace admin to resend it.
+          </div>
+
+          <div class="info-card-actions">
+            <%= link_to "Go to dashboard", dashboard_path, class: "info-card-button-primary" %>
+          </div>
+        </div>
+
+      <% else %>
+        <div class="info-card-state">
+          <div class="info-card-state-title">Invite unavailable</div>
+          <div class="info-card-state-text">
+            This invitation can’t be used in its current state.
+          </div>
+
+          <div class="info-card-actions">
+            <%= link_to "Go to dashboard", dashboard_path, class: "info-card-button-primary" %>
+          </div>
+        </div>
+      <% end %>
+
+
+
+    </div>
+</div>

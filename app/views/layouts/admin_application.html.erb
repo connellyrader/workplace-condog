@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en" class="adm">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title><%= content_for?(:title) ? yield(:title) : "Admin Dashboard" %></title>
+
+  <%= csrf_meta_tags %>
+  <%= csp_meta_tag %>
+
+  <!-- Fonts (optional) -->
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Keep application.css last if you want it to override component styles -->
+  <%= stylesheet_link_tag "admin_application", media: "all", "data-turbo-track": "reload" %>
+
+  <!-- Charts (Chart.js) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3"></script>
+
+  <!-- Optional: your app-wide JS (importmap/webpack/esbuild). Uncomment if needed. -->
+  <%#= javascript_importmap_tags %>
+</head>
+<body class="adm-body">
+  <div class="adm-shell">
+    <!-- Left navigation -->
+    <aside class="adm-nav">
+      <%= render partial: "admin/nav" %>
+    </aside>
+
+    <!-- Main content -->
+    <main class="adm-main">
+      <header class="adm-header">
+        <h1 class="adm-title"><%= content_for?(:page_title) ? yield(:page_title) : "Dashboard Overview" %></h1>
+      </header>
+
+      <% if notice.present? %>
+        <div class="notice adm-card" style="position:absolute; top:24px; right:24px;" role="status"><%= notice %></div>
+      <% end %>
+      <% if alert.present? %>
+        <div class="alert adm-card" style="position:absolute; top:24px; right:24px;" role="alert"><%= alert %></div>
+      <% end %>
+
+      <!-- KPI cards -->
+      <section class="adm-section">
+        <%= yield %> 
+      </section>
+
+      
+    </main>
+  </div>
+
+  <!-- Page-level or global JS hooks -->
+  <script>
+    // Optional: small hover/highlight helper for links or data cards
+    document.addEventListener('DOMContentLoaded', () => {
+      // Add a subtle pulse to active nav link on load
+      const active = document.querySelector('.adm-nav .adm-navlink--active');
+      if (active) {
+        active.style.transition = 'filter .28s ease';
+        active.style.filter = 'brightness(1.15)';
+        setTimeout(() => active.style.filter = '', 450);
+      }
+    });
+  </script>
+</body>
+</html>

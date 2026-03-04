@@ -1,0 +1,584 @@
+<script type="module">
+  import consumer from "channels/consumer"
+
+  // ---------------------------------------------------------------------------
+  // Submetric signal-category info modal open/close + accordion (persistent)
+  // ---------------------------------------------------------------------------
+  ;(function () {
+    if (window.__submetricInfoModalBound) return
+    window.__submetricInfoModalBound = true
+
+    function normalizeId(id) {
+      return String(id || '').trim().replace(/^"+|"+$/g, '').replace(/^'+|'+$/g, '')
+    }
+
+    function closeAll() {
+      document.querySelectorAll('[data-submetric-modal]').forEach(m => (m.style.display = 'none'))
+      const backdrop = document.querySelector('[data-submetric-modal-backdrop]')
+      if (backdrop) backdrop.style.display = 'none'
+      document.body.classList.remove('modal-open')
+    }
+
+    function openById(id) {
+      id = normalizeId(id)
+      if (!id) return
+
+      const backdrop = document.querySelector('[data-submetric-modal-backdrop]')
+      const modal = document.querySelector(`[data-submetric-modal-id="${CSS.escape(id)}"]`)
+
+      if (!backdrop || !modal) {
+        console.warn('[SubmetricModal] missing', { id, backdrop: !!backdrop, modal: !!modal })
+        return
+      }
+
+      backdrop.style.display = 'block'
+      modal.style.display = 'block'
+      document.body.classList.add('modal-open')
+    }
+
+    // -----------------------------------------------------------------------
+    // IMPORTANT: use pointerdown capture for immediate + reliable open
+    // -----------------------------------------------------------------------
+    document.addEventListener('pointerdown', (e) => {
+      const trigger = e.target.closest('[data-open-modal-id]')
+      if (!trigger) return
+
+      // Don't open modals when clicking inside an already-open modal (accordion buttons, etc.)
+      if (e.target.closest('[data-submetric-modal]')) return
+
+      e.preventDefault()
+      e.stopPropagation()
+      e.stopImmediatePropagation()
+
+      const id = trigger.getAttribute('data-open-modal-id')
+      requestAnimationFrame(() => openById(id))
+    }, true)
+
+    // Close modal (close button or backdrop)
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('[data-submetric-modal-close]') || e.target.closest('[data-submetric-modal-backdrop]')) {
+        closeAll()
+      }
+    })
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeAll()
+    })
+
+    // When breakdown is replaced via AJAX
+    document.addEventListener('signals:updated', closeAll)
+
+    // -----------------------------------------------------------------------
+    // Accordion behavior inside the info modal
+    // -----------------------------------------------------------------------
+    function openOnlyItem(modalEl, itemToOpen) {
+      const items = Array.from(modalEl.querySelectorAll('[data-accordion-item]'))
+      items.forEach((item) => {
+        const open = item === itemToOpen
+        item.classList.toggle('is-open', open)
+        const btn = item.querySelector('[data-accordion-toggle]')
+        if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false')
+      })
+    }
+
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-accordion-toggle]')
+      if (!btn) return
+
+      const item = btn.closest('[data-accordion-item]')
+      if (!item) return
+
+      const modalEl = btn.closest('[data-submetric-modal]')
+      if (!modalEl) return
+
+      if (modalEl.style.display === 'none') return
+
+      e.preventDefault()
+      e.stopPropagation()
+
+      const isOpen = item.classList.contains('is-open')
+      if (isOpen) {
+        item.classList.remove('is-open')
+        btn.setAttribute('aria-expanded', 'false')
+      } else {
+        openOnlyItem(modalEl, item)
+      }
+    })
+  })()
+
+
+  // ---------------------------------------------------------------------------
+  // Clara overview (ActionCable streaming)
+  // ---------------------------------------------------------------------------
+  document.addEventListener("DOMContentLoaded", () => {
+    const container = document.querySelector('[data-clara-overview="true"]')
+    if (!container) return
+
+    const textEl     = container.querySelector('[data-role="text"]')
+    const spinnerEl  = container.querySelector('[data-role="spinner"]')
+    const thinkingEl = container.querySelector('[data-role="thinking"]')
+    const caretEl    = document.createElement("span")
+    caretEl.className = "ai-overview-caret"
+
+    const workspaceId = parseInt(container.dataset.workspaceId, 10)
+    const metricId    = parseInt(container.dataset.metricId, 10)
+    let rangeStart    = container.dataset.rangeStart
+    let rangeEnd      = container.dataset.rangeEnd
+    let groupScope    = container.dataset.groupScope || "all"
+    let streaming     = false
+    let buffer        = ""
+    let subscription  = null
+    let hasContent    = container.dataset.hasContent === "true"
+    let expired       = container.dataset.expired === "true"
+    let status        = container.dataset.status || ""
+    let noData        = container.dataset.noData === "true"
+    const noDataMessage = "Not enough data in this range to generate an overview yet."
+
+    const toggleSpinner = (show) => {
+      if (!spinnerEl) return
+      //spinnerEl.classList.toggle("is-visible", !!show)
+      //spinnerEl.classList.toggle("is-hidden", !show)
+    }
+
+    const showThinking = (show) => {
+      if (!thinkingEl) return
+      //thinkingEl.classList.toggle("is-hidden", !show)
+    }
+
+    const attachCaret = () => {
+      if (!textEl) return
+      if (!textEl.contains(caretEl)) textEl.appendChild(caretEl)
+    }
+
+    const detachCaret = () => {
+      if (caretEl.parentElement) caretEl.parentElement.removeChild(caretEl)
+    }
+
+    const applyInitialState = () => {
+      if (noData) {
+        if (textEl) renderOverviewContent(noDataMessage)
+        toggleSpinner(false)
+        showThinking(false)
+        container.classList.remove("is-generating")
+        detachCaret()
+        document.dispatchEvent(new CustomEvent("clara-overview:ready"))
+        return
+      }
+
+      const needsRefresh = !hasContent || expired
+      toggleSpinner(needsRefresh)
+      showThinking(needsRefresh)
+      if (!needsRefresh) {
+        container.classList.remove("is-generating")
+        detachCaret()
+      }
+    }
+
+    const startStreaming = () => {
+      if (streaming) return
+      streaming = true
+      buffer = ""
+      toggleSpinner(true)
+      showThinking(true)
+      container.classList.add("is-generating")
+      attachCaret()
+    }
+
+    const renderOverviewContent = (content) => {
+      if (!textEl) return
+      const paras = String(content || "").split(/\n\n+/).map(p => p.trim()).filter(Boolean)
+      if (paras.length === 0) {
+        textEl.innerHTML = ""
+      } else {
+        textEl.innerHTML = paras.map(p => `<p>${escapeHtml(p)}</p>`).join("")
+      }
+    }
+
+    const escapeHtml = (s) => {
+      const div = document.createElement("div")
+      div.textContent = s
+      return div.innerHTML
+    }
+
+    const handleToken = (token) => {
+      if (!token) return
+      if (!streaming) startStreaming()
+      if (buffer.length === 0 && textEl) {
+        textEl.innerHTML = ""
+        showThinking(false)
+      }
+      buffer += token
+      if (textEl) {
+        renderOverviewContent(buffer)
+        attachCaret()
+      }
+    }
+
+    const finishStreaming = (overview) => {
+      streaming = false
+      buffer = ""
+      toggleSpinner(false)
+      showThinking(false)
+      if (overview && overview.content && textEl) renderOverviewContent(overview.content)
+      container.classList.remove("is-generating")
+      detachCaret()
+      document.dispatchEvent(new CustomEvent("clara-overview:ready"))
+    }
+
+    const showError = (message) => {
+      streaming = false
+      toggleSpinner(false)
+      showThinking(false)
+      const useFake = container.dataset.hasContent === "false"
+      if (!useFake && message && textEl) textEl.innerHTML = `<p>${escapeHtml(message)}</p>`
+      container.classList.remove("is-generating")
+      detachCaret()
+      document.dispatchEvent(new CustomEvent("clara-overview:ready"))
+    }
+
+    const showNoData = () => {
+      streaming = false
+      buffer = ""
+      toggleSpinner(false)
+      showThinking(false)
+      container.classList.remove("is-generating")
+      detachCaret()
+      if (textEl) textEl.innerHTML = `<p>${escapeHtml(noDataMessage)}</p>`
+      noData = true
+      hasContent = false
+      expired = true
+      status = "no_data"
+      container.dataset.noData = "true"
+      container.dataset.hasContent = "false"
+      container.dataset.status = status
+      container.dataset.expired = "true"
+    }
+
+    const resetStateForRange = () => {
+      streaming = false
+      buffer = ""
+      noData = false
+      toggleSpinner(true)
+      showThinking(true)
+      container.classList.add("is-generating")
+      attachCaret()
+      if (textEl) renderOverviewContent("Loading the latest overview…")
+      document.dispatchEvent(new CustomEvent("clara-overview:loading"))
+      hasContent = false
+      expired = true
+      status = ""
+      container.dataset.noData = "false"
+      container.dataset.hasContent = "false"
+      container.dataset.status = ""
+      container.dataset.expired = "true"
+    }
+
+    const normalizeGroupScope = (raw) => {
+      if (!raw) return "all"
+      const str = String(raw)
+      if (str === "all" || str === "all_groups") return "all_groups"
+      if (str.startsWith("group:")) return str
+      return `group:${str}`
+    }
+
+    const subscribeForRange = (start, end, group, { initial = false } = {}) => {
+      if (!workspaceId || !metricId || !start || !end) return
+      if (subscription) subscription.unsubscribe()
+
+      rangeStart = start
+      rangeEnd   = end
+      groupScope = normalizeGroupScope(group || groupScope || "all")
+      container.dataset.rangeStart = start
+      container.dataset.rangeEnd   = end
+      container.dataset.groupScope = groupScope
+
+      const useFake = container.dataset.useFake === "true"
+      const shouldReset = !initial || (!noData && (expired || !hasContent || status !== "ready"))
+      if (shouldReset && !(initial && useFake)) {
+        resetStateForRange()
+      } else if (initial && useFake) {
+        toggleSpinner(false)
+        showThinking(false)
+        container.classList.remove("is-generating")
+        detachCaret()
+      } else {
+        toggleSpinner(false)
+        showThinking(false)
+        container.classList.remove("is-generating")
+        detachCaret()
+      }
+
+      subscription = consumer.subscriptions.create(
+        { channel: "ClaraOverviewChannel", workspace_id: workspaceId, metric_id: metricId, range_start: start, range_end: end, group_scope: groupScope },
+        {
+          received: (data) => {
+            switch (data.type) {
+              case "prefill":
+                if (data.overview?.content && !streaming && textEl) renderOverviewContent(data.overview.content)
+                if (data.overview) {
+                  noData = false
+                  expired = !!data.overview.expired
+                  status  = data.overview.status || ""
+                  hasContent = !!data.overview.content
+                  container.dataset.noData = "false"
+                  container.dataset.expired = expired ? "true" : "false"
+                  container.dataset.status  = status
+                  container.dataset.hasContent = hasContent ? "true" : "false"
+
+                  const needsRefresh = expired || status !== "ready"
+                  toggleSpinner(needsRefresh)
+                  showThinking(needsRefresh)
+                  if (!needsRefresh) {
+                    container.classList.remove("is-generating")
+                    detachCaret()
+                    showThinking(false)
+                    document.dispatchEvent(new CustomEvent("clara-overview:ready"))
+                  }
+                }
+                break
+              case "refreshing":
+              case "status":
+                startStreaming()
+                break
+              case "no_data":
+                showNoData()
+                break
+              case "token":
+                handleToken(data.token)
+                break
+              case "complete":
+                finishStreaming(data.overview)
+                break
+              case "error":
+                showError(data.message)
+                break
+              default:
+                break
+            }
+          }
+        }
+      )
+    }
+
+    applyInitialState()
+    subscribeForRange(rangeStart, rangeEnd, groupScope, { initial: true })
+
+    window.addEventListener("beforeunload", () => {
+      if (subscription) subscription.unsubscribe()
+    })
+
+    document.addEventListener("filters:change", (e) => {
+      const d = e.detail || {}
+      const groupButton = document.querySelector('.topbar .filter-button.group-filter')
+      const currentGroup = groupButton ? (groupButton.dataset.currentGroupId || "all") : "all"
+
+      if (d.type === "date") {
+        subscribeForRange(d.start, d.end, currentGroup)
+      } else if (d.type === "group") {
+        subscribeForRange(rangeStart, rangeEnd, d.group_id || "all")
+      }
+    })
+  })
+
+
+  // ---------------------------------------------------------------------------
+  // Clara overview: Loading → Closed animation + Read More
+  // ---------------------------------------------------------------------------
+  document.addEventListener("DOMContentLoaded", () => {
+    const card = document.querySelector(".clara-overview-card")
+    if (!card) return
+
+    const readMoreBtn = card.querySelector('[data-role="read-more"]')
+    const hasContent = card.dataset.overviewContent && card.dataset.overviewContent.length > 0
+
+    const setVariant = (v) => {
+      card.dataset.variant = v
+      if (readMoreBtn) {
+        readMoreBtn.textContent = v === "open" ? "Show Less" : "Read More"
+        readMoreBtn.setAttribute("aria-expanded", v === "open" ? "true" : "false")
+        readMoreBtn.setAttribute("aria-hidden", v === "loading" ? "true" : "false")
+      }
+    }
+
+    const transitionToClosed = () => {
+      setVariant("closed")
+    }
+
+    document.addEventListener("clara-overview:ready", transitionToClosed)
+    document.addEventListener("clara-overview:loading", () => setVariant("loading"))
+
+    if (hasContent) {
+      setVariant("loading")
+      setTimeout(transitionToClosed, 2800)
+    }
+
+    readMoreBtn?.addEventListener("click", () => {
+      const next = card.dataset.variant === "open" ? "closed" : "open"
+      setVariant(next)
+    })
+  })
+
+
+  // ---------------------------------------------------------------------------
+  // Submetric column sizing (shared name column width)
+  // ---------------------------------------------------------------------------
+  function setSubmetricNameColWidth() {
+    const list = document.querySelector('[data-submetric-breakdown-list]')
+    if (!list) return
+
+    const cells = Array.from(list.querySelectorAll('[data-submetric-name-cell]'))
+    if (!cells.length) return
+
+    list.style.setProperty('--name-col-w', 'max-content')
+
+    let max = 0
+    cells.forEach((el) => {
+      const w = el.getBoundingClientRect().width
+      if (w > max) max = w
+    })
+
+    max = Math.ceil(max + 2)
+    const clampMax = 320
+    if (max > clampMax) max = clampMax
+
+    list.style.setProperty('--name-col-w', max + 'px')
+  }
+
+  function bootSubmetricColSizer() {
+    setSubmetricNameColWidth()
+    initMetricSparkHover(document)
+
+    document.addEventListener('signals:updated', () => {
+      setTimeout(setSubmetricNameColWidth, 0)
+      setTimeout(() => initMetricSparkHover(document), 0)
+    })
+
+    window.addEventListener('resize', () => {
+      clearTimeout(window.__smNameWTimer)
+      window.__smNameWTimer = setTimeout(setSubmetricNameColWidth, 120)
+    })
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootSubmetricColSizer)
+  } else {
+    bootSubmetricColSizer()
+  }
+
+
+  // ---------------------------------------------------------------------------
+  // Metric sparkline hover: nearest point tooltip + vertical line (+ comparison)
+  // ---------------------------------------------------------------------------
+  function initMetricSparkHover(root) {
+    const wraps = Array.from((root || document).querySelectorAll('[data-metric-spark="true"]'))
+    if (!wraps.length) return
+
+    wraps.forEach((wrap) => {
+      if (wrap.dataset.hoverBound === "1") return
+      wrap.dataset.hoverBound = "1"
+
+      const svg = wrap.querySelector('svg.metric-spark')
+      const line = wrap.querySelector('[data-hover-line]')
+      const dot = wrap.querySelector('[data-hover-dot]')
+      const dotCmp = wrap.querySelector('[data-hover-dot-compare]')
+      const tooltip = wrap.querySelector('[data-hover-tooltip]')
+      if (!svg || !line || !dot || !tooltip) return
+
+      let xys = []
+      let xysCmp = []
+      let labels = []
+      let points = []
+      let comparePoints = []
+
+      try { xys = JSON.parse(wrap.dataset.xys || "[]") } catch (_) {}
+      try { xysCmp = JSON.parse(wrap.dataset.compareXys || "[]") } catch (_) {}
+      try { labels = JSON.parse(wrap.dataset.labels || "[]") } catch (_) {}
+      try { points = JSON.parse(wrap.dataset.points || "[]") } catch (_) {}
+      try { comparePoints = JSON.parse(wrap.dataset.comparePoints || "[]") } catch (_) {}
+
+      if (!xys.length) return
+
+      const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v))
+
+      const hasCompare = (comparePoints && comparePoints.length) && (xysCmp && xysCmp.length)
+
+      const show = () => {
+        line.style.opacity = "1"
+        dot.style.opacity = "1"
+        if (dotCmp) dotCmp.style.opacity = hasCompare ? "1" : "0"
+        tooltip.style.display = "block"
+      }
+
+      const hide = () => {
+        line.style.opacity = "0"
+        dot.style.opacity = "0"
+        if (dotCmp) dotCmp.style.opacity = "0"
+        tooltip.style.display = "none"
+      }
+
+      const nearestIndexForX = (xSvg) => {
+        let best = 0
+        let bestDist = Infinity
+        for (let i = 0; i < xys.length; i++) {
+          const dx = Math.abs(xys[i][0] - xSvg)
+          if (dx < bestDist) { bestDist = dx; best = i }
+        }
+        return best
+      }
+
+      const updateAtIndex = (i, clientX, clientY) => {
+        const [x, y] = xys[i]
+        const v = points[i]
+        const label = labels[i] || ""
+
+        line.setAttribute("x1", x)
+        line.setAttribute("x2", x)
+
+        dot.setAttribute("cx", x)
+        dot.setAttribute("cy", y)
+
+        if (dotCmp && hasCompare) {
+          const [cx, cy] = xysCmp[i] || [x, y]
+          dotCmp.setAttribute("cx", cx)
+          dotCmp.setAttribute("cy", cy)
+        }
+
+        const titleEl = tooltip.querySelector('.metric-spark-tooltip-title')
+        const scoreEl = tooltip.querySelector('.metric-spark-tooltip-score')
+        const compareEl = tooltip.querySelector('.metric-spark-tooltip-comparison-score')
+
+        const pct = (v === null || v === undefined) ? "--" : `${Math.round(Number(v))}`
+        const cv = (comparePoints && comparePoints.length) ? comparePoints[i] : null
+        const cpct = (cv === null || cv === undefined) ? "--" : `${Math.round(Number(cv))}`
+
+        if (titleEl) titleEl.textContent = label || ""
+        if (scoreEl) scoreEl.textContent = pct
+        if (compareEl) compareEl.textContent = cpct
+
+        const pad = 14
+        const rect = tooltip.getBoundingClientRect()
+        const xPos = clamp(clientX + 14, pad, window.innerWidth - rect.width - pad)
+        const yPos = clamp(clientY + 14, pad, window.innerHeight - rect.height - pad)
+        tooltip.style.left = `${xPos}px`
+        tooltip.style.top = `${yPos}px`
+      }
+
+      svg.addEventListener("mousemove", (e) => {
+        const pt = svg.createSVGPoint()
+        pt.x = e.clientX
+        pt.y = e.clientY
+        const svgP = pt.matrixTransform(svg.getScreenCTM().inverse())
+        const idx = nearestIndexForX(svgP.x)
+        show()
+        updateAtIndex(idx, e.clientX, e.clientY)
+      })
+
+      svg.addEventListener("mouseenter", show)
+      svg.addEventListener("mouseleave", hide)
+      hide()
+    })
+  }
+
+  document.addEventListener("DOMContentLoaded", () => initMetricSparkHover(document))
+  document.addEventListener("signals:updated", () => setTimeout(() => initMetricSparkHover(document), 0))
+</script>

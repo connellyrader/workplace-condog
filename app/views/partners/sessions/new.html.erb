@@ -1,0 +1,52 @@
+<% provide(:title, 'Partner Sign In') %>
+
+<div class="onboarding-bg"></div>
+<div class="devise-content">
+  <%= image_tag('logo', class: "devise-logo") %>
+  <div class="devise-title">Partner Portal Login</div>
+  <div class="devise-subtitle">Welcome back</div>
+
+  <% if flash[:alert].present? %>
+    <div style="margin-top:16px; text-align:left; border:1px solid #fee2e2; background:#fff7f7; border-radius:8px; padding:12px; color:#b91c1c;">
+      <%= flash[:alert] %>
+    </div>
+  <% end %>
+
+  <%= form_with url: partner_session_path, scope: :user, local: true do |f| %>
+    <div style="margin-top:24px; text-align:left; display:grid; gap:12px;">
+      <div>
+        <%= f.label :email, class: "pp-muted" %>
+        <%= f.email_field :email, class: "pp-input", autofocus: true, autocomplete: "email", required: true %>
+      </div>
+
+      <div>
+        <div class="pp-muted" style="display:flex; justify-content:space-between; align-items:center;">
+          <label for="user_password">Password</label>
+          <%= link_to("Forgot?", new_password_path(resource_name), class: "pp-link") rescue nil %>
+        </div>
+        <%= f.password_field :password, class: "pp-input", autocomplete: "current-password", required: true %>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:8px;">
+        <%= f.check_box :remember_me, id: "remember_me" %>
+        <label for="remember_me" class="pp-muted">Remember me</label>
+      </div>
+
+      <div style="text-align:center; margin-top:8px;">
+        <%= f.submit "Sign in", class: "pp-btn", data: { turbo: false } %>
+      </div>
+    </div>
+  <% end %>
+
+  <div style="margin-top:16px;">
+    Don’t have an account?
+    <%= link_to 'Sign up here', new_partner_registration_path, class: "pp-link" %>
+  </div>
+
+  <div class="devise-footer">
+    By signing in you agree to our
+    <%= link_to "Privacy Policy", "/privacy", class: "pp-link", target: "_blank", rel: "noopener" %>
+    and
+    <%= link_to "Terms of Use", "/terms", class: "pp-link", target: "_blank", rel: "noopener" %>.
+  </div>
+</div>

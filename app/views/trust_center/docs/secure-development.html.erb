@@ -1,0 +1,128 @@
+<%# app/views/trust_center/docs/secure-development.html.erb %>
+
+<div class="trust-doc">
+  <div class="trust-doc-header">
+    <div class="trust-doc-breadcrumb">
+      <%= link_to "Trust Center", trust_home_url, class: "trust-doc-breadcrumb-link" %>
+      <span class="trust-doc-breadcrumb-sep">/</span>
+      <span class="trust-doc-breadcrumb-current">Secure Development</span>
+    </div>
+
+    <div class="trust-doc-title-row">
+      <%= image_tag "logo.png", class: "trust-doc-logo", alt: "Workplace.io" %>
+      <div class="trust-doc-title">Secure Development</div>
+    </div>
+
+    <div class="trust-doc-subtitle">
+      Workplace.io follows secure development practices designed to reduce vulnerabilities, protect customer data, and ensure changes
+      are reviewed and deployed safely.
+    </div>
+
+    <div class="trust-doc-updated">
+      Last updated: <%= @trust_center_stamp %>
+    </div>
+  </div>
+
+  <div class="trust-doc-body">
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">At a glance</div>
+      <div class="trust-doc-bullets">
+        <ul class="trust-doc-bullet-list">
+          <li><strong>Change control:</strong> production changes follow a controlled release process.</li>
+          <li><strong>Reviews:</strong> meaningful changes are peer reviewed before deployment.</li>
+          <li><strong>Dependency hygiene:</strong> dependencies are tracked and updated to address known issues.</li>
+          <li><strong>Security by default:</strong> we favor least privilege configuration and safe defaults.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Development practices</div>
+      <div class="trust-doc-text">
+        We incorporate security into the software development lifecycle (SDLC) through review, testing, and operational controls that reduce
+        the likelihood of introducing vulnerabilities into production.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Peer review:</strong> changes are reviewed to catch logic errors, security issues, and unsafe patterns.</li>
+        <li><strong>Testing:</strong> automated and manual testing supports quality and stability.</li>
+        <li><strong>Configuration discipline:</strong> environment configuration and secrets are managed with controlled access.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Dependency management</div>
+      <div class="trust-doc-text">
+        Workplace.io relies on third-party libraries and services. We manage dependencies to reduce supply-chain risk and to address vulnerabilities
+        as they are discovered.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Inventory:</strong> dependencies are tracked and updated over time.</li>
+        <li><strong>Updates:</strong> security updates are prioritized when patches are available.</li>
+        <li><strong>Review:</strong> changes that introduce or expand sensitive access are reviewed carefully.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Secrets and credentials</div>
+      <div class="trust-doc-text">
+        We protect secrets used for operations and integrations by restricting access and avoiding exposure in source code and logs. Access to
+        production credentials is limited to authorized personnel and systems.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Access restriction:</strong> least-privilege access for operational secrets.</li>
+        <li><strong>Rotation:</strong> credentials can be rotated and replaced as needed.</li>
+        <li><strong>Logging hygiene:</strong> we avoid logging credentials and sensitive payloads.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Encryption →", trust_doc_url_for("encryption"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Release process</div>
+      <div class="trust-doc-text">
+        Production releases follow a controlled process intended to reduce risk. We validate changes before rollout and monitor post-release behavior
+        to detect issues quickly.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Review before release:</strong> changes are reviewed and tested prior to deployment.</li>
+        <li><strong>Post-release monitoring:</strong> monitoring helps detect regressions, elevated error rates, or performance degradation.</li>
+        <li><strong>Rollback readiness:</strong> releases are managed to enable remediation if unexpected issues arise.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Logging & Monitoring →", trust_doc_url_for("logging-monitoring"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Security testing</div>
+      <div class="trust-doc-text">
+        We perform security testing appropriate to our stage and customer needs. This includes internal review and targeted validation of high-risk
+        areas, along with remediation tracking and verification.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Internal review:</strong> security-focused review of sensitive areas of the codebase and integration flows.</li>
+        <li><strong>Targeted validation:</strong> focused testing of authentication, authorization boundaries, and administrative actions.</li>
+        <li><strong>Remediation:</strong> findings are prioritized, tracked to resolution, and re-validated after fixes.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-footer">
+      <div class="trust-doc-footer-title">Need SDLC details?</div>
+      <div class="trust-doc-footer-text">
+        If your team needs additional information about our development and release practices for review, contact us.
+      </div>
+      <div class="trust-doc-footer-actions">
+        <%= link_to "Contact Trust & Security", trust_doc_url_for("contact"), class: "trust-doc-button" %>
+        <%= link_to "Back to Trust Center", trust_home_url, class: "trust-doc-button trust-doc-button--secondary" %>
+      </div>
+    </div>
+  </div>
+</div>

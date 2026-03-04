@@ -1,0 +1,156 @@
+<%# app/views/trust_center/docs/encryption.html.erb %>
+
+<div class="trust-doc">
+  <div class="trust-doc-header">
+    <div class="trust-doc-breadcrumb">
+      <%= link_to "Trust Center", trust_home_url, class: "trust-doc-breadcrumb-link" %>
+      <span class="trust-doc-breadcrumb-sep">/</span>
+      <span class="trust-doc-breadcrumb-current">Encryption</span>
+    </div>
+
+    <div class="trust-doc-title-row">
+      <%= image_tag "logo.png", class: "trust-doc-logo", alt: "Workplace.io" %>
+      <div class="trust-doc-title">Encryption</div>
+    </div>
+
+    <div class="trust-doc-subtitle">
+      Workplace.io uses industry-standard encryption to protect data in transit and at rest, and limits retention of
+      message content by design. This page summarizes our encryption approach at a level suitable for customer review.
+    </div>
+
+    <div class="trust-doc-updated">
+      Last updated: <%= @trust_center_stamp %>
+    </div>
+  </div>
+
+  <div class="trust-doc-body">
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">At a glance</div>
+      <div class="trust-doc-bullets">
+        <ul class="trust-doc-bullet-list">
+          <li><strong>In transit:</strong> TLS is used for communication between clients, providers, and Workplace.io services.</li>
+          <li><strong>At rest:</strong> stored data is protected with encryption at rest in our hosting environments.</li>
+          <li><strong>Short-lived content:</strong> message content is processed briefly for analysis and then removed; derived metadata is retained.</li>
+          <li><strong>Secrets:</strong> integration credentials are protected and access-restricted to the services that require them.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Scope</div>
+      <div class="trust-doc-text">
+        This page covers encryption protections for Workplace.io application traffic, stored data, and integration credentials.
+        It does not list internal model details, training data, or proprietary signal taxonomy.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Encryption in transit</div>
+      <div class="trust-doc-text">
+        Workplace.io uses TLS to protect data transmitted between end-user browsers and our application, between our application
+        and third-party providers (for example Slack or Microsoft), and between internal services involved in processing.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Browser to application:</strong> TLS for all authenticated and unauthenticated pages.</li>
+        <li><strong>Provider APIs:</strong> TLS for OAuth and API calls to connected services.</li>
+        <li><strong>Processing services:</strong> TLS for communication between the application layer and inference workloads.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Encryption at rest</div>
+      <div class="trust-doc-text">
+        Workplace.io stores operational data and derived analysis results in managed databases, and protects stored data using
+        encryption at rest in our hosting environments. Application hosting and databases run on DigitalOcean, and inference runs
+        on AWS using Amazon SageMaker.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>DigitalOcean:</strong> application hosting and managed database storage protected with encryption at rest.</li>
+        <li><strong>AWS (SageMaker):</strong> inference and processing workloads run in secured environments with encrypted storage controls.</li>
+      </ul>
+
+      <div class="trust-doc-callout trust-doc-callout--note">
+        <div class="trust-doc-callout-title">Short-lived message content</div>
+        <div class="trust-doc-callout-text">
+          Message content is processed for a short period to produce culture insights. After processing completes, we retain primarily
+          derived metadata and aggregated results used for dashboards and trends, and we remove message content from storage.
+        </div>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Secrets and integration credentials</div>
+      <div class="trust-doc-text">
+        When a workspace connects Slack or Microsoft Teams, Workplace.io stores credentials needed to synchronize configured data.
+        Access to these credentials is restricted to the services that perform synchronization and processing.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>OAuth credentials:</strong> stored only as needed to support the configured integration.</li>
+        <li><strong>Access restriction:</strong> limited to operational services that require the credentials.</li>
+        <li><strong>Revocation:</strong> disconnecting an integration stops future synchronization.</li>
+      </ul>
+
+      <div class="trust-doc-callout trust-doc-callout--note">
+        <div class="trust-doc-callout-title">Webhook authentication</div>
+        <div class="trust-doc-callout-text">
+          Where webhooks are used, requests are authenticated (signature verification and replay protection) and payload logging is
+          minimized to avoid exposing message content or credentials.
+        </div>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Key management</div>
+      <div class="trust-doc-text">
+        Encryption keys are managed within our hosting environments and access is restricted. We follow least-privilege practices for
+        administrative access and limit the number of systems and operators with access to secrets and key material.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Least privilege:</strong> access to sensitive configuration is limited to authorized personnel and systems.</li>
+        <li><strong>Separation:</strong> application serving, databases, and inference workloads are logically separated.</li>
+        <li><strong>Change control:</strong> changes to security-sensitive configuration follow controlled operational practices.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Backups and recovery</div>
+      <div class="trust-doc-text">
+        We maintain backups and recovery procedures appropriate for a production SaaS environment. Backup protections and access are
+        controlled to prevent unauthorized access.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Customer responsibilities</div>
+      <div class="trust-doc-text">
+        Customers play an important role in protecting their data. Recommended practices include enforcing strong identity controls for
+        your users and limiting access to administrative roles.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li>Use SSO where possible and enforce MFA in your identity provider.</li>
+        <li>Limit workspace administrator permissions to trusted operators.</li>
+        <li>Disconnect integrations that are no longer needed.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Access Controls →", trust_doc_url_for("access-controls"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-footer">
+      <div class="trust-doc-footer-title">Need additional detail?</div>
+      <div class="trust-doc-footer-text">
+        If your security team needs additional information for review, contact us and we’ll help.
+      </div>
+      <div class="trust-doc-footer-actions">
+        <%= link_to "Contact Trust & Security", trust_doc_url_for("contact"), class: "trust-doc-button" %>
+        <%= link_to "Back to Trust Center", trust_home_url, class: "trust-doc-button trust-doc-button--secondary" %>
+      </div>
+    </div>
+  </div>
+</div>

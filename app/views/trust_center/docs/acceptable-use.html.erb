@@ -1,0 +1,104 @@
+<%# app/views/trust_center/docs/acceptable-use.html.erb %>
+
+<div class="trust-doc">
+  <div class="trust-doc-header">
+    <div class="trust-doc-breadcrumb">
+      <%= link_to "Trust Center", trust_home_url, class: "trust-doc-breadcrumb-link" %>
+      <span class="trust-doc-breadcrumb-sep">/</span>
+      <span class="trust-doc-breadcrumb-current">Acceptable Use (Culture Insights)</span>
+    </div>
+
+    <div class="trust-doc-title-row">
+      <%= image_tag "logo.png", class: "trust-doc-logo", alt: "Workplace.io" %>
+      <div class="trust-doc-title">Acceptable Use (Culture Insights)</div>
+    </div>
+
+    <div class="trust-doc-subtitle">
+      Workplace.io is designed for organizational insight. This page defines intended use and prohibited use patterns, especially around
+      surveillance and employment decision-making.
+    </div>
+
+    <div class="trust-doc-updated">Last updated: <%= @trust_center_stamp %></div>
+  </div>
+
+  <div class="trust-doc-body">
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Intended use</div>
+      <div class="trust-doc-text">
+        Workplace.io helps teams understand culture and performance trends at the group and organization level. The product is intended to support
+        leaders in improving communication, alignment, and organizational health.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li>Use insights to identify trends, risks, and opportunities for organizational improvement.</li>
+        <li>Use results as one input among many, alongside human context and leadership judgment.</li>
+        <li>Limit access to insights to appropriate roles and stakeholders.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Prohibited uses</div>
+      <div class="trust-doc-text">
+        The following uses are prohibited because they increase the risk of misuse and individual-level surveillance.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Individual surveillance:</strong> using the service to monitor, target, or profile specific employees.</li>
+        <li><strong>Automated employment decisions:</strong> using outputs as the sole basis for hiring, firing, compensation, or disciplinary action.</li>
+        <li><strong>Attempting re-identification:</strong> attempting to infer individual identity from aggregated outputs.</li>
+        <li><strong>Unauthorized access:</strong> accessing workspaces or data sources without proper authorization.</li>
+      </ul>
+
+      <div class="trust-doc-callout trust-doc-callout--note">
+        <div class="trust-doc-callout-title">Why this matters</div>
+        <div class="trust-doc-callout-text">
+          Culture analytics can be misapplied if used to evaluate individuals. Workplace.io is designed for aggregate insights and encourages
+          governance practices that protect individuals and reduce privacy risk.
+        </div>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Practical guardrails</div>
+      <div class="trust-doc-text">
+        Workplace.io applies product and operational guardrails to help customers follow intended use.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Role-based access:</strong> sensitive settings and administrative actions are restricted to authorized roles.</li>
+        <li><strong>Aggregation:</strong> dashboards emphasize group and workspace-level reporting.</li>
+        <li><strong>Short-lived message content:</strong> message content is processed briefly and removed; derived metadata is retained.</li>
+        <li><strong>Customer control:</strong> admins decide what sources to connect and can disconnect integrations.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Access Controls →", trust_doc_url_for("access-controls"), class: "trust-doc-link" %>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <%= link_to "Aggregation & Anonymity →", trust_doc_url_for("anonymity-aggregation"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Reporting concerns</div>
+      <div class="trust-doc-text">
+        If you believe your organization may have a use case that falls into a prohibited category, contact us. We can help clarify intended use
+        and recommend safer configurations.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Contact Trust & Security →", trust_doc_url_for("contact"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-footer">
+      <div class="trust-doc-footer-title">Questions about intended use?</div>
+      <div class="trust-doc-footer-text">
+        Contact us for guidance on governance, access controls, and safe deployment practices.
+      </div>
+      <div class="trust-doc-footer-actions">
+        <%= link_to "Contact Trust & Security", trust_doc_url_for("contact"), class: "trust-doc-button" %>
+        <%= link_to "Back to Trust Center", trust_home_url, class: "trust-doc-button trust-doc-button--secondary" %>
+      </div>
+    </div>
+  </div>
+</div>

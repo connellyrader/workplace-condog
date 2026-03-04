@@ -1,0 +1,122 @@
+<div id="new-model-modal" class="modal hidden">
+  <div class="modal-content">
+    <span class="close-btn">&times;</span>
+    <h2>Add New SageMaker Model</h2>
+    <form id="new-model-form" method="POST" action="<%= create_model_model_tests_path %>">
+      <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+
+      <label>Name</label>
+      <input type="text" name="model[name]" required>
+
+      <br><br>
+
+      <label>Description</label>
+      <textarea name="model[description]"></textarea>
+
+      <br><br>
+
+      <label>Deployment Type</label>
+      <select name="model[deployment_type]" id="deployment-type">
+        <option value="Hugging Face Hub">Hugging Face Hub</option>
+        <option value="Neuron">Neuron Instance</option>
+        <option value="Custom API">Custom API</option>
+      </select>
+
+      <br><br>
+
+      <div id="jumpstart-fields">
+        <label>JumpStart Model ID</label>
+        <input type="text" name="model[jumpstart_model_id]">
+
+        <label>Container Image URI</label>
+        <input type="text" name="model[container_image_uri]">
+
+        <label>Model Data URL (S3)</label>
+        <input type="text" name="model[model_data_url]">
+      </div>
+
+      <div id="huggingface-fields" class="hidden">
+        <label>Hugging Face Model ID</label>
+        <input type="text" name="model[hf_model_id]" placeholder="mistralai/Mistral-7B-Instruct-v0.2">
+      </div>
+
+      <br><br>
+
+      <label>AWS Instance</label>
+      <select name="model[aws_instance_id]" id="model_aws_instance_id" data-instance-type-target="hidden">
+        <option value="">-- Select instance --</option>
+        <% @aws_instances.each do |ai| %>
+          <option value="<%= ai.id %>" data-instance-type="<%= ai.instance_type %>" data-hourly="<%= ai.hourly_price %>">
+            <%= ai.label %>
+          </option>
+        <% end %>
+      </select>
+      
+
+      <!-- Optional: show a live price hint -->
+      <div id="instance-price-hint" style="margin-top:6px; font-size:13px; opacity:.8;"></div>
+
+      <br><br>
+
+      <label>Max Server Instances (Autoscaling)</label>
+      <input type="number" name="model[max_server_instances]" min="1" value="10">
+
+      <br><br>
+
+      <label>Concurrent Requests per Instance</label>
+      <input type="number" name="model[concurrent_requests]" min="1" value="5">
+
+      <br><br>
+
+      <label>Env Vars</label>
+      <textarea name="model[environment_variables]"></textarea>
+
+      <br><br>
+
+      <button type="submit" class="btn-primary">Create Model</button>
+    </form>
+  </div>
+</div>
+
+<script>
+  function toggleDeploymentFields() {
+    const deploymentType = document.getElementById('deployment-type').value;
+    const useHF = true;
+    
+    if(deploymentType != 'Hugging Face Hub' && deploymentType != 'Neuron'){
+      useHF = false;
+    }
+
+    document.getElementById('jumpstart-fields').classList.toggle('hidden', useHF);
+    document.getElementById('huggingface-fields').classList.toggle('hidden', !useHF);
+  }
+
+  document.getElementById('deployment-type').addEventListener('change', toggleDeploymentFields);
+
+  // Run on page load
+  document.addEventListener('DOMContentLoaded', toggleDeploymentFields);
+
+</script>
+
+<script>
+  (function(){
+    const sel   = document.getElementById('model_aws_instance_id');
+    const ihid  = document.getElementById('model_instance_type_hidden');
+    const hint  = document.getElementById('instance-price-hint');
+
+    function updateMirror(){
+      const opt = sel.options[sel.selectedIndex];
+      const it  = opt?.dataset?.instanceType || '';
+      const hr  = opt?.dataset?.hourly;
+
+      if (ihid) ihid.value = it;
+      if (hint) {
+        hint.textContent = it
+          ? `Selected: ${it}${hr ? ` — ${parseFloat(hr).toFixed(4)} $/hr` : ''}`
+          : '';
+      }
+    }
+    sel?.addEventListener('change', updateMirror);
+    document.addEventListener('DOMContentLoaded', updateMirror);
+  })();
+</script>

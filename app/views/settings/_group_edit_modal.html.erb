@@ -1,0 +1,373 @@
+<%# app/views/settings/_group_edit_modal.html.erb %>
+<% is_everyone = defined?(@is_everyone_group) && @is_everyone_group %>
+
+<%= form_with url: settings_update_group_path(@group),
+              method: :patch,
+              local: true,
+              id: "group-edit-form",
+              data: { turbo: false } do %>
+
+  <div class="invite-modal js-group-edit-modal"
+       data-everyone-group="<%= is_everyone %>">
+    <div class="invite-modal-heading">
+      <div class="invite-modal-heading-left">
+        <div class="invite-modal-title js-group-edit-modal-title">Edit Group</div>
+        <div class="invite-modal-subtitle">
+          <% if is_everyone %>
+            This is your Everyone group used for billing and coverage. Members removed here will stop being measured and will also be removed from all other groups in this workspace.
+          <% else %>
+            Update this group’s name and members. Groups with fewer than 3 members will be hidden on dashboards to protect anonymity.
+          <% end %>
+        </div>
+      </div>
+      <div class="invite-modal-heading-close js-group-edit-modal-close">
+        <%= icon "x-mark" %>
+      </div>
+    </div>
+
+    <!-- Group name -->
+    <div style="margin-top:16px;">
+      <input type="text"
+             name="group[name]"
+             class="invite-modal-search <%= 'invite-modal-search--locked' if is_everyone %>"
+             placeholder="Group name"
+             id="group-edit-name-input"
+             autocomplete="off"
+             value="<%= @group.name %>"
+             <%= 'readonly disabled' if is_everyone %>>
+    </div>
+
+    <div class="invite-modal-section-top">
+      <div class="invite-modal-section-top-left">
+        Members (<span class="js-group-edit-selected-count"><%= @group_member_ids.size %></span>/<%= @all_members.size %>)
+      </div>
+      <div class="invite-modal-section-top-right js-group-edit-select-toggle">Select All</div>
+    </div>
+
+    <div class="invite-modal-search-wrapper">
+      <input class="invite-modal-search js-group-edit-search" placeholder="Search by name or email...">
+      <button type="button"
+              class="invite-modal-search-clear js-group-edit-search-clear"
+              aria-label="Clear search">
+        Clear
+      </button>
+    </div>
+
+    <div class="invite-modal-people js-group-edit-people"
+         data-group-people-url="<%= settings_group_users_path %>">
+      <%= render "settings/group_users",
+                 ungrouped_users: @all_members,
+                 search_query: nil %>
+    </div>
+
+    <div class="invite-modal-footer">
+      <div class="invite-modal-cancel js-group-edit-modal-close">Cancel</div>
+      <div class="invite-modal-send js-group-edit-modal-submit">Save Changes</div>
+    </div>
+
+    <%= hidden_field_tag "group[user_ids]", @group_member_ids.join(","),
+                         id: "group-edit-selected-ids",
+                         data: { original_ids: @group_member_ids.join(",") } %>
+  </div>
+
+<% end %>
+
+<div class="invite-modal-backdrop js-group-edit-modal-backdrop"></div>
+
+<script>
+  document.addEventListener("turbo:load", initGroupEditModal);
+
+  function initGroupEditModal() {
+    var modal     = document.querySelector(".js-group-edit-modal");
+    var backdrop  = document.querySelector(".js-group-edit-modal-backdrop");
+    var triggers  = document.querySelectorAll(".js-group-edit-trigger");
+    var submitBtn = document.querySelector(".js-group-edit-modal-submit");
+
+    if (!modal || !backdrop) return;
+    if (!triggers || triggers.length === 0) return;
+
+    var peopleContainer = modal.querySelector(".js-group-edit-people");
+    var selectToggle    = modal.querySelector(".js-group-edit-select-toggle");
+    var searchInput     = modal.querySelector(".js-group-edit-search");
+    var clearBtn        = modal.querySelector(".js-group-edit-search-clear");
+    var selectedCountEl = modal.querySelector(".js-group-edit-selected-count");
+    var nameInput       = document.getElementById("group-edit-name-input");
+    var hiddenInput     = document.getElementById("group-edit-selected-ids");
+    var form            = document.getElementById("group-edit-form");
+
+    if (!peopleContainer || !selectToggle || !searchInput || !hiddenInput || !form) return;
+
+    // "Everyone" flag from DOM
+    var isEveryone = (modal.dataset.everyoneGroup === "true");
+
+    // Original membership set (for removal detection)
+    var originalIds = new Set(
+      (hiddenInput.dataset.originalIds || "")
+        .split(",")
+        .map(function(id) { return id.trim(); })
+        .filter(Boolean)
+    );
+
+    // X + Cancel both use this class
+    var closers = document.querySelectorAll(".js-group-edit-modal-close");
+
+    var selectedIds = new Set(
+      (hiddenInput.value || "")
+        .split(",")
+        .map(function(id) { return id.trim(); })
+        .filter(Boolean)
+    );
+    var searchTimer = null;
+
+    function hideModal() {
+      modal.style.display    = "none";
+      backdrop.style.display = "none";
+    }
+
+    function showModal(trigger) {
+      // seed selection from trigger's data-member-ids when opening
+      if (trigger && trigger.dataset.memberIds) {
+        selectedIds.clear();
+        trigger.dataset.memberIds.split(",").forEach(function(id) {
+          id = id.trim();
+          if (id) selectedIds.add(id);
+        });
+      }
+
+      applySelectionStateToRows();
+      updateSelectedUI();
+      updateSearchClearVisibility();
+      performSearch(searchInput ? searchInput.value : "");
+
+      modal.style.display    = "flex";
+      backdrop.style.display = "block";
+    }
+
+    // ---- selection helpers ----
+    function isRowChecked(row) {
+      var btn = row.querySelector(".invite-modal-person-add");
+      return btn && btn.classList.contains("checked");
+    }
+
+    function setRowChecked(row, checked) {
+      var btn = row.querySelector(".invite-modal-person-add");
+      if (!btn) return;
+
+      if (checked) btn.classList.add("checked");
+      else         btn.classList.remove("checked");
+
+      var id = row.getAttribute("data-user-id");
+      if (!id) return;
+
+      if (checked) selectedIds.add(id);
+      else         selectedIds.delete(id);
+    }
+
+    function toggleRow(row) {
+      setRowChecked(row, !isRowChecked(row));
+      updateSelectedUI();
+    }
+
+    function updateSelectedCount() {
+      if (selectedCountEl) selectedCountEl.textContent = String(selectedIds.size);
+    }
+
+    function updateSelectToggleLabel() {
+      if (!selectToggle) return;
+      var rows = peopleContainer.querySelectorAll(".invite-modal-person");
+      if (rows.length === 0) {
+        selectToggle.textContent = "Select All";
+        return;
+      }
+      var allChecked = true;
+      rows.forEach(function(row) { if (!isRowChecked(row)) allChecked = false; });
+      selectToggle.textContent = allChecked ? "Deselect All" : "Select All";
+    }
+
+    function updateSelectedUI() {
+      updateSelectedCount();
+      updateSelectToggleLabel();
+    }
+
+    function applySelectionStateToRows() {
+      var rows = peopleContainer.querySelectorAll(".invite-modal-person");
+      rows.forEach(function(row) {
+        var id  = row.getAttribute("data-user-id");
+        var btn = row.querySelector(".invite-modal-person-add");
+        if (!btn) return;
+
+        if (id && selectedIds.has(id)) btn.classList.add("checked");
+        else                           btn.classList.remove("checked");
+      });
+      updateSelectedUI();
+    }
+
+    function updateSearchClearVisibility() {
+      if (!clearBtn || !searchInput) return;
+      clearBtn.style.display = searchInput.value.trim().length > 0 ? "inline-flex" : "none";
+    }
+
+    function performSearch(query) {
+      var url = peopleContainer.getAttribute("data-group-people-url");
+      if (!url || typeof $ === "undefined") return;
+
+      $.get(url, { q: query }, function(html) {
+        peopleContainer.innerHTML = html;
+        applySelectionStateToRows();
+      });
+    }
+
+    // ---- wiring: edit triggers ----
+    triggers.forEach(function(trigger) {
+      trigger.addEventListener("click", function(e) {
+        e.preventDefault();
+        showModal(trigger);
+      });
+    });
+
+    // X + Cancel both close
+    closers.forEach(function(el) {
+      el.addEventListener("click", hideModal);
+    });
+
+    backdrop.addEventListener("click", hideModal);
+    document.addEventListener("keydown", function(e) {
+      if (e.key === "Escape" || e.key === "Esc") hideModal();
+    });
+
+    // Row click toggles
+    peopleContainer.addEventListener("click", function(e) {
+      var row = e.target.closest(".invite-modal-person");
+      if (!row || !peopleContainer.contains(row)) return;
+      toggleRow(row);
+    });
+
+    // Select All / Deselect All
+    selectToggle.addEventListener("click", function() {
+      var rows = peopleContainer.querySelectorAll(".invite-modal-person");
+      if (rows.length === 0) return;
+
+      var allChecked = true;
+      rows.forEach(function(row) { if (!isRowChecked(row)) allChecked = false; });
+
+      rows.forEach(function(row) { setRowChecked(row, !allChecked); });
+      updateSelectedUI();
+    });
+
+    // Search
+    searchInput.addEventListener("input", function() {
+      if (searchTimer) clearTimeout(searchTimer);
+      updateSearchClearVisibility();
+      searchTimer = setTimeout(function() {
+        performSearch(searchInput.value);
+      }, 250);
+    });
+
+    if (clearBtn) {
+      clearBtn.addEventListener("click", function() {
+        searchInput.value = "";
+        updateSearchClearVisibility();
+        performSearch("");
+      });
+    }
+
+    if (submitBtn) {
+      submitBtn.addEventListener("click", function() {
+        var name  = nameInput ? nameInput.value.trim() : "";
+        var count = selectedIds.size;
+
+        // 1) Name required for normal groups, but NOT for Everyone
+        if (!isEveryone && !name) {
+          if (typeof notice === "function") {
+            notice("Please enter a group name.", { confirmLabel: "OK" });
+          } else {
+            alert("Please enter a group name.");
+          }
+          return;
+        }
+
+        function doSubmit() {
+          hiddenInput.value = Array.from(selectedIds).join(",");
+          form.submit();
+        }
+
+        // 2) No members at all
+        if (count === 0) {
+          var msg0   = "Save this group with no members? You can add people later.";
+          var label0 = "Save without members";
+
+          if (typeof notice === "function") {
+            notice(msg0, { confirmLabel: label0, cancelLabel: "Cancel" }).then(function(ok) {
+              if (!ok) return;
+              doSubmit();
+            });
+          } else {
+            if (window.confirm(msg0)) doSubmit();
+          }
+          return;
+        }
+
+        // 3) 1–2 members: anonymity warning
+        if (count > 0 && count < 3) {
+          var msg1   = "Groups with fewer than 3 people won’t appear on your dashboard to protect anonymity. Continue anyway?";
+          var label1 = "Save group anyway";
+
+          if (typeof notice === "function") {
+            notice(msg1, { confirmLabel: label1, cancelLabel: "Back" }).then(function(ok) {
+              if (!ok) return;
+              if (isEveryone) {
+                return handleEveryoneRemoval(doSubmit);
+              }
+              doSubmit();
+            });
+          } else {
+            if (!window.confirm(msg1)) return;
+            if (isEveryone) {
+              return handleEveryoneRemoval(doSubmit);
+            }
+            doSubmit();
+          }
+          return;
+        }
+
+        // 4) Normal case (>=3 members)
+        if (isEveryone) {
+          return handleEveryoneRemoval(doSubmit);
+        }
+
+        doSubmit();
+      });
+    }
+
+    // Helper: for Everyone group, warn if users were removed
+    function handleEveryoneRemoval(doSubmit) {
+      var removed = false;
+      originalIds.forEach(function(id) {
+        if (id && !selectedIds.has(id)) removed = true;
+      });
+
+      if (!removed) {
+        doSubmit();
+        return;
+      }
+
+      var msg = "Any users removed from the Everyone group will also be removed from all other groups in this workspace. Continue?";
+
+      if (typeof warning === "function") {
+        warning(msg, {
+          confirmLabel: "Yes, remove them",
+          cancelLabel: "Cancel"
+        }).then(function(ok) {
+          if (!ok) return;
+          doSubmit();
+        });
+      } else {
+        if (!window.confirm(msg)) return;
+        doSubmit();
+      }
+    }
+
+    updateSelectedUI();
+    updateSearchClearVisibility();
+  }
+</script>

@@ -1,0 +1,80 @@
+<%= link_to "Export Payouts", request.params.merge(format: :csv), class: "pp-export-btn"  %>
+<h1>Payouts</h1>
+
+<section class="pp-card pp-span-3">
+  <div class="pp-table-wrap">
+    <table class="pp-table">
+      <thead>
+        <tr>
+          <th>Period</th>
+          <th>Payout Date</th>
+          <th class="pp-num">Amount</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <% # ---- Pseudo payouts (scheduled/upcoming) ---- %>
+        <% if @pseudo_payouts.present? %>
+          <% @pseudo_payouts.each do |p| %>
+            <tr>
+              <td>
+                <%= p.start_date.strftime("%b %-d") %> – <%= p.end_date.strftime("%b %-d, %Y") %>
+              </td>
+              <td>
+                <%= p.payout_date.strftime("%a, %b %-d, %Y") %>
+              </td>
+              <td class="pp-num">
+                $<%= number_with_precision(p.amount.to_i / 100.0, precision: 2) %>
+              </td>
+              <td>
+                <span class="pp-status">Pending</span>
+              </td>
+              <td class="pp-num">
+                <%= link_to "View details", partners_payout_path(p.id), class: "pp-link" %>
+              </td>
+            </tr>
+          <% end %>
+        <% end %>
+
+        <% # ---- Real payouts (paid or processing) ---- %>
+        <% if @real_payouts.present? %>
+          <% @real_payouts.each do |payout| %>
+            <tr>
+              <td>
+                <%= payout.start_date.strftime("%b %-d") %> – <%= payout.end_date.strftime("%b %-d, %Y") %>
+              </td>
+              <td>
+                <% if payout.paid_at.present? %>
+                  <%= payout.paid_at.strftime("%a, %b %-d, %Y") %>
+                <% else %>
+                  <span class="pp-muted">—</span>
+                <% end %>
+              </td>
+              <td class="pp-num">
+                $<%= number_with_precision(payout.amount.to_i / 100.0, precision: 2) %>
+              </td>
+              <td>
+                <% if payout.paid_at.present? %>
+                  <span class="pp-status">Completed</span>
+                <% else %>
+                  <span class="pp-status">Processing</span>
+                <% end %>
+              </td>
+              <td class="pp-num">
+                <%= link_to "View details", partners_payout_path(payout), class: "pp-link" %>
+              </td>
+            </tr>
+          <% end %>
+        <% end %>
+
+        <% if (@pseudo_payouts.blank? && @real_payouts.blank?) %>
+          <tr>
+            <td colspan="5" class="pp-muted">No payouts yet.</td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</section>

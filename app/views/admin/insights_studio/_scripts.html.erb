@@ -1,0 +1,722 @@
+<script>
+  (function() {
+    var currentRow = null
+    function ready(fn) {
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", fn)
+      } else {
+        fn()
+      }
+    }
+
+    function escapeHtml(input) {
+      var str = String(input)
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;")
+    }
+
+    function firstValue(stats, keys) {
+      for (var i = 0; i < keys.length; i += 1) {
+        var key = keys[i]
+        if (stats[key] != null) return stats[key]
+      }
+      return null
+    }
+
+    function formatPercent(value, digits, withSign) {
+      var num = Number(value)
+      if (!Number.isFinite(num)) return "-"
+      var pct = num * 100
+      var sign = withSign && pct > 0 ? "+" : ""
+      return sign + pct.toFixed(digits) + "%"
+    }
+
+    function formatNumber(value) {
+      if (value == null) return "-"
+      var num = Number(value)
+      if (!Number.isFinite(num)) return String(value)
+      return num.toLocaleString()
+    }
+
+    function formatDateOnly(value) {
+      if (!value) return "-"
+      var text = String(value)
+      if (text.indexOf("T") !== -1) return text.split("T")[0]
+      return text
+    }
+
+    function strengthLabel(value) {
+      var num = Number(value)
+      if (!Number.isFinite(num)) return null
+      if (num >= 2) return "strong"
+      if (num >= 1) return "medium"
+      return "weak"
+    }
+
+    function titleCase(value) {
+      var text = String(value || "")
+      if (!text) return ""
+      return text.charAt(0).toUpperCase() + text.slice(1)
+    }
+
+    function deltaFromStats(stats, direction) {
+      if (direction === "positive") {
+        return firstValue(stats, ["delta_positive_rate", "delta_rate", "delta_share"])
+      }
+      if (direction === "negative") {
+        return firstValue(stats, ["delta_negative_rate", "delta_rate", "delta_share"])
+      }
+      return firstValue(stats, ["delta_rate", "delta_negative_rate", "delta_positive_rate", "delta_share"])
+    }
+
+    function buildSummary(payload, stats) {
+      var subjectLabel = payload.subject_label || "Subject"
+      var dimensionLabel = payload.dimension_label || "Metric"
+      var direction = payload.direction || ""
+      var directionLabel = direction === "positive" ? "positive" : direction === "negative" ? "negative" : "notable"
+      var delta = deltaFromStats(stats, direction)
+      var deltaText = delta == null ? "" : " Delta " + formatPercent(delta, 1, true) + "."
+      var severity = Number(payload.severity || 0).toFixed(2)
+      var confidence = String(firstValue(stats, ["confidence_label"]) || "").toLowerCase()
+      var prefix = confidence === "low" ? "Early signal: " : ""
+      var verb = confidence === "medium" || confidence === "low" ? "may show" : "shows"
+      return (prefix + subjectLabel + " " + verb + " a " + directionLabel + " shift in " + dimensionLabel + ". Severity " + severity + "." + deltaText).trim()
+    }
+
+    function buildFacts(payload, stats) {
+      var facts = []
+      var windowRange = payload.window_range || {}
+      var baselineRange = payload.baseline_range || {}
+
+      if (windowRange.start_at || windowRange.end_at) {
+        facts.push("Window: " + formatDateOnly(windowRange.start_at || "-") + " to " + formatDateOnly(windowRange.end_at || "-"))
+      }
+      if (baselineRange.start_at || baselineRange.end_at) {
+        facts.push("Baseline: " + formatDateOnly(baselineRange.start_at || "-") + " to " + formatDateOnly(baselineRange.end_at || "-"))
+      }
+
+      var windowTotal = firstValue(stats, ["window_total", "window_count", "window_volume"])
+      var baselineTotal = firstValue(stats, ["baseline_total", "baseline_count", "baseline_volume"])
+      var effectiveWindowDays = firstValue(stats, ["effective_window_days"])
+      var effectiveBaselineDays = firstValue(stats, ["effective_baseline_days"])
+      var minWindowRequired = firstValue(stats, ["min_window_required", "min_window_detections"])
+      var minBaselineRequired = firstValue(stats, ["min_baseline_required", "min_baseline_detections"])
+      var direction = payload.direction || ""
+      var windowRate
+      var baselineRate
+      var rateLabel = "rate"
+
+      if (direction === "positive") {
+        windowRate = firstValue(stats, ["window_positive_rate", "window_rate", "window_negative_rate"])
+        baselineRate = firstValue(stats, ["baseline_positive_rate", "baseline_rate", "baseline_negative_rate"])
+        rateLabel = "positive rate"
+      } else if (direction === "negative") {
+        windowRate = firstValue(stats, ["window_negative_rate", "window_rate", "window_positive_rate"])
+        baselineRate = firstValue(stats, ["baseline_negative_rate", "baseline_rate", "baseline_positive_rate"])
+        rateLabel = "negative rate"
+      } else {
+        windowRate = firstValue(stats, ["window_rate", "window_negative_rate", "window_positive_rate"])
+        baselineRate = firstValue(stats, ["baseline_rate", "baseline_negative_rate", "baseline_positive_rate"])
+      }
+      var windowShare = firstValue(stats, ["window_share"])
+      var baselineShare = firstValue(stats, ["baseline_share"])
+      var delta = deltaFromStats(stats, payload.direction || "")
+      var confidenceLabel = firstValue(stats, ["confidence_label"])
+      var volumeStrength = strengthLabel(firstValue(stats, ["confidence_volume_strength"]))
+      var spreadStrength = strengthLabel(firstValue(stats, ["confidence_spread_strength"]))
+      var effectStrength = strengthLabel(firstValue(stats, ["confidence_effect_strength"]))
+      var volumeOk = firstValue(stats, ["volume_ok"])
+      var tinySample = firstValue(stats, ["tiny_sample"])
+      var recurrenceMet = firstValue(stats, ["recurrence_met"])
+      var fdrApplicable = firstValue(stats, ["fdr_applicable"])
+      var fdrPass = firstValue(stats, ["fdr_pass"])
+      var fdrReason = firstValue(stats, ["fdr_reason"])
+
+      if (windowTotal != null) facts.push("Window total: " + formatNumber(windowTotal))
+      if (baselineTotal != null) facts.push("Baseline total: " + formatNumber(baselineTotal))
+      if (windowRate != null) facts.push("Window " + rateLabel + ": " + formatPercent(windowRate, 1, false))
+      if (baselineRate != null) facts.push("Baseline " + rateLabel + ": " + formatPercent(baselineRate, 1, false))
+      if (windowShare != null) facts.push("Window share: " + formatPercent(windowShare, 1, false))
+      if (baselineShare != null) facts.push("Baseline share: " + formatPercent(baselineShare, 1, false))
+      if (delta != null) facts.push("Delta: " + formatPercent(delta, 1, true))
+      if (effectiveWindowDays != null) facts.push("Effective window days: " + formatNumber(effectiveWindowDays))
+      if (effectiveBaselineDays != null) facts.push("Effective baseline days: " + formatNumber(effectiveBaselineDays))
+      if (minWindowRequired != null) facts.push("Min window required: " + formatNumber(minWindowRequired))
+      if (minBaselineRequired != null) facts.push("Min baseline required: " + formatNumber(minBaselineRequired))
+      if (confidenceLabel != null) facts.push("Confidence: " + titleCase(confidenceLabel))
+      if (volumeStrength) facts.push("Confidence volume: " + titleCase(volumeStrength))
+      if (spreadStrength) facts.push("Confidence spread: " + titleCase(spreadStrength))
+      if (effectStrength) facts.push("Confidence effect: " + titleCase(effectStrength))
+      if (recurrenceMet != null) facts.push("Recurrence met: " + (recurrenceMet ? "yes" : "no"))
+      if (fdrApplicable === false && fdrReason) facts.push("FDR: not applicable (" + fdrReason.replace(/_/g, " ") + ")")
+      if (fdrApplicable === true && fdrPass === false) facts.push("FDR: failed")
+      if (volumeOk === false) facts.push("Volume gate: below minimum")
+      if (tinySample === true) facts.push("Tiny sample: yes")
+
+      var oddsRatio = firstValue(stats, ["odds_ratio"])
+      var logOddsRatio = firstValue(stats, ["log_odds_ratio"])
+      var effectZ = firstValue(stats, ["effect_z"])
+      var effectP = firstValue(stats, ["effect_p"])
+      var qValue = firstValue(stats, ["q_value"])
+      if (oddsRatio != null) facts.push("Odds ratio: " + Number(oddsRatio).toFixed(2))
+      if (logOddsRatio != null) facts.push("Log-odds: " + Number(logOddsRatio).toFixed(2))
+      if (effectZ != null) facts.push("Effect z: " + Number(effectZ).toFixed(2))
+      if (effectP != null) facts.push("Effect p: " + Number(effectP).toFixed(4))
+      if (qValue != null) facts.push("FDR q: " + Number(qValue).toFixed(4))
+
+      return facts
+    }
+
+    function buildDrivers(stats) {
+      var drivers = []
+      var negative = stats.top_negative_submetrics || []
+      var positive = stats.top_positive_submetrics || []
+      var categories = stats.top_categories || []
+
+      negative.forEach(function(item) {
+        var label = item.submetric_name || item.submetric_id || "Submetric"
+        drivers.push(label + " (negative)")
+      })
+
+      positive.forEach(function(item) {
+        var label = item.submetric_name || item.submetric_id || "Submetric"
+        drivers.push(label + " (positive)")
+      })
+
+      categories.forEach(function(item) {
+        var label = item.category_name || item.signal_category_name || item.category_id || item.signal_category_id || "Category"
+        drivers.push(label + " (category)")
+      })
+
+      return drivers
+    }
+
+    function summaryFromCandidate(candidate) {
+      if (!candidate) return null
+      var summary = candidate.summary || {}
+      var stats = candidate.stats || {}
+      var title = candidate.summary_title || summary.title || stats.summary_title
+      var body = candidate.summary_body || summary.body || stats.summary_body
+      if (!title && !body) return null
+      return { title: title, body: body }
+    }
+
+    function applySummaryToCandidate(candidate, summary) {
+      if (!candidate || !summary) return
+      candidate.summary_title = summary.title
+      candidate.summary_body = summary.body
+      if (candidate.stats && typeof candidate.stats === "object") {
+        candidate.stats.summary_title = summary.title
+        candidate.stats.summary_body = summary.body
+      }
+    }
+
+    function renderPreviewOutput(outputEl, data) {
+      if (!outputEl || !data) return
+      var title = escapeHtml(data.title || "Preview")
+      var body = escapeHtml(data.body || "").replace(/\n/g, "<br>")
+      outputEl.innerHTML = "<div class=\"admin-preview\"><div class=\"admin-preview-meta\"><span>" + title + "</span></div><div class=\"admin-preview-body\">" + body + "</div></div>"
+    }
+
+    function updateRowCandidate(row, candidate) {
+      if (!row || !candidate) return
+      row.dataset.candidate = JSON.stringify(candidate)
+    }
+
+    function csrfToken() {
+      var meta = document.querySelector("meta[name='csrf-token']")
+      return meta ? meta.content : ""
+    }
+
+    function postJson(url, payload) {
+      return fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "X-CSRF-Token": csrfToken()
+        },
+        body: JSON.stringify(payload || {})
+      }).then(function(resp) {
+        if (!resp.ok) throw new Error("HTTP " + resp.status)
+        return resp.json()
+      })
+    }
+
+    function previewCandidate(candidate, outputEl) {
+      if (!candidate || !outputEl) return
+      var cached = summaryFromCandidate(candidate)
+      if (cached) {
+        outputEl.classList.remove("is-loading")
+        renderPreviewOutput(outputEl, cached)
+        return
+      }
+
+      outputEl.textContent = "Loading preview..."
+      outputEl.classList.add("is-loading")
+
+      fetch("/admin/insights_studio/preview", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "X-CSRF-Token": csrfToken()
+        },
+        body: JSON.stringify({ candidate: candidate })
+      })
+        .then(function(resp) {
+          if (!resp.ok) throw new Error("HTTP " + resp.status)
+          return resp.json()
+        })
+        .then(function(data) {
+          if (data.error) throw new Error(data.error)
+          applySummaryToCandidate(candidate, data)
+          if (currentRow) updateRowCandidate(currentRow, candidate)
+          renderPreviewOutput(outputEl, data)
+        })
+        .catch(function(err) {
+          console.warn("[InsightsStudio] preview failed", err)
+          outputEl.textContent = "Preview failed: " + err.message
+        })
+        .finally(function() {
+          outputEl.classList.remove("is-loading")
+        })
+    }
+
+    function renderEvidenceList(evidence) {
+      if (!evidence || evidence.length === 0) {
+        return "<div class=\"insights-studio-empty\">No evidence messages.</div>"
+      }
+      return "<ul class=\"insights-studio-evidence-list\">" + evidence.map(function(m) {
+        var timestamp = escapeHtml(formatDateOnly(m.posted_at || ""))
+        var channel = escapeHtml(m.channel_id || "")
+        var label = channel ? timestamp + " - " + channel : timestamp
+        return "<li><div class=\"insights-studio-evidence-meta\">" + label + "</div><div class=\"insights-studio-evidence-text\">" + escapeHtml(m.text || "") + "</div></li>"
+      }).join("") + "</ul>"
+    }
+
+    function renderEvidencePagination(page, perPage, totalCount, evidenceLength) {
+      var totalPages = totalCount > 0 ? Math.ceil(totalCount / perPage) : null
+      var prevDisabled = page <= 1
+      var nextDisabled = totalPages ? page >= totalPages : evidenceLength < perPage
+      var label = totalPages ? "Page " + page + " of " + totalPages : "Page " + page
+      return "<div class=\"insights-studio-evidence-pagination\" data-insights-evidence-pagination>"
+        + "<button type=\"button\" class=\"pp-button pp-button--secondary\" data-evidence-prev " + (prevDisabled ? "disabled" : "") + ">Prev</button>"
+        + "<span class=\"insights-studio-evidence-page\">" + escapeHtml(label) + "</span>"
+        + "<button type=\"button\" class=\"pp-button pp-button--secondary\" data-evidence-next " + (nextDisabled ? "disabled" : "") + ">Next</button>"
+        + "</div>"
+    }
+
+    function loadEvidencePage(candidate, detailsEl, page) {
+      if (!candidate || !detailsEl) return
+      var body = detailsEl.querySelector("[data-insights-evidence-body]")
+      if (!body) return
+      var perPage = 10
+      var targetPage = page || 1
+      if (detailsEl.dataset.evidenceLoaded === "loading") return
+
+      detailsEl.dataset.evidenceLoaded = "loading"
+      detailsEl.dataset.evidencePage = String(targetPage)
+      body.textContent = "Loading evidence..."
+
+      postJson("/admin/insights_studio/evidence", { candidate: candidate, page: targetPage, per_page: perPage })
+        .then(function(data) {
+          if (data.error) throw new Error(data.error)
+          var evidence = data.evidence || []
+          var totalCount = Number(data.total_count || 0)
+          body.innerHTML = renderEvidenceList(evidence) + renderEvidencePagination(targetPage, perPage, totalCount, evidence.length)
+          detailsEl.dataset.evidenceLoaded = "true"
+
+          var pagination = body.querySelector("[data-insights-evidence-pagination]")
+          if (pagination) {
+            var prev = pagination.querySelector("[data-evidence-prev]")
+            var next = pagination.querySelector("[data-evidence-next]")
+            if (prev && !prev.disabled) {
+              prev.addEventListener("click", function(event) {
+                event.preventDefault()
+                loadEvidencePage(candidate, detailsEl, targetPage - 1)
+              })
+            }
+            if (next && !next.disabled) {
+              next.addEventListener("click", function(event) {
+                event.preventDefault()
+                loadEvidencePage(candidate, detailsEl, targetPage + 1)
+              })
+            }
+          }
+        })
+        .catch(function(err) {
+          body.textContent = "Evidence failed: " + err.message
+          detailsEl.dataset.evidenceLoaded = "error"
+        })
+    }
+
+    function renderInspector(payload, inspector) {
+      if (!payload || !inspector) return
+
+      var stats = payload.stats || {}
+      var status = payload.selection_status || "unknown"
+      var statusReason = String(payload.selection_reason || "")
+      var confidenceLabel = String(firstValue(stats, ["confidence_label"]) || "").toLowerCase()
+      var lowConfidence = confidenceLabel === "low"
+      var mediumConfidence = confidenceLabel === "medium"
+      var facts = buildFacts(payload, stats)
+      var drivers = buildDrivers(stats)
+      var evidenceCount = payload.evidence_count
+      var direction = payload.direction || ""
+      var delta = deltaFromStats(stats, direction)
+      var deltaLabel = delta == null ? "Delta -" : "Delta " + formatPercent(delta, 1, true)
+      var severityValue = Number(payload.severity || 0)
+      var statusClass = status === "accepted" ? "ok" : "muted"
+      var statusLabel = status === "accepted" ? "accepted" : status === "filtered" ? "filtered" : status
+      var confidenceNote = ""
+      if (lowConfidence) {
+        var reasonLabel = statusReason
+        reasonLabel = reasonLabel ? String(reasonLabel).replace(/_/g, " ") : "low confidence"
+        confidenceNote = "<div class=\"insights-studio-note\">Low confidence (" + escapeHtml(reasonLabel) + "). Needs more data to confirm.</div>"
+      }
+
+      var factsHtml = facts.length
+        ? "<ul class=\"insights-studio-facts\">" + facts.map(function(item) { return "<li>" + escapeHtml(item) + "</li>" }).join("") + "</ul>"
+        : "<div class=\"insights-studio-empty\">No facts available.</div>"
+
+      var driversHtml = drivers.length
+        ? "<ul class=\"insights-studio-drivers\">" + drivers.map(function(item) { return "<li>" + escapeHtml(item) + "</li>" }).join("") + "</ul>"
+        : "<div class=\"insights-studio-empty\">No drivers attached.</div>"
+
+      var evidenceSummary = "Evidence"
+      if (typeof evidenceCount === "number") {
+        evidenceSummary = "Evidence (" + evidenceCount + ")"
+      }
+      var evidenceHtml = ""
+        + "<details class=\"insights-studio-collapsible\" data-insights-evidence>"
+        + "  <summary>" + escapeHtml(evidenceSummary) + "</summary>"
+        + "  <div class=\"insights-studio-evidence-body\" data-insights-evidence-body>"
+        + "    <div class=\"insights-studio-empty\">Expand to load evidence.</div>"
+        + "  </div>"
+        + "</details>"
+
+      var templateLabel = payload.trigger_key || payload.trigger_name || "template"
+      var subjectLabel = payload.subject_label || "Subject"
+      var dimensionLabel = payload.dimension_label || "Metric"
+
+      inspector.innerHTML = ""
+        + "<div class=\"insights-studio-report\">"
+        + "  <div class=\"insights-studio-report-header\">"
+        + "    <div>"
+        + "      <div class=\"insights-studio-report-title\">" + escapeHtml(subjectLabel) + "</div>"
+        + "      <div class=\"insights-studio-report-subtitle\">" + escapeHtml(dimensionLabel) + "</div>"
+        + "    </div>"
+        + "    <div class=\"insights-studio-report-meta\">"
+        + "      <span class=\"insights-studio-pill insights-studio-pill--" + statusClass + "\">" + escapeHtml(statusLabel) + "</span>"
+        + "      <span class=\"insights-studio-report-meta-item\">" + escapeHtml(templateLabel) + "</span>"
+        + "      <span class=\"insights-studio-report-meta-item\">Severity " + severityValue.toFixed(2) + "</span>"
+        + "      <span class=\"insights-studio-report-meta-item\">" + escapeHtml(deltaLabel) + "</span>"
+        + "    </div>"
+        + "  </div>"
+        + confidenceNote
+        + "  <div class=\"insights-studio-report-section\">"
+        + "    <h4>Summary</h4>"
+        + "    <div class=\"insights-studio-preview-output\" data-insights-preview-output></div>"
+        + "  </div>"
+        + "  <div class=\"insights-studio-report-grid\">"
+        + "    <div class=\"insights-studio-report-section\">"
+        + "      <details class=\"insights-studio-collapsible\">"
+        + "        <summary>Facts</summary>"
+        + factsHtml
+        + "      </details>"
+        + "    </div>"
+        + "    <div class=\"insights-studio-report-section\">"
+        + "      <h4>Drivers</h4>"
+        + driversHtml
+        + "    </div>"
+        + "  </div>"
+        + "  <div class=\"insights-studio-report-section\">"
+        + "    <h4>Evidence</h4>"
+        + evidenceHtml
+        + "  </div>"
+        + "</div>"
+
+      var evidenceDetails = inspector.querySelector("[data-insights-evidence]")
+      if (evidenceDetails) {
+        evidenceDetails.addEventListener("toggle", function() {
+          if (evidenceDetails.open) {
+            if (evidenceDetails.dataset.evidenceLoaded !== "true") {
+              loadEvidencePage(payload, evidenceDetails, 1)
+            }
+          }
+        })
+      }
+    }
+
+    ready(function() {
+      var root = document.getElementById("insights-studio")
+      if (!root) return
+
+      var inspector = document.getElementById("insights-studio-inspector")
+      var runForm = document.getElementById("insights-studio-run-form")
+      var rows = Array.prototype.slice.call(root.querySelectorAll(".insights-studio-row"))
+      var currentCandidate = null
+      var runButton = root.querySelector("[data-insights-run]")
+      var liveStatus = document.getElementById("insights-studio-live-status")
+      var progressBar = document.getElementById("insights-studio-progress-bar")
+      var currentRunId = root.dataset.currentRunId
+      var runButtonLabel = runButton ? runButton.textContent : ""
+
+      function selectRow(row) {
+        rows.forEach(function(node) { node.classList.remove("is-selected") })
+        row.classList.add("is-selected")
+        currentRow = row
+
+        var raw = row.dataset.candidate
+        if (!raw) return
+
+        var payload
+        try {
+          payload = JSON.parse(raw)
+        } catch (err) {
+          console.warn("[InsightsStudio] failed to parse candidate", err)
+          return
+        }
+
+        payload.selection_status = row.dataset.status
+        payload.selection_reason = row.dataset.statusReason
+        if (!payload.snapshot_at && root.dataset.snapshotAt) {
+          payload.snapshot_at = root.dataset.snapshotAt
+        }
+        currentCandidate = payload
+        renderInspector(payload, inspector)
+
+        var previewOutput = root.querySelector("[data-insights-preview-output]")
+        if (previewOutput) {
+          previewCandidate(currentCandidate, previewOutput)
+        }
+      }
+
+      rows.forEach(function(row) {
+        row.addEventListener("click", function() { selectRow(row) })
+      })
+
+      if (rows[0]) {
+        selectRow(rows[0])
+      }
+
+      function setRunButtonState(running) {
+        if (!runButton) return
+        runButton.disabled = !!running
+        runButton.textContent = running ? "Running..." : runButtonLabel
+      }
+
+      function collectParams() {
+        if (!runForm) return {}
+        return {
+          workspace_id: runForm.querySelector("[name='workspace_id']") ? runForm.querySelector("[name='workspace_id']").value : "",
+          start_date: runForm.querySelector("[name='start_date']") ? runForm.querySelector("[name='start_date']").value : "",
+          snapshot_at: runForm.querySelector("[name='snapshot_at']") ? runForm.querySelector("[name='snapshot_at']").value : "",
+          baseline_mode: runForm.querySelector("[name='baseline_mode']") ? runForm.querySelector("[name='baseline_mode']").value : "",
+          logit_margin_min: runForm.querySelector("[name='logit_margin_min']") ? runForm.querySelector("[name='logit_margin_min']").value : ""
+        }
+      }
+
+      if (runForm) {
+        runForm.addEventListener("submit", function(event) {
+          event.preventDefault()
+          startAsyncRun()
+        })
+      }
+
+      var stageLabels = {
+        queued: "Queued",
+        rollups: "Building rollups",
+        evaluate: "Evaluating candidates",
+        drivers: "Computing drivers",
+        select: "Scoring & selecting",
+        complete: "Complete",
+        error: "Failed"
+      }
+
+      function updateProgress(stage, progress) {
+        var label = stageLabels[stage] || (stage ? stage.toString().replace(/_/g, " ") : "Running")
+        var pct = Number(progress || 0)
+        if (!Number.isFinite(pct)) pct = 0
+        var pctLabel = Math.round(pct * 100) + "%"
+        if (liveStatus) liveStatus.textContent = label + " · " + pctLabel
+        if (progressBar) progressBar.style.width = Math.max(4, Math.min(100, Math.floor(pct * 100))) + "%"
+      }
+
+      function startAsyncRun() {
+        if (!runButton || runButton.disabled) return
+        setRunButtonState(true)
+        updateProgress("queued", 0.05)
+
+        var params = collectParams()
+        var payload = {
+          workspace_id: params.workspace_id,
+          start_date: params.start_date,
+          snapshot_at: params.snapshot_at,
+          baseline_mode: params.baseline_mode,
+          logit_margin_min: params.logit_margin_min,
+          mode: "dry_run"
+        }
+
+        postJson("/admin/insights_studio/run_async", payload)
+          .then(function(data) {
+            if (data.error) throw new Error(data.error)
+            pollRun(data.run_id, params)
+          })
+          .catch(function(err) {
+            if (liveStatus) liveStatus.textContent = "Run failed: " + err.message
+            setRunButtonState(false)
+          })
+      }
+
+      function pollRun(runId, params) {
+        return fetch("/admin/insights_studio/run/" + runId, {
+          headers: { "Accept": "application/json" }
+        })
+          .then(function(resp) {
+            if (!resp.ok) throw new Error("HTTP " + resp.status)
+            return resp.json()
+          })
+          .then(function(data) {
+            var timings = data.timings || {}
+            updateProgress(timings.stage || data.status || "running", Number(timings.progress || 0))
+            if (data.status === "ok") {
+              if (data.cache_ready) {
+                updateProgress("complete", 1.0)
+                var query = new URLSearchParams(params || {})
+                query.set("run_id", runId)
+                window.location = "/admin/insights_studio?" + query.toString()
+                return
+              }
+              waitForCache(runId, params, 0)
+              return
+            }
+            if (data.status === "error") {
+              var msg = (data.errors && (data.errors.message || data.errors["message"])) || "Run failed"
+              if (liveStatus) liveStatus.textContent = msg
+              setRunButtonState(false)
+              return
+            }
+            setTimeout(function() { pollRun(runId, params) }, 1200)
+          })
+          .catch(function(err) {
+            if (liveStatus) liveStatus.textContent = "Status check failed: " + err.message
+            setRunButtonState(false)
+          })
+      }
+
+      function waitForCache(runId, params, attempts) {
+        var tries = attempts || 0
+        updateProgress("finalizing", 0.98)
+        return fetch("/admin/insights_studio/run/" + runId, {
+          headers: { "Accept": "application/json" }
+        })
+          .then(function(resp) {
+            if (!resp.ok) throw new Error("HTTP " + resp.status)
+            return resp.json()
+          })
+          .then(function(data) {
+            if (data.cache_ready || tries >= 10) {
+              var query = new URLSearchParams(params || {})
+              query.set("run_id", runId)
+              window.location = "/admin/insights_studio?" + query.toString()
+              return
+            }
+            setTimeout(function() { waitForCache(runId, params, tries + 1) }, 600)
+          })
+          .catch(function() {
+            if (tries >= 4) {
+              var query = new URLSearchParams(params || {})
+              query.set("run_id", runId)
+              window.location = "/admin/insights_studio?" + query.toString()
+              return
+            }
+            setTimeout(function() { waitForCache(runId, params, tries + 1) }, 600)
+          })
+      }
+
+      var modals = Array.prototype.slice.call(root.querySelectorAll("[data-insights-modal]"))
+      var openButtons = document.querySelectorAll("[data-insights-modal-open]")
+      var closeButtons = root.querySelectorAll("[data-insights-modal-close]")
+
+      function findModal(name) {
+        if (!modals.length) return null
+        if (!name) return modals[0]
+        for (var i = 0; i < modals.length; i += 1) {
+          if (modals[i].dataset.insightsModal === name) return modals[i]
+        }
+        return null
+      }
+
+      function updateBodyModalState() {
+        var anyOpen = modals.some(function(node) { return !node.hidden })
+        if (anyOpen) {
+          document.body.classList.add("insights-studio-modal-open")
+        } else {
+          document.body.classList.remove("insights-studio-modal-open")
+        }
+      }
+
+      function openModal(name) {
+        var modal = findModal(name)
+        if (!modal) return
+        modal.hidden = false
+        modal.classList.add("is-open")
+        updateBodyModalState()
+      }
+
+      function closeModal(modal) {
+        if (!modal) return
+        modal.classList.remove("is-open")
+        modal.hidden = true
+        updateBodyModalState()
+      }
+
+      openButtons.forEach(function(button) {
+        button.addEventListener("click", function(event) {
+          event.preventDefault()
+          openModal(button.getAttribute("data-insights-modal-open"))
+        })
+      })
+
+      closeButtons.forEach(function(button) {
+        button.addEventListener("click", function(event) {
+          event.preventDefault()
+          var targetModal = button.closest("[data-insights-modal]")
+          closeModal(targetModal)
+        })
+      })
+
+      document.addEventListener("keydown", function(event) {
+        if (event.key === "Escape") {
+          modals.forEach(function(node) {
+            if (!node.hidden) closeModal(node)
+          })
+        }
+      })
+
+      root.addEventListener("click", function(event) {
+        var target = event.target
+        if (!target) return
+        if (target.hasAttribute("data-insights-preview")) {
+          event.preventDefault()
+          var output = root.querySelector("[data-insights-preview-output]")
+          previewCandidate(currentCandidate, output)
+          return
+        }
+      })
+
+      if (runButton) {
+        runButton.addEventListener("click", function(event) {
+          event.preventDefault()
+          startAsyncRun()
+        })
+      }
+    })
+  })()
+</script>

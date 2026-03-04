@@ -1,0 +1,118 @@
+<% content_for :page_title do %>
+  Models
+<% end %>
+<% content_for :page_subtitle do %>
+  Manage and test deployed and batch models.
+<% end %>
+
+<section class="mop-container admin-section">
+  <!-- Breadcrumbs -->
+  <nav class="mob-breadcrumbs" aria-label="Breadcrumb">
+    <%= render "admin/models/components/breadcrumb" %>
+  </nav>
+
+  <!-- Toolbar -->
+  <div class="mot-toolbar">
+    <div class="mot-wrap">
+      <div class="mot-left">
+        <div class="mot-search">
+          <svg class="mot-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27a6.471 6.471 0 0 0 1.57-4.23A6.5 6.5 0 1 0 9.5 16a6.471 6.471 0 0 0 4.23-1.57l.27.28v.79L20 21.5 21.5 20l-6-6zM4 9.5C4 6.46 6.46 4 9.5 4S15 6.46 15 9.5 12.54 15 9.5 15 4 12.54 4 9.5Z"/></svg>
+          <input id="models-search" class="mot-input" type="search" placeholder="Search models, types, status, HF id…" />
+        </div>
+      </div>
+      <div class="mot-right">
+        <a class="mot-btn" href="#" onclick="event.preventDefault(); NM.open();">+ New Model</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <article class="mop-card">
+    <%= render "admin/models/components/list", models: @models %>
+  </article>
+</section>
+
+<%= render "admin/models/components/new_model", aws_instances: @aws_instances %>
+<%= render "admin/models/components/scale_modal" %>
+
+
+<script>
+  // Row navigation (only if data-href is present)
+  document.addEventListener('click', (e) => {
+    const row = e.target.closest('tr[data-href]');
+    if (!row) return;
+    if (e.target.closest('a, button, input, textarea, select, label, summary, svg')) return;
+    window.location.href = row.dataset.href;
+  });
+
+  // Search filter
+  (() => {
+    const input = document.querySelector('#models-search');
+    if (!input) return;
+    const rows = Array.from(document.querySelectorAll('.mo-table tbody tr'));
+    input.addEventListener('input', () => {
+      const q = input.value.trim().toLowerCase();
+      rows.forEach(r => {
+        const hay = (r.dataset.search || r.textContent).toLowerCase();
+        r.style.display = hay.includes(q) ? '' : 'none';
+      });
+    });
+  })();
+
+  // Sort (client-side)
+  (() => {
+    const table = document.querySelector('.mo-table');
+    if (!table) return;
+    const body = table.querySelector('tbody');
+
+    function getCellValue(row, idx) {
+      const cell = row.children[idx];
+      const explicit = cell?.getAttribute('data-sort-value');
+      if (explicit !== null) return explicit;
+      return cell ? cell.textContent.trim() : '';
+    }
+
+    function sortRows(idx, type, dir) {
+      const rows = Array.from(body.querySelectorAll('tr')).filter(r => r.style.display !== 'none');
+      rows.sort((a, b) => {
+        let va = getCellValue(a, idx);
+        let vb = getCellValue(b, idx);
+
+        if (type === 'number') {
+          va = parseFloat(va.replace(/[^0-9.\-]/g, '')) || 0;
+          vb = parseFloat(vb.replace(/[^0-9.\-]/g, '')) || 0;
+        } else {
+          va = va.toLowerCase();
+          vb = vb.toLowerCase();
+        }
+
+        if (va < vb) return dir === 'asc' ? -1 : 1;
+        if (va > vb) return dir === 'asc' ? 1 : -1;
+        return 0;
+      });
+
+      rows.forEach(r => body.appendChild(r));
+    }
+
+    table.querySelectorAll('.mo-sort').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const th = btn.closest('th');
+        const idx = Array.from(th.parentElement.children).indexOf(th);
+        const type = btn.dataset.type || 'text';
+        const current = btn.getAttribute('data-dir') || 'asc';
+        const next = current === 'asc' ? 'desc' : 'asc';
+
+        table.querySelectorAll('.mo-sort').forEach(b => b.classList.remove('mo-sort--active'));
+        btn.classList.add('mo-sort--active');
+        btn.setAttribute('data-dir', next);
+
+        sortRows(idx, type, next);
+      });
+    });
+  })();
+
+  // Expandable details helper
+  document.querySelectorAll('.mo-desc').forEach(d => {
+    d.addEventListener('toggle', () => d.classList.toggle('open', d.open));
+  });
+</script>

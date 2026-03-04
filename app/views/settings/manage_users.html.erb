@@ -1,0 +1,567 @@
+<%= render "settings/topbar" %>
+<%= render "settings/navigation" %>
+<div class="settings-main">
+  <div class="settings-topbar">
+    <div class="settings-topbar-left">
+      <div class="settings-main-heading">Manage Users</div>
+      <div class="settings-main-subheading">
+        People who can sign in to Workplace as account holders to manage your account, access dashboards and insights, and improve culture coverage by connecting more of your team’s communication tools.
+      </div>
+    </div>
+    <div class="settings-topbar-button">Invite Users</div>
+  </div>
+
+  <div class="settings-section-boxed">
+    <% @rows_for_manage_users.each do |row| %>
+      <% if row[:kind] == :member %>
+        <% workspace_user = row[:workspace_user] %>
+        <% user          = row[:user] %>
+        <% avatar_url    = workspace_user.avatar_url_for_workspace %>
+        <% provider_kind = workspace_user.provider_kind %>
+
+        <% row_role   = workspace_user.role || "user" %>
+        <% is_owner   = (row_role == "owner") || workspace_user.is_owner? %>
+        <% is_self    = (user.id == current_user.id) %>
+        <% is_admin   = (%w[owner admin].include?(@current_role)) %>
+        <% can_edit   = is_admin && !is_owner && !is_self %>
+        <% show_remove = can_edit %>
+        <% status_key   = workspace_user.data_status_key %>
+        <% status_label = workspace_user.data_status_label %>
+
+        <%
+          status_tooltip =
+            case status_key
+            when :data_synced
+              "This person’s collaboration data is fully connected and included in your culture scores for this group."
+            when :partial_data
+              "We have limited collaboration data for this person through other connected users, but not all of their data. Invite them to become a Workplace user and connect their direct collaboration channels for complete data."
+            when :no_data
+              "We don’t have any usable collaboration data for this person yet. Invite them to become a user and connect their direct collaboration channels for complete data."
+            else
+              "Data status is unknown for this person."
+            end
+        %>
+
+        <div class="settings-row"
+             data-role="<%= row_role %>"
+             data-user-id="<%= user.id %>"
+             data-can-edit="<%= can_edit %>"
+             data-is-owner="<%= is_owner %>"
+             data-is-self="<%= is_self %>">
+
+          <div class="settings-row-icon"
+               style="<%= "background-image: url('#{avatar_url}')" if avatar_url.present? %>">
+            <%= icon "user" if avatar_url.blank? %>
+          </div>
+
+          <div class="settings-row-middle">
+            <div class="settings-row-middle-title">
+              <div>
+                <%= user.full_name %>
+                <%= "(you)" if @people.count > 1 && current_user.id == workspace_user.user_id %>
+              </div>
+              <div class="settings-row-middle-tag"><%= provider_kind %></div>
+            </div>
+            <div class="settings-row-middle-subtitle"><%= user.email %></div>
+          </div>
+
+          <div class="settings-row-role">
+            <%= workspace_user.role&.titleize || "User" %>
+          </div>
+
+          <div class="settings-row-data-status-block">
+            <span class="settings-info-tooltip"
+                  data-tooltip="<%= status_tooltip %>">
+              <%= icon "info" %>
+            </span>
+            <div class="settings-row-data-status
+                        <%= 'settings-row-data-status--no-data'   if status_key == :no_data %>
+                        <%= ' settings-row-data-status--synced'   if status_key == :data_synced %>
+                        <%= ' settings-row-data-status--partial'  if status_key == :partial_data %>">
+              <%= icon "database" %>
+              <%= status_label %>
+            </div>
+          </div>
+
+          <div class="settings-row-right" style="width:60px;">
+            <%= render 'settings/users_dropdown',
+                       can_edit:    can_edit,
+                       show_remove: show_remove %>
+          </div>
+        </div>
+
+      <% else # :invite %>
+        <% invite = row[:invite] %>
+        <% iu     = row[:integration_user] %>
+        <% avatar_url    = iu&.avatar_url.presence %>
+        <% provider_kind = iu&.integration&.kind&.titleize || "Slack" %>
+        <% row_role      = invite.role || "user" %>
+        <% is_owner      = false %>
+        <% is_self       = false %>
+        <% is_admin      = (%w[owner admin].include?(@current_role)) %>
+        <% can_edit      = is_admin %>
+        <% show_remove   = can_edit %>
+
+        <div class="settings-row settings-row--invite"
+             data-role="<%= row_role %>"
+             data-invite-id="<%= invite.id %>"
+             data-can-edit="<%= can_edit %>"
+             data-is-owner="false"
+             data-is-self="false">
+
+          <div class="settings-row-icon"
+               style="<%= "background-image: url('#{avatar_url}')" if avatar_url %>">
+            <% unless avatar_url %>
+              <%= icon "user" %>
+            <% end %>
+          </div>
+
+          <div class="settings-row-middle">
+            <div class="settings-row-middle-title">
+              <div>
+                <%= invite.name.presence || iu&.real_name.presence || invite.email %>
+              </div>
+              <div class="settings-row-middle-tag">
+                <%= provider_kind %>
+              </div>
+            </div>
+            <div class="settings-row-middle-subtitle">
+              <%= invite.email %>
+            </div>
+          </div>
+
+          <div class="settings-row-role">
+            <%= invite.role&.titleize || "User" %>
+          </div>
+
+          <div style="width:180px;">
+            <div class="settings-row-pending">
+              <%= icon "clock" %>
+              Pending Invite
+            </div>
+          </div>
+
+          <div class="settings-row-right" style="width:60px;">
+            <%= render 'settings/users_dropdown',
+                       can_edit:     can_edit,
+                       show_remove:  show_remove,
+                       remove_label: "Cancel invite",
+                       invite:       invite %>
+          </div>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+
+
+
+  <% if @invitable_total.to_i > 0 %>
+    <div class="settings-invite-strip">
+     <% if @invitable_preview.any? %>
+       <div class="settings-invite-avatars">
+         <% @invitable_preview.each do |member| %>
+           <% avatar_url = member.avatar_url.presence %>
+           <div class="settings-invite-avatar"
+                style="<%= "background-image: url('#{avatar_url}')" if avatar_url %>">
+             <% unless avatar_url %>
+               <%= icon "user" %>
+             <% end %>
+           </div>
+         <% end %>
+       </div>
+     <% end %>
+
+     <div class="settings-invite-text">
+       <%= "+#{@invitable_total} more" %>
+       <%= @invitable_total == 1 ? "person" : "people" %> being measured on your culture dashboard
+
+       <%= link_to "View groups", "/settings/groups", class: "settings-invite-link" %>
+     </div>
+    </div>
+  <% end %>
+
+  <!-- Pagination controls -->
+  <div class="settings-pagination">
+    <%= paginate @people %>
+  </div>
+</div>
+
+<%= render '/settings/invite_modal' %>
+
+<script>
+  document.addEventListener("turbo:load", initRoleMenus);
+  // document.addEventListener("DOMContentLoaded", initRoleMenus);
+
+  function initRoleMenus() {
+    if (typeof $ === "undefined") {
+      console.warn("jQuery ($) not found; role menus not initialized.");
+      return;
+    }
+
+    var csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+    var csrfToken     = csrfTokenMeta ? csrfTokenMeta.content : null;
+
+    function saveRole($row, newRole, newLabel) {
+      var userId   = $row.data("user-id");
+      var inviteId = $row.data("invite-id");
+
+      var payload = { role: newRole };
+      if (userId)   payload.user_id   = userId;
+      if (inviteId) payload.invite_id = inviteId;
+
+      if (!userId && !inviteId) {
+        console.warn("No user_id or invite_id on row; cannot save role.");
+        return;
+      }
+
+      $.ajax({
+        url: "/settings/users/update_role",
+        method: "POST",
+        data: payload,
+        headers: csrfToken ? { "X-CSRF-Token": csrfToken } : {},
+        success: function(resp) {
+          if (resp && resp.role_label) {
+            $row.find(".settings-row-role").text(resp.role_label);
+          }
+
+          if (typeof showSavedToast === "function") {
+            showSavedToast();
+          } else if (typeof showToast === "function") {
+            showToast("Saved user role.");
+          } else {
+            console.log("Saved user role:", newRole, "(", newLabel, ")");
+          }
+        },
+        error: function(xhr) {
+          var msg =
+            (xhr.responseJSON && xhr.responseJSON.error) ||
+            "Unable to save role. Please try again.";
+
+          if (typeof showToast === "function") {
+            showToast(msg);
+          } else {
+            console.error(msg);
+          }
+        }
+      });
+    }
+
+    function removeMember($row, heading) {
+      var userId   = $row.data("user-id");
+      var inviteId = $row.data("invite-id");
+      var isInvite = !!inviteId;
+
+      // Message + confirm label per case
+      var message, confirmLabel;
+      if (heading === "Cancel invite" || isInvite) {
+        message      = "Cancel this invite? The person will no longer be able to join from the invite link.";
+        confirmLabel = "Cancel invite";
+      } else {
+        message      = "Remove this user from the workspace? They’ll lose access to dashboards and tools.";
+        confirmLabel = "Remove user";
+      }
+
+      var payload = {};
+      if (userId)   payload.user_id   = userId;
+      if (inviteId) payload.invite_id = inviteId;
+
+      if (!userId && !inviteId) {
+        console.warn("No user_id or invite_id on row; cannot remove.");
+        return;
+      }
+
+      function doRemove() {
+        $.ajax({
+          url: "/settings/users/remove",
+          method: "POST",
+          data: payload,
+          headers: csrfToken ? { "X-CSRF-Token": csrfToken } : {},
+          success: function(resp) {
+            var message =
+              (resp && resp.message) ||
+              (isInvite ? "Invite canceled." : "User removed from workspace.");
+
+            $row.slideUp(150, function() { $(this).remove(); });
+
+            if (typeof showToast === "function") {
+              showToast(message);
+            } else {
+              console.log(message);
+            }
+          },
+          error: function(xhr) {
+            var msg =
+              (xhr.responseJSON && xhr.responseJSON.error) ||
+              (isInvite
+                ? "Unable to cancel invite. Please try again."
+                : "Unable to remove user. Please try again.");
+
+            if (typeof showToast === "function") {
+              showToast(msg);
+            } else {
+              console.error(msg);
+            }
+          }
+        });
+      }
+
+      // Use custom warning modal if available, else fallback to window.confirm
+      if (typeof warning === "function") {
+        warning(message, {
+          confirmLabel: confirmLabel,
+          cancelLabel: "Cancel"
+        }).then(function(confirmed) {
+          if (!confirmed) return;
+          doRemove();
+        });
+      } else {
+        if (!window.confirm(message)) return;
+        doRemove();
+      }
+    }
+
+    var $triggers = $(".settings-row-dropdown-selector-elipsis");
+    if ($triggers.length === 0) return;
+
+    $triggers.each(function() {
+      var $selector = $(this);
+      var $row      = $selector.closest(".settings-row");
+      var $menu     = $row.find(".settings-row-dropdown-menu");
+
+      var canEdit = ($row.data("can-edit") === true || $row.data("can-edit") === "true");
+      var isOwner = ($row.data("is-owner") === true || $row.data("is-owner") === "true");
+      var isSelf  = ($row.data("is-self")  === true || $row.data("is-self")  === "true");
+
+      $menu.hide();
+
+      // Sync checkboxes from current role on page load
+      syncRoleCheckboxesFromCell($row, $menu);
+
+      if (!canEdit) {
+        $selector.addClass("settings-row-dropdown-selector--locked");
+      }
+
+      // Menu opens for everyone (including owner/self); editing gated by canEdit
+      $selector.off("click.roleMenu")
+               .on("click.roleMenu", function(event) {
+        event.stopPropagation();
+
+        var isOpen = $row.hasClass("is-open-role-menu");
+
+        closeAllRoleMenus();
+
+        if (!isOpen) {
+          $row.addClass("is-open-role-menu");
+          $menu.stop(true, true).slideDown(150);
+        }
+      });
+
+      // Role & manage item clicks
+      var $items = $menu.find(".settings-row-dropdown-menu-item");
+      $items.off("click.roleMenuItem")
+            .on("click.roleMenuItem", function(event) {
+        event.stopPropagation(); // don't trigger click-outside
+
+        var $item     = $(this);
+        var heading   = $.trim($item.find(".settings-row-dropdown-menu-item-heading").text());
+        var $roleCell = $row.find(".settings-row-role");
+
+        // Remove user / Cancel invite
+        if (heading === "Remove user" || heading === "Cancel invite") {
+          if (!canEdit) return;
+          removeMember($row, heading);
+          return;
+        }
+
+        // Ignore non-role items
+        if (["Administrator", "Viewer", "User"].indexOf(heading) === -1) {
+          return;
+        }
+
+        if (!canEdit) {
+          // Locked rows (owner/self or non-admin): do nothing
+          return;
+        }
+
+        // Identify the three role items
+        var $adminItem = $menu.find(".settings-row-dropdown-menu-item").filter(function() {
+          return $.trim($(this).find(".settings-row-dropdown-menu-item-heading").text()) === "Administrator";
+        });
+        var $viewerItem = $menu.find(".settings-row-dropdown-menu-item").filter(function() {
+          return $.trim($(this).find(".settings-row-dropdown-menu-item-heading").text()) === "Viewer";
+        });
+        var $memberItem = $menu.find(".settings-row-dropdown-menu-item").filter(function() {
+          return $.trim($(this).find(".settings-row-dropdown-menu-item-heading").text()) === "User";
+        });
+
+        var $adminBox  = $adminItem.find(".settings-row-dropdown-menu-item-checkbox");
+        var $viewerBox = $viewerItem.find(".settings-row-dropdown-menu-item-checkbox");
+        var $memberBox = $memberItem.find(".settings-row-dropdown-menu-item-checkbox");
+
+        var adminChecked  = $adminBox.hasClass("is-checked");
+        var viewerChecked = $viewerBox.hasClass("is-checked");
+        var memberChecked = $memberBox.hasClass("is-checked");
+
+        // --- Toggle behavior ---
+
+        if (heading === "Administrator") {
+          if (adminChecked) {
+            adminChecked = false;
+          } else {
+            adminChecked  = true;
+            viewerChecked = true;
+            memberChecked = true;
+          }
+        } else if (heading === "Viewer") {
+          if (viewerChecked) {
+            if (adminChecked) {
+              viewerChecked = false;
+              adminChecked  = false;
+            } else {
+              viewerChecked = false;
+            }
+          } else {
+            viewerChecked = true;
+            memberChecked = true;
+          }
+        } else if (heading === "User" || heading === "Member") {
+          if (!memberChecked) {
+            memberChecked = true;
+          }
+        }
+
+        // Enforce invariant: Member/User must always be checked
+        if (!memberChecked) {
+          memberChecked = true;
+        }
+
+        // Admin implies viewer + member
+        if (adminChecked) {
+          viewerChecked = true;
+          memberChecked = true;
+        }
+
+        // Apply classes
+        toggleCheckboxClass($adminBox,  adminChecked);
+        toggleCheckboxClass($viewerBox, viewerChecked);
+        toggleCheckboxClass($memberBox, memberChecked);
+
+        // Map checkbox state to DB role:
+        var newRole;
+        var newLabel;
+
+        if (adminChecked) {
+          newRole  = "admin";
+          newLabel = "Admin";
+        } else if (viewerChecked) {
+          newRole  = "viewer";
+          newLabel = "Viewer";
+        } else {
+          newRole  = "user";
+          newLabel = "User";
+        }
+
+        $row.data("role", newRole);
+
+        // Don't overwrite the Owner label; just leave it as "Owner"
+        var isRowOwner = ($row.data("is-owner") === true || $row.data("is-owner") === "true");
+        if (!isRowOwner) {
+          $roleCell.text(newLabel);
+        }
+
+        // Persist role change
+        saveRole($row, newRole, newLabel);
+      });
+    });
+
+    // Click outside closes all role menus
+    document.addEventListener("click", handleRoleMenuClickOutside);
+  }
+
+  function closeAllRoleMenus() {
+    if (typeof $ === "undefined") return;
+
+    $(".settings-row.is-open-role-menu").each(function() {
+      var $row  = $(this);
+      var $menu = $row.find(".settings-row-dropdown-menu");
+
+      $row.removeClass("is-open-role-menu");
+      $menu.stop(true, true).slideUp(150);
+    });
+  }
+
+  function handleRoleMenuClickOutside(event) {
+    var trigger = event.target.closest(".settings-row-dropdown-selector-elipsis");
+    var menu    = event.target.closest(".settings-row-dropdown-menu");
+
+    if (!trigger && !menu) {
+      closeAllRoleMenus();
+    }
+  }
+
+  function toggleCheckboxClass($box, checked) {
+    if (checked) {
+      $box.addClass("is-checked");
+    } else {
+      $box.removeClass("is-checked");
+    }
+  }
+
+  // Map DB role/label → checkbox state on load
+  function syncRoleCheckboxesFromCell($row, $menu) {
+    var $roleCell = $row.find(".settings-row-role");
+    var text      = $.trim($roleCell.text());
+    var rowRole   = $row.data("role"); // "owner", "admin", "viewer", "user"
+
+    var isOwner   = (rowRole === "owner");
+    var currentForCheckboxes;
+
+    if (isOwner) {
+      currentForCheckboxes = "Administrator";
+      if (!text) $roleCell.text("Owner");
+    } else if (rowRole === "admin" || text === "Admin") {
+      currentForCheckboxes = "Administrator";
+      $roleCell.text("Admin");
+    } else if (rowRole === "viewer" || text === "Viewer") {
+      currentForCheckboxes = "Viewer";
+      $roleCell.text("Viewer");
+      $row.data("role", "viewer");
+    } else {
+      currentForCheckboxes = "User";
+      if (!text || text === "User") {
+        $roleCell.text("User");
+      }
+      $row.data("role", "user");
+    }
+
+    var $adminItem = $menu.find(".settings-row-dropdown-menu-item").filter(function() {
+      return $.trim($(this).find(".settings-row-dropdown-menu-item-heading").text()) === "Administrator";
+    });
+    var $viewerItem = $menu.find(".settings-row-dropdown-menu-item").filter(function() {
+      return $.trim($(this).find(".settings-row-dropdown-menu-item-heading").text()) === "Viewer";
+    });
+    var $memberItem = $menu.find(".settings-row-dropdown-menu-item").filter(function() {
+      return $.trim($(this).find(".settings-row-dropdown-menu-item-heading").text()) === "User";
+    });
+
+    var $adminBox  = $adminItem.find(".settings-row-dropdown-menu-item-checkbox");
+    var $viewerBox = $viewerItem.find(".settings-row-dropdown-menu-item-checkbox");
+    var $memberBox = $memberItem.find(".settings-row-dropdown-menu-item-checkbox");
+
+    // Reset all
+    $adminBox.removeClass("is-checked");
+    $viewerBox.removeClass("is-checked");
+    $memberBox.removeClass("is-checked");
+
+    if (currentForCheckboxes === "Administrator") {
+      $adminBox.addClass("is-checked");
+      $viewerBox.addClass("is-checked");
+      $memberBox.addClass("is-checked");
+    } else if (currentForCheckboxes === "Viewer") {
+      $viewerBox.addClass("is-checked");
+      $memberBox.addClass("is-checked");
+    } else {
+      $memberBox.addClass("is-checked");
+    }
+  }
+</script>

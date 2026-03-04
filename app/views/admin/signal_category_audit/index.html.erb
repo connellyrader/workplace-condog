@@ -1,0 +1,223 @@
+<div class="admin-container">
+  <h1>Signal Category Audit (Workspace 78)</h1>
+  <p>
+    Workspace: <strong><%= @workspace&.name || "#78" %></strong><br>
+    Window: <strong><%= @range_start.strftime('%b %-d, %Y') %> → <%= @range_end.strftime('%b %-d, %Y') %></strong>
+  </p>
+
+  <table class="admin-table" id="signal-audit-table">
+    <thead>
+      <tr>
+        <th>Metric</th>
+        <th>Submetric</th>
+        <th>Signal Category</th>
+        <th>30d Score</th>
+        <th>Detections</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @rows.each do |row| %>
+        <% score = row[:detections].to_i == 0 ? nil : row[:score] %>
+        <% score_class = if score.nil?
+             "score-neutral"
+           elsif score <= 24
+             "score-red"
+           elsif score <= 74
+             "score-yellow"
+           else
+             "score-green"
+           end %>
+        <tr class="audit-parent-row" data-signal-category-id="<%= row[:signal_category_id] %>" style="cursor:pointer;">
+          <td><%= row[:metric_name] %></td>
+          <td><%= row[:submetric_name] %></td>
+          <td><%= row[:signal_category_name] %></td>
+          <td>
+            <span class="score-pill <%= score_class %>"><%= score.nil? ? "--" : score %></span>
+          </td>
+          <td><%= row[:detections] %></td>
+        </tr>
+        <tr class="audit-detail-row" id="detail-<%= row[:signal_category_id] %>" style="display:none;">
+          <td colspan="5" class="audit-detail-cell">
+            <div class="audit-detail-content">Loading…</div>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+
+<style>
+  .score-pill {
+    display: inline-block;
+    min-width: 44px;
+    text-align: center;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 12px;
+    line-height: 1.2;
+    border: 1px solid transparent;
+  }
+
+  .score-red {
+    background: rgba(239, 68, 68, 0.35);
+    color: #000;
+    border-color: rgba(239, 68, 68, 0.55);
+  }
+
+  .score-yellow {
+    background: rgba(245, 158, 11, 0.45);
+    color: #000;
+    border-color: rgba(245, 158, 11, 0.65);
+  }
+
+  .score-green {
+    background: rgba(34, 197, 94, 0.45);
+    color: #000;
+    border-color: rgba(34, 197, 94, 0.65);
+  }
+
+  .score-neutral {
+    background: rgba(148, 163, 184, 0.16);
+    color: #cbd5e1;
+    border-color: rgba(148, 163, 184, 0.35);
+  }
+
+  .audit-detail-cell {
+    padding: 12px 0 12px 28px;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .audit-detail-content {
+    color: #0f172a;
+  }
+
+  .audit-detail-table {
+    background: #ffffff;
+    border: 1px solid #dbeafe;
+  }
+
+  .audit-detail-table th {
+    background: #eff6ff;
+    color: #1e3a8a;
+    border-bottom: 1px solid #bfdbfe;
+    vertical-align: top;
+  }
+
+  .audit-detail-table td {
+    color: #0f172a;
+    background: #ffffff;
+    border-top: 1px solid #e2e8f0;
+    vertical-align: top;
+    line-height: 1.35;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .audit-detail-table th:nth-child(1), .audit-detail-table td.col-id { width: 90px; }
+  .audit-detail-table th:nth-child(2), .audit-detail-table td.col-date { width: 190px; }
+  .audit-detail-table th:nth-child(3), .audit-detail-table td.col-subtype { width: 34%; }
+  .audit-detail-table th:nth-child(4), .audit-detail-table td.col-labels { width: 46%; }
+
+  .signal-pill-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: flex-start;
+  }
+
+  .signal-pill {
+    display: inline-block;
+    background: #e0f2fe;
+    border: 1px solid #bae6fd;
+    color: #0c4a6e;
+    border-radius: 999px;
+    padding: 3px 8px;
+    font-size: 12px;
+    line-height: 1.25;
+    font-weight: 600;
+  }
+
+  .signal-pill-empty {
+    background: #f1f5f9;
+    border-color: #e2e8f0;
+    color: #475569;
+    font-weight: 500;
+  }
+
+  .audit-detail-table tr:nth-child(even) td {
+    background: #f8fafc;
+  }
+</style>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const table = document.getElementById("signal-audit-table");
+    if (!table) return;
+
+    table.querySelectorAll(".audit-parent-row").forEach((row) => {
+      row.addEventListener("click", async () => {
+        const scId = row.dataset.signalCategoryId;
+        const detailRow = document.getElementById(`detail-${scId}`);
+        if (!detailRow) return;
+
+        const isOpen = detailRow.style.display !== "none";
+
+        // Only allow one dropdown open at a time.
+        table.querySelectorAll('.audit-detail-row').forEach((r) => {
+          if (r !== detailRow) r.style.display = 'none';
+        });
+
+        detailRow.style.display = isOpen ? "none" : "table-row";
+        if (isOpen) return;
+
+        const content = detailRow.querySelector(".audit-detail-content");
+        if (detailRow.dataset.loaded === "1") return;
+
+        content.textContent = "Loading…";
+
+        try {
+          const res = await fetch(`/admin/signal_category_audit/${scId}/details`, {
+            headers: { "Accept": "application/json" }
+          });
+          const data = await res.json();
+
+          const rows = Array.isArray(data.rows) ? data.rows : [];
+          if (!rows.length) {
+            content.innerHTML = "<em>No messages counted for this signal category in the current 30-day score window.</em>";
+            detailRow.dataset.loaded = "1";
+            return;
+          }
+
+          const html = [
+            '<table class="admin-table audit-detail-table" style="margin:8px 0 8px 0;">',
+            '<thead><tr><th>Message ID</th><th>Posted At</th><th>messages.subtype</th><th>Passed labels (policy)</th></tr></thead>',
+            '<tbody>',
+            ...rows.map(r => {
+              const esc = (v) => (v || '').toString()
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+              const subtype = r.subtype == null || r.subtype === '' ? '(null)' : r.subtype;
+              const labels = (r.passed_labels || '').toString();
+              const pills = labels
+                .split(', ')
+                .filter(Boolean)
+                .map(label => `<span class="signal-pill">${esc(label)}</span>`)
+                .join('');
+              return `<tr><td class="col-id">${r.message_id}</td><td class="col-date">${esc(r.posted_at || '')}</td><td class="col-subtype">${esc(subtype)}</td><td class="col-labels"><div class="signal-pill-wrap">${pills || '<span class="signal-pill signal-pill-empty">(none)</span>'}</div></td></tr>`;
+            }),
+            '</tbody></table>'
+          ].join('');
+
+          content.innerHTML = html;
+          detailRow.dataset.loaded = "1";
+        } catch (e) {
+          content.innerHTML = `<span style="color:#ff6b6b;">Failed to load details: ${e}</span>`;
+        }
+      });
+    });
+  });
+</script>

@@ -1,0 +1,134 @@
+<!-- app/views/partners/dashboard/resources.html.erb -->
+<h1>Resources</h1>
+
+<div class="pp-container">
+
+  <% # Always render Logos first %>
+  <% logos_items = Array(@resources_by_category && @resources_by_category["logos"]) %>
+  <section class="pp-card pp-span-full">
+    <div class="pp-card-header compact">
+      <h3><%= PartnerResource::CATEGORIES["logos"] %></h3>
+    </div>
+    <div class="pp-table-wrap">
+      <table class="pp-table res-table">
+        <thead>
+          <tr><th>Title</th><th class="pp-num"></th></tr>
+        </thead>
+        <tbody>
+          <% logos_items.each do |r| %>
+            <tr>
+              <td class="res-title"><%= r.title %></td>
+              <td class="res-action">
+                <% if r.file.attached? %>
+                  <a href="<%= url_for(r.file) %>" class="pp-btn" target="_blank" rel="noopener">Open</a>
+                <% else %>
+                  <a href="<%= r.url %>" class="pp-btn" target="_blank" rel="noopener">Open</a>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+          <% if logos_items.blank? %>
+            <tr><td colspan="2" class="pp-muted">No files yet.</td></tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Brand Colors always second (copy, no download) -->
+  <section class="pp-card pp-span-full">
+    <div class="pp-card-header compact">
+      <h3>Brand Colors</h3>
+    </div>
+    <div class="pp-table-wrap">
+      <table class="pp-table res-table">
+        <thead><tr><th>Color</th><th>Hex</th><th class="pp-num">Copy</th></tr></thead>
+        <tbody>
+          <% @brand_colors.each do |c| %>
+            <tr>
+              <td class="res-title">
+                <div class="pp-color-row">
+                  <span class="pp-color-swatch" style="background:<%= c.hex %>;"></span>
+                  <span><%= c.title %></span>
+                </div>
+              </td>
+              <td class="pp-mono"><%= c.hex %></td>
+              <td class="res-action">
+                <button type="button" class="pp-btn pp-btn-sm" data-copy="<%= c.hex %>">Copy</button>
+              </td>
+            </tr>
+          <% end %>
+          <% if @brand_colors.blank? %>
+            <tr><td colspan="3" class="pp-muted">No colors configured.</td></tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <% # Render remaining file categories after Logos + Brand Colors %>
+  <% PartnerResource::CATEGORIES.each do |key, label| %>
+    <% next if key.in?(["logos", "brand_colors"]) %>
+    <% items = Array(@resources_by_category && @resources_by_category[key]) %>
+
+    <section class="pp-card pp-span-full">
+      <div class="pp-card-header compact">
+        <h3><%= label %></h3>
+      </div>
+      <div class="pp-table-wrap">
+        <table class="pp-table res-table">
+          <thead>
+            <tr><th>Title</th><th class="pp-num"></th></tr>
+          </thead>
+          <tbody>
+            <% items.each do |r| %>
+              <tr>
+                <td class="res-title"><%= r.title %></td>
+                <td class="res-action">
+                  <% if r.file.attached? %>
+                    <a href="<%= url_for(r.file) %>" class="pp-btn" target="_blank" rel="noopener">Open</a>
+                  <% else %>
+                    <a href="<%= r.url %>" class="pp-btn" target="_blank" rel="noopener">Open</a>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+            <% if items.blank? %>
+              <tr><td colspan="2" class="pp-muted">No files yet.</td></tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  <% end %>
+</div>
+
+<!-- Toast -->
+<div id="pp-copy-toast" class="pp-toast" style="display:none;" aria-live="polite" aria-atomic="true">
+  Copied!
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    var toast = document.getElementById("pp-copy-toast");
+    var hideTimer = null;
+
+    function showToast(msg) {
+      if (!toast) return;
+      toast.textContent = msg || "Copied!";
+      toast.style.display = "block";
+      clearTimeout(hideTimer);
+      hideTimer = setTimeout(function () { toast.style.display = "none"; }, 1600);
+    }
+
+    document.querySelectorAll("[data-copy]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var val = btn.getAttribute("data-copy");
+        if (!val) return;
+        navigator.clipboard.writeText(val)
+          .then(function () { showToast("Copied " + val); })
+          .catch(function () { showToast("Copy failed"); });
+      });
+    });
+  });
+</script>

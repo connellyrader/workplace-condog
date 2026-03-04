@@ -1,0 +1,92 @@
+<%# app/views/trust_center/docs/anonymity-aggregation.html.erb %>
+
+<div class="trust-doc">
+  <div class="trust-doc-header">
+    <div class="trust-doc-breadcrumb">
+      <%= link_to "Trust Center", trust_home_url, class: "trust-doc-breadcrumb-link" %>
+      <span class="trust-doc-breadcrumb-sep">/</span>
+      <span class="trust-doc-breadcrumb-current">Aggregation & Anonymity</span>
+    </div>
+
+    <div class="trust-doc-title-row">
+      <%= image_tag "logo.png", class: "trust-doc-logo", alt: "Workplace.io" %>
+      <div class="trust-doc-title">Aggregation & Anonymity</div>
+    </div>
+
+    <div class="trust-doc-subtitle">
+      How Workplace.io structures reporting to emphasize aggregate insights, reduce individual-level exposure, and support customer governance.
+      This page describes principles and controls without revealing proprietary analytics details.
+    </div>
+
+    <div class="trust-doc-updated">Last updated: <%= @trust_center_stamp %></div>
+  </div>
+
+  <div class="trust-doc-body">
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Core approach</div>
+      <div class="trust-doc-text">
+        Workplace.io is designed to produce organization-level insights. Customers structure reporting using workspaces and groups. We encourage
+        governance practices that reduce identification risk and discourage use for individual monitoring.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Workspace scoping:</strong> access is scoped to workspace membership.</li>
+        <li><strong>Group-based views:</strong> customers can create groups to structure reporting and comparisons.</li>
+        <li><strong>Short-lived message content:</strong> message content is processed briefly and removed; derived metadata is retained.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Anonymity considerations</div>
+      <div class="trust-doc-text">
+        Anonymity risk increases as group size decreases. Customers should avoid configuring reporting in a way that isolates individuals.
+        Where applicable, Workplace.io may hide or limit certain views for small groups to reduce identification risk.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Group size:</strong> small groups can increase the likelihood of identifying individuals.</li>
+        <li><strong>Role governance:</strong> limit administrative access and sensitive views to trusted operators.</li>
+        <li><strong>Interpretation:</strong> treat insights as indicators and use them alongside human context and judgment.</li>
+      </ul>
+
+      <div class="trust-doc-callout trust-doc-callout--note">
+        <div class="trust-doc-callout-title">Customer governance</div>
+        <div class="trust-doc-callout-text">
+          Customers are responsible for configuring groups and access policies in ways consistent with local law and internal HR/privacy policies.
+          Workplace.io provides tools and guidance to support safer configurations.
+        </div>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Recommended deployment practices</div>
+      <div class="trust-doc-text">
+        For privacy-preserving deployments, we recommend the following practices.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li>Use group-level reporting rather than individual tracking.</li>
+        <li>Limit administrative access to a small set of trusted operators.</li>
+        <li>Define an internal policy for how insights may be used (e.g., improvement planning vs. discipline).</li>
+        <li>Disconnect integrations that are no longer needed.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Acceptable Use (Culture Insights) →", trust_doc_url_for("acceptable-use"), class: "trust-doc-link" %>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <%= link_to "Access Controls →", trust_doc_url_for("access-controls"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-footer">
+      <div class="trust-doc-footer-title">Need guidance on safe configuration?</div>
+      <div class="trust-doc-footer-text">
+        Contact us for recommended deployment patterns aligned with your organization’s privacy and governance requirements.
+      </div>
+      <div class="trust-doc-footer-actions">
+        <%= link_to "Contact Trust & Security", trust_doc_url_for("contact"), class: "trust-doc-button" %>
+        <%= link_to "Back to Trust Center", trust_home_url, class: "trust-doc-button trust-doc-button--secondary" %>
+      </div>
+    </div>
+  </div>
+</div>

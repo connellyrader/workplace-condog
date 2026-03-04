@@ -1,0 +1,41 @@
+<script>
+/* ============================ Markdown renderer ============================ */
+(function(){
+  function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+                                   .replace(/"/g,"&quot;").replace(/'/g,"&#39;");}
+  function basicMD(src){
+    if(!src) return "";
+    var s = esc(src);
+    s = s.replace(/```([\s\S]*?)```/g, function(_,code){return "<pre><code>"+esc(code)+"</code></pre>";});
+    s = s.replace(/`([^`]+)`/g,"<code>$1</code>");
+    s = s.replace(/^######\s+(.+)$/gm,"<h6>$1</h6>")
+         .replace(/^#####\s+(.+)$/gm,"<h5>$1</h5>")
+         .replace(/^####\s+(.+)$/gm,"<h4>$1</h4>")
+         .replace(/^###\s+(.+)$/gm,"<h3>$1</h3>")
+         .replace(/^##\s+(.+)$/gm,"<h2>$1</h2>")
+         .replace(/^#\s+(.+)$/gm,"<h1>$1</h1>");
+    s = s.replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>")
+         .replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g,"$1<em>$2</em>");
+    s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    s = s.replace(/(?:^|\n)([-*]\s+.+(?:\n[-*]\s+.+)+)/g,function(_,blk){
+      var items = blk.split(/\n/).map(function(l){return l.replace(/^\s*[-*]\s+/,"");});
+      return "<ul>"+items.map(function(x){return "<li>"+x+"</li>"}).join("")+"</ul>";
+    });
+    s = s.split(/\n{2,}/).map(function(p){
+      if (/^\s*<(h\d|ul|ol|pre|blockquote|table|img)/i.test(p)) return p;
+      return "<p>"+p.replace(/\n/g,"<br>")+"</p>";
+    }).join("\n");
+    return s;
+  }
+  window.__renderMarkdown = function(src){
+    if(!src) return "";
+    try{
+      if (window.marked) {
+        var html = window.marked.parse(String(src), { gfm:true, breaks:true });
+        return window.DOMPurify ? DOMPurify.sanitize(html, {USE_PROFILES:{html:true}}) : html;
+      }
+    }catch(_){}
+    return basicMD(src);
+  };
+})();
+</script>

@@ -1,0 +1,61 @@
+<% on_start = (action_name == 'start') %>
+<% on_plan  = (action_name == 'plan') %>
+
+<% show_skip = on_start && ((defined?(@group) && @group.present?) || (defined?(@has_any_groups) && @has_any_groups)) %>
+
+<%
+  primary_label =
+    if on_plan
+      'Start Free Trial'
+    else
+      # On start (and any other onboarding step), we just say "Continue" now
+      'Continue'
+    end
+%>
+
+<div class="onboarding-footer">
+  <div class="onboarding-footer-main">
+
+    <%# Skip/back link only when editing an existing selection from the plan page %>
+    <% if show_skip %>
+      <%= link_to 'Back', plan_path, class: 'onboarding-footer-button-alt' %>
+    <% end %>
+
+    <%# Old "+ Create Group" link on plan is no longer relevant; removed %>
+
+    <div class="onboarding-footer-button <%= show_skip ? 'onboarding-footer-button-small' : '' %>">
+      <%= primary_label %>
+    </div>
+
+  </div>
+
+  <div class="onboarding-footer-line"></div>
+
+  <% details_done = (on_start || on_plan) %>
+  <% plan_done    = on_plan %>
+
+  <div class="onboarding-footer-steps">
+    <!-- Sign Up: always done -->
+    <div class="onboarding-footer-step done">
+      <%= icon "check-circle" %>Sign Up
+    </div>
+
+    <!-- Details -->
+    <div class="onboarding-footer-step <%= 'done' if details_done %>">
+      <div class="onboarding-footer-step-dot <%= 'done' if details_done %>"></div>
+      Details
+    </div>
+
+    <!-- Plan -->
+    <div class="onboarding-footer-step <%= 'done' if plan_done %>">
+      <div class="onboarding-footer-step-dot <%= 'done' if plan_done %>"></div>
+      Plan
+    </div>
+
+    <!-- Analysis (never done here) -->
+    <div class="onboarding-footer-step">
+      <div class="onboarding-footer-step-dot"></div>
+      Analysis
+    </div>
+  </div>
+</div>

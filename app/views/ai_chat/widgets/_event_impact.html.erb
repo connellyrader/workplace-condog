@@ -1,0 +1,72 @@
+<%# Event impact widget (before vs after)
+  Expected locals:
+    metric_name   - e.g. "Psychological Safety"
+    event_date    - String date label to show (e.g. "2025-09-15")
+    before_label  - optional (e.g. "14 days before")
+    after_label   - optional (e.g. "14 days after")
+    before_value  - numeric or string percentage
+    after_value   - numeric or string percentage
+    delta_label   - optional delta text (e.g. "-6 pp")
+%>
+<%
+  metric_name  = (local_assigns[:metric_name] || local_assigns[:metric] || "Metric").to_s
+  event_date   = (local_assigns[:event_date]  || "").to_s
+  before_label = (local_assigns[:before_label] || "Before").to_s
+  after_label  = (local_assigns[:after_label]  || "After").to_s
+
+  raw_before   = local_assigns[:before_value]
+  raw_after    = local_assigns[:after_value]
+
+  before_num   = raw_before.to_s.delete("%").to_f
+  after_num    = raw_after.to_s.delete("%").to_f
+
+  max_val      = [before_num, after_num, 0.0].max
+  max_val      = 1.0 if max_val <= 0
+
+  before_pct   = (before_num / max_val * 100.0).clamp(0.0, 100.0)
+  after_pct    = (after_num  / max_val * 100.0).clamp(0.0, 100.0)
+
+  delta_label  = local_assigns[:delta_label].to_s
+  delta_dir    = if after_num > before_num
+                   "up"
+                 elsif after_num < before_num
+                   "down"
+                 else
+                   "flat"
+                 end
+%>
+
+<div class="ai-chat-widget ai-chat-widget--event-impact">
+  <div class="ai-chat-widget__header">
+    <div>
+      <div class="ai-chat-widget__title"><%= metric_name %> around event</div>
+      <% if event_date.present? %>
+        <div class="ai-chat-widget__subtitle">Event on <%= event_date %></div>
+      <% end %>
+    </div>
+    <% if delta_label.present? %>
+      <div class="ai-delta ai-delta--<%= delta_dir %>">
+        <span class="ai-delta__icon"></span>
+        <span class="ai-delta__text"><%= delta_label %></span>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="ai-chat-widget__body ai-event-impact">
+    <div class="ai-event-impact__row">
+      <div class="ai-event-impact__label"><%= before_label %></div>
+      <div class="ai-event-impact__bar-track">
+        <div class="ai-event-impact__bar ai-event-impact__bar--before" style="width:<%= before_pct %>%"></div>
+      </div>
+      <div class="ai-event-impact__value"><%= raw_before %></div>
+    </div>
+    <div class="ai-event-impact__row">
+      <div class="ai-event-impact__label"><%= after_label %></div>
+      <div class="ai-event-impact__bar-track">
+        <div class="ai-event-impact__bar ai-event-impact__bar--after" style="width:<%= after_pct %>%"></div>
+      </div>
+      <div class="ai-event-impact__value"><%= raw_after %></div>
+    </div>
+  </div>
+</div>
+

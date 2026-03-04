@@ -1,0 +1,97 @@
+<%# app/views/trust_center/docs/business-continuity.html.erb %>
+
+<div class="trust-doc">
+  <div class="trust-doc-header">
+    <div class="trust-doc-breadcrumb">
+      <%= link_to "Trust Center", trust_home_url, class: "trust-doc-breadcrumb-link" %>
+      <span class="trust-doc-breadcrumb-sep">/</span>
+      <span class="trust-doc-breadcrumb-current">Business Continuity & DR</span>
+    </div>
+
+    <div class="trust-doc-title-row">
+      <%= image_tag "logo.png", class: "trust-doc-logo", alt: "Workplace.io" %>
+      <div class="trust-doc-title">Business Continuity & Disaster Recovery</div>
+    </div>
+
+    <div class="trust-doc-subtitle">
+      How we handle backups, disaster recovery, and continuity planning to support reliable operations.
+    </div>
+
+    <div class="trust-doc-updated">
+      Last updated: <%= @trust_center_stamp %>
+    </div>
+  </div>
+
+  <div class="trust-doc-body">
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">At a glance</div>
+      <div class="trust-doc-bullets">
+        <ul class="trust-doc-bullet-list">
+          <li><strong>Backups:</strong> we maintain backups suitable for a production SaaS environment.</li>
+          <li><strong>Recovery:</strong> recovery procedures are used to restore service after failures.</li>
+          <li><strong>Separation:</strong> application hosting (DigitalOcean) and inference workloads (AWS SageMaker) are separated.</li>
+          <li><strong>Continuous improvement:</strong> resilience practices evolve as the platform and customer needs mature.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Continuity approach</div>
+      <div class="trust-doc-text">
+        Our continuity approach is designed to reduce downtime and data loss risks. We use infrastructure separation, controlled deployments,
+        operational monitoring, and backups to support recovery from common failure modes.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Backups</div>
+      <div class="trust-doc-text">
+        We maintain backups and recovery procedures for production data and system configuration where appropriate. Backup protections and access
+        are controlled to prevent unauthorized access.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Backup protection:</strong> access is restricted and managed through least privilege practices.</li>
+        <li><strong>Recovery readiness:</strong> backups support restoration of services after data loss events.</li>
+        <li><strong>Minimization:</strong> message content is processed briefly and removed; derived metadata is retained for reporting.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Disaster recovery</div>
+      <div class="trust-doc-text">
+        Disaster recovery focuses on restoring core service functionality and customer access. Recovery actions may include redeploying application
+        services, restoring databases from backups, and validating integrations and processing workflows.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Application recovery:</strong> restore application services hosted on DigitalOcean.</li>
+        <li><strong>Database recovery:</strong> restore managed database state when needed.</li>
+        <li><strong>Inference recovery:</strong> restore inference workflows on AWS SageMaker if impacted.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Testing and improvement</div>
+      <div class="trust-doc-text">
+        We review operational incidents and significant outages to improve resilience. Where appropriate, we test recovery procedures and update
+        documentation and monitoring to reduce recurrence risk.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Logging & Monitoring →", trust_doc_url_for("logging-monitoring"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-footer">
+      <div class="trust-doc-footer-title">Need continuity details?</div>
+      <div class="trust-doc-footer-text">
+        If your procurement process requires additional continuity information, contact us and we’ll coordinate.
+      </div>
+      <div class="trust-doc-footer-actions">
+        <%= link_to "Contact Trust & Security", trust_doc_url_for("contact"), class: "trust-doc-button" %>
+        <%= link_to "Back to Trust Center", trust_home_url, class: "trust-doc-button trust-doc-button--secondary" %>
+      </div>
+    </div>
+  </div>
+</div>

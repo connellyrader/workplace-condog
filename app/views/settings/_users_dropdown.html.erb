@@ -1,0 +1,36 @@
+<div class="settings-row-dropdown-selector settings-row-dropdown-selector-elipsis">
+  <%= icon "elipsis-horizontal" %>
+</div>
+
+<div class="settings-row-dropdown-menu">
+  <div class="settings-row-dropdown-menu-heading">Roles</div>
+  <div class="settings-row-dropdown-menu-line"></div>
+
+  <div class="settings-row-dropdown-menu-item">
+    <div class="settings-row-dropdown-menu-item-checkbox <%= "settings-row-dropdown-menu-item-checkbox-locked" if !can_edit %>"><%= icon "check" %></div>
+    <div class="settings-row-dropdown-menu-item-heading">Administrator <span class="settings-info-tooltip" data-tooltip="Can manage workspace settings, users, and integrations, and has full access to all dashboards and data."><%= icon "info" %></span></div>
+  </div>
+
+  <div class="settings-row-dropdown-menu-item">
+    <div class="settings-row-dropdown-menu-item-checkbox <%= "settings-row-dropdown-menu-item-checkbox-locked" if !can_edit %>"><%= icon "check" %></div>
+    <div class="settings-row-dropdown-menu-item-heading">Viewer <span class="settings-info-tooltip" data-tooltip="Can view dashboards and insights but cannot change workspace settings, users, or integrations."><%= icon "info" %></span></div>
+  </div>
+
+  <div class="settings-row-dropdown-menu-item">
+    <div class="settings-row-dropdown-menu-item-checkbox settings-row-dropdown-menu-item-checkbox-locked"><%= icon "check" %></div>
+    <div class="settings-row-dropdown-menu-item-heading">User <span class="settings-info-tooltip" data-tooltip="Can connect their integrations to provide more complete collaboration data for the culture graph, but cannot access dashboards, insights, or any settings."><%= icon "info" %></span></div>
+  </div>
+
+  <% if show_remove %>
+    <% remove_label = local_assigns[:remove_label].presence || "Remove user" %>
+
+    <div class="settings-row-dropdown-menu-heading">Manage</div>
+    <div class="settings-row-dropdown-menu-line"></div>
+
+    <div class="settings-row-dropdown-menu-item settings-row-dropdown-menu-item-remove">
+      <div class="settings-row-dropdown-menu-item-icon"><%= icon "minus-circle" %></div>
+      <div class="settings-row-dropdown-menu-item-heading"><%= remove_label %></div>
+    </div>
+  <% end %>
+
+</div>

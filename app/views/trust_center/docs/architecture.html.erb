@@ -1,0 +1,190 @@
+<%# app/views/trust_center/docs/architecture.html.erb %>
+
+<div class="trust-doc">
+  <div class="trust-doc-header">
+    <div class="trust-doc-breadcrumb">
+      <%= link_to "Trust Center", trust_home_url, class: "trust-doc-breadcrumb-link" %>
+      <span class="trust-doc-breadcrumb-sep">/</span>
+      <span class="trust-doc-breadcrumb-current">Architecture & Data Flow</span>
+    </div>
+
+    <div class="trust-doc-title-row">
+      <%= image_tag "logo.png", class: "trust-doc-logo", alt: "Workplace.io" %>
+      <div class="trust-doc-title">Architecture & Data Flow</div>
+    </div>
+
+    <div class="trust-doc-subtitle">
+      This page explains how Workplace.io moves data through the system—from user sign-in and integration setup to
+      analysis and reporting—at a level suitable for security and procurement review.
+    </div>
+
+    <div class="trust-doc-updated">
+      Last updated: <%= @trust_center_stamp %>
+    </div>
+  </div>
+
+  <div class="trust-doc-body">
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">System components</div>
+      <div class="trust-doc-text">
+        Workplace.io is organized around a workspace model. Each workspace contains connected integrations (such as Slack
+        and Microsoft Teams), channels/teams, and message streams that power analytics and culture scoring.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>User accounts:</strong> individual logins (SSO or email/password) that belong to one or more workspaces.</li>
+        <li><strong>Workspaces:</strong> the primary boundary for tenant isolation; membership and roles control access.</li>
+        <li><strong>Integrations:</strong> connections to data sources (currently Slack and Microsoft Teams).</li>
+        <li><strong>Channels/teams:</strong> organizational groupings used to scope analysis and reporting.</li>
+        <li><strong>Short-lived message processing:</strong> message content is processed briefly to generate insights and then removed.</li>
+        <li><strong>Derived metadata:</strong> structured results used for dashboards and trends.</li>
+      </ul>
+
+      <div class="trust-doc-callout trust-doc-callout--note">
+        <div class="trust-doc-callout-title">Tenant separation</div>
+        <div class="trust-doc-callout-text">
+          Data access is scoped by workspace membership. Archived workspaces are removed from normal selection and cannot
+          be activated for use.
+        </div>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Hosting architecture</div>
+      <div class="trust-doc-text">
+        Workplace.io is hosted on DigitalOcean droplets behind a DigitalOcean load balancer and uses DigitalOcean Managed Databases.
+        Classification and culture inference workloads run on AWS using Amazon SageMaker, separated from the application serving layer.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">High-level data flow</div>
+      <div class="trust-doc-text">
+        At a high level, Workplace.io follows the flow below. Each step is designed to keep access scoped to the correct
+        workspace and to minimize exposure of sensitive content.
+      </div>
+
+      <ol class="trust-doc-list">
+        <li><strong>Sign in:</strong> a user signs in via SSO (Slack/Microsoft/Google) or email/password.</li>
+        <li><strong>Select workspace:</strong> the user is placed into an active workspace associated with their membership.</li>
+        <li><strong>Connect integrations:</strong> an admin connects Slack or Microsoft Teams to the workspace via OAuth.</li>
+        <li><strong>Ingest events:</strong> message events and metadata are synchronized from connected sources.</li>
+        <li><strong>Process & score:</strong> messages are analyzed asynchronously and converted into structured results.</li>
+        <li><strong>Report insights:</strong> dashboards summarize trends and metrics for authorized users.</li>
+      </ol>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Authentication and workspace selection</div>
+      <div class="trust-doc-text">
+        Authentication is separate from integrations: signing in identifies the person, while integrations determine the
+        data sources used for culture analysis. After sign-in, Workplace.io selects an active workspace associated with
+        the user’s membership. Workspace roles determine what settings and views a user can access.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>SSO sign-in:</strong> supports modern identity providers and reduces password management risk.</li>
+        <li><strong>Password sign-in:</strong> optional direct accounts for email/password access.</li>
+        <li><strong>Session security:</strong> sessions use secure, HTTP-only cookies with CSRF protection on state-changing requests.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Integration connection flow (Slack and Microsoft Teams)</div>
+      <div class="trust-doc-text">
+        Integrations are configured by workspace administrators. OAuth authorization grants scoped access so Workplace.io
+        can synchronize configured data. Integration credentials are protected and access-restricted.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Slack:</strong> a workspace admin authorizes access to a Slack workspace and required scopes.</li>
+        <li><strong>Microsoft Teams:</strong> a workspace admin authorizes access to a Microsoft tenant; some tenants require admin consent.</li>
+        <li><strong>Token handling:</strong> credentials are protected and rotated/refreshed where supported.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Access Controls →", trust_doc_url_for("access-controls"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Message ingestion and short-lived processing</div>
+      <div class="trust-doc-text">
+        Once an integration is connected, Workplace.io ingests message events and metadata required to perform analysis.
+        Message content is processed for a short period during analysis. After processing completes, we retain primarily derived
+        metadata and aggregated results used to power dashboards and trends, and we remove message content from storage.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Backfill and ongoing sync:</strong> initial coverage plus continued ingestion for new activity (as configured).</li>
+        <li><strong>De-duplication:</strong> identifiers prevent duplicate processing and support reliable ingestion.</li>
+        <li><strong>Webhook security:</strong> webhook requests are authenticated and replay-protected; payload logging is minimized.</li>
+      </ul>
+
+      <div class="trust-doc-callout trust-doc-callout--note">
+        <div class="trust-doc-callout-title">Logging hygiene</div>
+        <div class="trust-doc-callout-text">
+          Workplace.io avoids logging message bodies or OAuth credentials in application logs. Operational logs focus on
+          status, counts, timing, and error diagnostics.
+        </div>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Processing and culture scoring</div>
+      <div class="trust-doc-text">
+        After ingestion, Workplace.io performs asynchronous processing to generate structured outputs used for reporting.
+        Processing uses proprietary classification models and internal mapping logic to assign messages to standardized signal
+        categories and compute aggregate metrics. We intentionally do not publish details of our model architecture, training data,
+        or internal taxonomy.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Asynchronous pipeline:</strong> processing runs outside request/response flows for scale and reliability.</li>
+        <li><strong>Structured outputs:</strong> results are stored as metadata to support reporting and auditing.</li>
+        <li><strong>Aggregation:</strong> dashboards emphasize team and organization-level insights.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "AI Use Policy →", trust_doc_url_for("ai-use"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Dashboards and access to insights</div>
+      <div class="trust-doc-text">
+        Dashboards present aggregate metrics and supporting drill-down views for authorized users. Workspace roles govern
+        whether a user can manage integrations, view administrative pages, or access sensitive workspace-level settings.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Role-based access:</strong> administrative functions are restricted to authorized roles.</li>
+        <li><strong>Workspace scoping:</strong> users only see data for workspaces they belong to.</li>
+        <li><strong>Group controls:</strong> groups can be used to structure analysis and protect anonymity in reporting.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Data lifecycle</div>
+      <div class="trust-doc-text">
+        Workplace.io manages data across ingestion, processing, storage, and reporting. Retention and deletion practices
+        are documented separately and may vary by data type (derived metadata, operational logs, and customer configuration).
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Data Handling & Retention →", trust_doc_url_for("data-handling"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-footer">
+      <div class="trust-doc-footer-title">Need a deeper review?</div>
+      <div class="trust-doc-footer-text">
+        We can support security questionnaires and provide additional technical detail during procurement reviews.
+      </div>
+      <div class="trust-doc-footer-actions">
+        <%= link_to "Contact Trust & Security", trust_doc_url_for("contact"), class: "trust-doc-button" %>
+        <%= link_to "Back to Trust Center", trust_home_url, class: "trust-doc-button trust-doc-button--secondary" %>
+      </div>
+    </div>
+  </div>
+</div>

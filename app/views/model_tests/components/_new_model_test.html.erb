@@ -1,0 +1,110 @@
+<div id="nmt-overlay" class="nmt-overlay is-hidden" aria-hidden="true">
+  <div class="nmt-modal" role="dialog" aria-modal="true" aria-labelledby="nmt-title">
+    <button type="button" class="nmt-close" aria-label="Close" onclick="NMT.close()">×</button>
+    <h2 id="nmt-title" class="nmt-title">Create New Model Test</h2>
+
+    <%= form_with url: model_tests_path, method: :post, id: "nmt-form", class: "nmt-form" do %>
+      <!-- Name -->
+      <label class="nmt-label" for="nmt-name">Test Name</label>
+      <%= text_field_tag "model_test[name]", nil,
+            id: "nmt-name", class: "nmt-input", required: true,
+            placeholder: "e.g., Q3 Wellness Check" %>
+
+      <!-- Description -->
+      <label class="nmt-label" for="nmt-description">Description</label>
+      <%= text_area_tag "model_test[description]", nil,
+            id: "nmt-description", class: "nmt-input nmt-textarea mono", rows: 4,
+            placeholder: "Explain the parameters and goals for this test..." %>
+
+      <!-- Model selection -->
+      <label class="nmt-label" for="nmt-model">Model</label>
+      <%= select_tag "model_test[model_id]",
+            options_from_collection_for_select(models, :id, :name),
+            id: "nmt-model", class: "nmt-input", required: true %>
+
+      <!-- Test type -->
+      <label class="nmt-label" for="nmt-type">Test Type</label>
+      <%= select_tag "model_test[test_type]",
+            options_for_select([["signal_detection","signal_detection"]], "signal_detection"),
+            id: "nmt-type", class: "nmt-input", required: true %>
+
+      <!-- Previous message count -->
+      <label class="nmt-label" for="nmt-prev">Previous Message Count</label>
+      <%= number_field_tag "model_test[prev_message_count]", 5,
+            id: "nmt-prev", class: "nmt-input", min: 0, step: 1, required: true %>
+
+      <!-- Scoring instructions -->
+      <label class="nmt-label" for="nmt-score">Scoring Instructions</label>
+      <%= text_area_tag "model_test[scoring_instructions]", nil,
+            id: "nmt-score", class: "nmt-input nmt-textarea mono", rows: 4,
+            placeholder: "Describe scoring: use bipolar -5..+5 per indicator; justify briefly…" %>
+
+      <!-- Output instructions -->
+      <label class="nmt-label" for="nmt-out">Output Instructions</label>
+      <%= text_area_tag "model_test[output_instructions]", nil,
+            id: "nmt-out", class: "nmt-input nmt-textarea mono", rows: 4,
+            placeholder: 'Return JSON: {"detections":[{"signal_category":"…","signal_subcategory":"…","indicator_text":"…","type":"positive|negative","description":"…","score":-5..+5}]}' %>
+
+      <div class="nmt-grid-2">
+        <!-- Workspace -->
+        <div>
+          <label class="nmt-label" for="nmt-workspace">Workspace</label>
+          <%= select_tag "model_test[workspace_id]",
+                options_from_collection_for_select(workspaces, :id, :name),
+                id: "nmt-workspace", class: "nmt-input", required: true %>
+        </div>
+
+        <!-- Signal Category -->
+        <div>
+          <label class="nmt-label" for="nmt-sigcat">Signal Category</label>
+          <%= select_tag "model_test[signal_category_id]",
+                options_from_collection_for_select(signal_categories, :id, :name),
+                id: "nmt-sigcat", class: "nmt-input", required: true %>
+        </div>
+      </div>
+
+      <%= hidden_field_tag "model_test[active]", "0" %>
+      <label class="nmt-label" for="nmt-active">
+        <%= check_box_tag "model_test[active]", "1", false, id: "nmt-active" %>
+        Set as active inference model test
+      </label>
+
+      <!-- Actions -->
+      <div class="nmt-actions">
+        <button type="button" class="nmt-btn nmt-btn-ghost" onclick="NMT.close()">Cancel</button>
+        <button type="submit" class="nmt-btn">Create Test</button>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<script>
+  const NMT = (() => {
+    const overlay = () => document.getElementById('nmt-overlay');
+
+    function open() {
+      overlay().classList.remove('is-hidden');
+      overlay().setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      document.getElementById('nmt-name')?.focus();
+    }
+    function close() {
+      overlay().classList.add('is-hidden');
+      overlay().setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    }
+
+    function bind() {
+      overlay().addEventListener('click', (e) => { if (e.target === overlay()) close(); });
+      document.addEventListener('keydown', (e) => {
+        if (!overlay().classList.contains('is-hidden') && e.key === 'Escape') close();
+      });
+
+      const prev = document.getElementById('nmt-prev');
+      if (prev) prev.addEventListener('input', () => { if (+prev.value < 0) prev.value = 0; });
+    }
+    document.addEventListener('DOMContentLoaded', bind);
+
+    return { open, close };
+  })();
+</script>

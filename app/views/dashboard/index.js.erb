@@ -1,0 +1,32 @@
+// Update category boxes dynamically
+document.getElementById('categories-container').innerHTML = `<%= j render 'categories', categories: @categories %>`;
+
+// Redraw chart with new data
+function redrawChart() {
+  var data = google.visualization.arrayToDataTable([
+    ['Date', 'Score'],
+    <% @global_scores.each do |date, score| %>
+      ['<%= date %>', <%= score %>],
+    <% end %>
+  ]);
+
+  var options = {
+    title: 'Global Scores Over Time (<%= @interval.capitalize %>)',
+    curveType: 'function',
+    legend: { position: 'bottom' },
+    chartArea: {width: '90%', height: '75%'},
+    width: '100%',
+    height: '100%'
+  };
+
+  var chart = new google.visualization.LineChart(document.getElementById('global_scores_chart'));
+  chart.draw(data, options);
+}
+
+// Redraw immediately if google visualization is already loaded
+if (typeof google.visualization !== 'undefined') {
+  redrawChart();
+} else {
+  google.charts.load('current', {'packages':['corechart']});
+  google.charts.setOnLoadCallback(redrawChart);
+}

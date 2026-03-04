@@ -1,0 +1,60 @@
+<!-- app/views/workspaces/members/index.html.erb -->
+
+<h1 class="mb-4 text-light">Members of <%= @workspace.name %></h1>
+
+<div class="mb-3">
+  <%= button_to "Invite All Missing",
+                invite_all_workspace_members_path(@workspace),
+                method: :post,
+                class: "btn btn-secondary",
+                data: { confirm: "Send invite to all non-connected members?" } %>
+</div>
+
+<table class="table table-dark table-striped table-bordered">
+  <thead>
+    <tr>
+      <th>Avatar</th>
+      <th>Name</th>
+      <th>Status</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @workspace.workspace_users
+       .includes(:user)
+       .order("role DESC, slack_user_id ASC")
+       .each do |uw| %>
+      <tr>
+        <td><%= image_tag(uw.avatar_url) if uw.avatar_url.present? %></td>
+        <td><%= uw.display_name.presence || uw.slack_user_id %></td>
+        <td>
+          <% if uw.connected? %>
+            <span class="badge bg-success"><%= uw.role.titleize %></span>
+          <% elsif uw.invited_at.present? %>
+            <span class="badge bg-warning text-dark">
+              Invited<br>
+              <small><%= uw.invited_at.strftime("%b %-d, %Y") %></small>
+            </span>
+          <% else %>
+            <span class="badge bg-secondary">Missing</span>
+          <% end %>
+        </td>
+        <td>
+          <% if false #uw.connected? %>
+            <!-- no button for connected users -->
+          <% elsif uw.invited_at.present? %>
+            <%= button_to "Re-invite",
+                          invite_workspace_member_path(@workspace, uw),
+                          method: :post,
+                          class: "btn btn-sm btn-outline-light" %>
+          <% else %>
+            <%= button_to "Invite",
+                          invite_workspace_member_path(@workspace, uw),
+                          method: :post,
+                          class: "btn btn-sm btn-primary" %>
+          <% end %>
+        </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

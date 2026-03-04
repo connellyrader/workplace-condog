@@ -1,0 +1,62 @@
+<%# Clara Overview Card: Loading → Closed → Open
+    - Loading: gradient A, "Thinking..." animation
+    - Closed: gradient B (final), truncated text + Read More
+    - Open: full text + Show Less
+    - Gauge remains sibling, unaffected
+%>
+<%
+  fake_overview = "The Product Team's messaging and response cadence remain on track, but we noted a 50% uptick in \"tired\" or \"overwhelmed\" mentions this week and a mild mid-week tone dip. Cynicism stayed low, celebration posts rose by 20%, and requests for extra validation fell to zero, indicating resilience despite the extra fatigue language.\n\nKeep an eye on those \"winding down\" comments—if they climb further, consider a mid-week team break or a quick group stretch to reset. Continue highlighting wins and maintaining open praise to offset any emerging stress signals."
+  overview_content = @clara_overview&.content.presence || fake_overview
+  overview_paragraphs = overview_content.to_s.split(/\n\n+/).map { |p| p.strip.presence }.compact
+  overview_paragraphs = [overview_content] if overview_paragraphs.empty?
+%>
+
+<div class="clara-overview-row">
+  <div class="clara-overview-card"
+       id="clara-overview"
+       data-clara-overview="true"
+       data-workspace-id="<%= @active_workspace.id %>"
+       data-metric-id="<%= @metric.id %>"
+       data-range-start="<%= @range_start %>"
+       data-range-end="<%= @range_end %>"
+       data-group-scope="<%= @group_scope || 'all' %>"
+       data-status="<%= @clara_overview&.status || '' %>"
+       data-expired="<%= @clara_overview&.expired? ? 'true' : 'false' %>"
+       data-has-content="<%= @clara_overview&.content.present? ? 'true' : 'false' %>"
+       data-no-data="<%= @score_available ? 'false' : 'true' %>"
+       data-use-fake="<%= @clara_overview&.content.present? ? 'false' : 'true' %>"
+       data-variant="loading"
+       data-overview-content="<%= escape_javascript(overview_content) %>">
+
+    <div class="clara-overview-card-bg" aria-hidden="true"></div>
+
+    <div class="clara-overview-card-inner">
+      <div class="clara-overview-header">
+        <div class="clara-overview-icon"><%= icon 'sparkle' %></div>
+        <span class="clara-overview-title" data-role="title">CLARA01 Overview</span>
+        <span class="clara-overview-thinking" data-role="thinking">
+          Thinking<span class="clara-overview-dot">.</span><span class="clara-overview-dot">.</span><span class="clara-overview-dot">.</span>
+        </span>
+      </div>
+
+      <div class="clara-overview-content">
+        <div class="clara-overview-text" data-role="text">
+          <% overview_paragraphs.each do |para| %>
+            <p><%= para %></p>
+          <% end %>
+        </div>
+        <button type="button"
+                class="clara-overview-read-more"
+                data-role="read-more"
+                aria-expanded="false"
+                aria-hidden="true">
+          Read More
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="gauge-container" class="gauge-container-metric-page">
+    <%= render "dashboard/components/gauge" %>
+  </div>
+</div>

@@ -1,0 +1,17 @@
+<nav class="adm-sidenav">
+  <div class="adm-brand">
+    <div class="adm-logo" aria-hidden="true">▲</div>
+    <div class="adm-brand-name">Admin</div>
+  </div>
+
+  <ul class="adm-navlist">
+    <li><a class="adm-navlink adm-navlink--active" href="<%= admin_path() %>">Dashboard</a></li>
+    <%# <li><a class="adm-navlink" href="#">Workspaces</a></li> %>
+    <li><a class="adm-navlink" href="<%= model_tests_path() %>">Model Tests</a></li>
+    <%# <li><a class="adm-navlink" href="#">Signal Metrics</a></li>
+    <li><a class="adm-navlink" href="#">Finances</a></li> %>
+    <li class="adm-divider"></li>
+    <%# <li><a class="adm-navlink" href="#">Reports</a></li> %>
+    <li><a class="adm-navlink" href="<%= root_path() %>">Exit</a></li>
+  </ul>
+</nav>

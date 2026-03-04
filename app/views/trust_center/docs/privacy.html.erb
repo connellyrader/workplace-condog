@@ -1,0 +1,264 @@
+<%# app/views/trust_center/docs/privacy.html.erb %>
+
+<div class="trust-doc">
+  <div class="trust-doc-header">
+    <div class="trust-doc-breadcrumb">
+      <%= link_to "Trust Center", trust_home_url, class: "trust-doc-breadcrumb-link" %>
+      <span class="trust-doc-breadcrumb-sep">/</span>
+      <span class="trust-doc-breadcrumb-current">Privacy Policy</span>
+    </div>
+
+    <div class="trust-doc-title-row">
+      <%= image_tag "logo.png", class: "trust-doc-logo", alt: "Workplace.io" %>
+      <div class="trust-doc-title">Privacy Policy</div>
+    </div>
+
+    <div class="trust-doc-subtitle">
+      This Privacy Policy explains how 5 Voices Inc. (“5 Voices,” “we,” “us,” or “our”) collects, uses, and shares information
+      when you use Workplace.io (the “Service”).
+    </div>
+
+    <div class="trust-doc-updated">
+      Last updated: <%= @trust_center_stamp %>
+    </div>
+  </div>
+
+  <div class="trust-doc-body">
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">1. Who we are</div>
+      <div class="trust-doc-text">
+        Workplace.io is a product operated by <strong>5 Voices Inc.</strong>, a Delaware corporation.
+        This Privacy Policy applies to our websites, dashboards, and related services where it is posted or referenced.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Terms of Service →", trust_doc_url_for("terms"), class: "trust-doc-link" %>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <%= link_to "Subprocessors →", trust_doc_url_for("subprocessors"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">2. Scope and roles</div>
+      <div class="trust-doc-text">
+        Workplace.io is used by organizations through Workspaces. In many deployments, an organization (such as your employer)
+        controls whether and how workplace collaboration data is connected to the Service. In that context, the organization may act
+        as the “controller” of certain data and 5 Voices may act as a “processor” for that organization. For account, website,
+        and business operations data, 5 Voices may act as a controller.
+      </div>
+
+      <div class="trust-doc-callout trust-doc-callout--note">
+        <div class="trust-doc-callout-title">If you use Workplace.io through an organization</div>
+        <div class="trust-doc-callout-text">
+          Your organization may have its own policies about the data it connects and how it uses the Service. If you have questions
+          about your organization’s configuration, contact your Workspace administrator.
+        </div>
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Data Handling & Retention →", trust_doc_url_for("data-handling"), class: "trust-doc-link" %>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <%= link_to "GDPR & Data Rights →", trust_doc_url_for("gdpr"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">3. Information we collect</div>
+      <div class="trust-doc-text">
+        We collect information in three main ways: (a) information you provide, (b) information collected automatically when you use the Service,
+        and (c) information from connected platforms authorized by your Workspace.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li>
+          <strong>Account information:</strong> name, email address, authentication method, workspace membership, and role.
+        </li>
+        <li>
+          <strong>Workspace and configuration:</strong> workspace name and settings; integration configuration and status.
+        </li>
+        <li>
+          <strong>Connected platform data (Slack/Teams):</strong> identifiers (workspace/team IDs, channel IDs, user IDs) and message events/metadata authorized by your Workspace.
+        </li>
+        <li>
+          <strong>Message content (short-lived):</strong> message content may be processed briefly for analysis and then removed. We retain primarily derived metadata and aggregated results.
+        </li>
+        <li>
+          <strong>Derived analytics data:</strong> structured outputs used for reporting and trends (e.g., counts, scores, and aggregated metrics).
+        </li>
+        <li>
+          <strong>Usage and device data:</strong> IP address, device/browser information, timestamps, pages viewed, and diagnostic logs.
+        </li>
+        <li>
+          <strong>Support communications:</strong> information you send to us when you contact support or complete security/procurement reviews.
+        </li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">4. How we use information</div>
+      <div class="trust-doc-text">
+        We use information to provide the Service, maintain security and reliability, support customers, and meet legal obligations.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Provide and operate the Service:</strong> authentication, workspace access, dashboards, and core functionality.</li>
+        <li><strong>Maintain integrations:</strong> connect/disconnect sources, synchronize events, and handle provider permission failures.</li>
+        <li><strong>Generate insights:</strong> process short-lived message content into derived metadata and aggregated results for reporting.</li>
+        <li><strong>Security and abuse prevention:</strong> monitor for suspicious activity, enforce access controls, and investigate incidents.</li>
+        <li><strong>Customer support:</strong> respond to requests, troubleshoot issues, and provide due diligence materials.</li>
+        <li><strong>Billing and transactions:</strong> if applicable, manage subscriptions and payments.</li>
+        <li><strong>Legal compliance:</strong> comply with applicable laws and enforce our Terms.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">5. How we share information</div>
+      <div class="trust-doc-text">
+        We share information only as needed to operate the Service and for legitimate business and legal purposes.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li>
+          <strong>With your Workspace:</strong> Workspace Owners/Admins may access workspace settings, member lists, and reporting consistent with their roles.
+        </li>
+        <li>
+          <strong>With subprocessors:</strong> vendors that process data on our behalf (hosting, email delivery, billing, inference).
+          See our <%= link_to "Subprocessors", trust_doc_url_for("subprocessors"), class: "trust-doc-link" %> page.
+        </li>
+        <li>
+          <strong>With connected platforms:</strong> when you sign in via SSO or connect a data source, the platform processes data under its own terms and your organization’s authorization.
+        </li>
+        <li>
+          <strong>For legal reasons:</strong> to comply with law, protect rights and safety, investigate fraud or abuse, or respond to lawful requests.
+        </li>
+        <li>
+          <strong>Business transfers:</strong> in connection with a merger, acquisition, financing, or sale of assets, subject to appropriate safeguards.
+        </li>
+      </ul>
+
+      <div class="trust-doc-callout trust-doc-callout--note">
+        <div class="trust-doc-callout-title">We do not sell personal information</div>
+        <div class="trust-doc-callout-text">
+          We do not sell personal information in the conventional sense. If your jurisdiction defines “sale” differently,
+          contact us and we will clarify our practices for your review.
+        </div>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">6. Cookies and similar technologies</div>
+      <div class="trust-doc-text">
+        We use cookies and similar technologies to keep you signed in, maintain security, remember preferences, and support basic product functionality
+        such as referral attribution and session continuity. You can control cookies through browser settings. Some features may not work without cookies.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Cookie Policy →", trust_doc_url_for("cookies"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">7. Retention</div>
+      <div class="trust-doc-text">
+        Retention depends on data type and customer configuration. Message content is processed briefly for analysis and then removed.
+        We retain derived metadata and aggregated results to support reporting and trends. We retain account and workspace information while the
+        workspace is active or as needed for legitimate business purposes and legal compliance.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Data Handling & Retention →", trust_doc_url_for("data-handling"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">8. Security</div>
+      <div class="trust-doc-text">
+        We implement security measures designed to protect data, including encryption in transit, encryption at rest in hosting environments,
+        access controls, and operational monitoring. No method of transmission or storage is perfectly secure, but we work to maintain appropriate safeguards.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Security Overview →", trust_doc_url_for("security-overview"), class: "trust-doc-link" %>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <%= link_to "Incident Response →", trust_doc_url_for("incident-response"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">9. International transfers</div>
+      <div class="trust-doc-text">
+        Depending on where you are located and where your workspace is hosted, information may be processed in other countries.
+        Where required, we support appropriate transfer mechanisms (such as Standard Contractual Clauses) for international transfers.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "International Transfers (SCCs) →", trust_doc_url_for("scc"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">10. Your choices and rights</div>
+      <div class="trust-doc-text">
+        You may have rights regarding your personal information depending on your jurisdiction. We support appropriate requests and may coordinate with
+        your Workspace administrator where your organization controls the data.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Access and correction:</strong> request access to or correction of your account information.</li>
+        <li><strong>Deletion:</strong> request deletion of your account, subject to legal obligations and workspace administration policies.</li>
+        <li><strong>Objection/restriction:</strong> request restriction or objection in certain circumstances, where applicable.</li>
+        <li><strong>Portability:</strong> request a copy of certain information in a portable format where applicable.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Contact Trust & Security →", trust_doc_url_for("contact"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">11. Third-party services</div>
+      <div class="trust-doc-text">
+        The Service interacts with third-party services you choose to use, such as SSO providers and collaboration platforms.
+        Those services process data under their own policies and terms. We are not responsible for third-party practices outside our Service.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">12. Children</div>
+      <div class="trust-doc-text">
+        The Service is not intended for children, and we do not knowingly collect personal information from children.
+        If you believe a child has provided personal information, contact us.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">13. Changes to this Privacy Policy</div>
+      <div class="trust-doc-text">
+        We may update this Privacy Policy from time to time. If we make material changes, we will post an updated version and revise the effective date.
+        Your continued use of the Service after the effective date means you accept the updated policy.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">14. Contact</div>
+      <div class="trust-doc-text">
+        If you have questions about this Privacy Policy or want to submit a request, contact us.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Trust & Security Contact →", trust_doc_url_for("contact"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-footer">
+      <div class="trust-doc-footer-title">Need procurement materials?</div>
+      <div class="trust-doc-footer-text">
+        If your organization needs a DPA, SCCs, or a security questionnaire, contact us and we’ll coordinate.
+      </div>
+      <div class="trust-doc-footer-actions">
+        <%= link_to "Contact Trust & Security", trust_doc_url_for("contact"), class: "trust-doc-button" %>
+        <%= link_to "Back to Trust Center", trust_home_url, class: "trust-doc-button trust-doc-button--secondary" %>
+      </div>
+    </div>
+  </div>
+</div>

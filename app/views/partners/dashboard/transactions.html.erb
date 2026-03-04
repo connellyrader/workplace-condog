@@ -1,0 +1,71 @@
+<%= link_to "Export Transactions", request.params.merge(format: :csv), class: "pp-export-btn" %>
+<h1>Transactions</h1>
+
+<section class="pp-card pp-span-3" style="margin-bottom: 12px;">
+  <div class="pp-card-header">
+    <h3>Totals</h3>
+    <div class="pp-muted">
+      <%= @total_count %> transactions ·
+      Gross: $<%= number_with_precision(@total_gross_cents / 100.0, precision: 2) %> ·
+      Your commission: $<%= number_with_precision(@total_commission_cents / 100.0, precision: 2) %>
+    </div>
+  </div>
+</section>
+
+<section class="pp-card pp-span-3">
+  <div class="pp-table-wrap">
+    <table class="pp-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Customer</th>
+          <th>Plan</th>
+          <th class="pp-num">Sale</th>
+          <th class="pp-num">Commission</th>
+          <th>Status</th>
+          <th>Payout</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if @charges.any? %>
+          <% @charges.each do |c| %>
+            <% customer = c.customer %>
+            <% sub      = c.subscription %>
+            <% payout   = c.payout %>
+            <tr>
+              <td><%= c.created_at.strftime("%b %-d, %Y") %></td>
+              <td>
+                <% if customer.present? %>
+                  <%= [customer.first_name, customer.last_name].compact.join(" ").presence || customer.email %>
+                <% else %>
+                  —
+                <% end %>
+              </td>
+              <td><%= sub&.interval&.capitalize || "—" %></td>
+              <td class="pp-num">$<%= number_with_precision(c.amount.to_i / 100.0, precision: 2) %></td>
+              <td class="pp-num">$<%= number_with_precision(c.commission.to_i / 100.0, precision: 2) %></td>
+              <td>
+                <% if payout.nil? %>
+                  Pending
+                <% else %>
+                  Paid
+                <% end %>
+              </td>
+              <td>
+                <% if payout.present? %>
+                  <%= link_to (payout.paid_at ? payout.paid_at.strftime("%b %-d, %Y") : "Pending"),
+                              partners_payout_path(payout),
+                              class: "pp-link" %>
+                <% else %>
+                  —
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        <% else %>
+          <tr><td colspan="7" class="pp-muted">No transactions found.</td></tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</section>

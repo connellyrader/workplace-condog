@@ -1,0 +1,139 @@
+.info-card-images{
+  display: flex;
+  justify-content: center;
+  gap:24px;
+}
+
+  .info-card-icon{
+    height:60px;
+    width:60px;
+    background-position: center;
+    background-size: cover;
+    border-radius:24px;
+
+    svg{
+      height:60px;
+      width:60px;
+      border:1px solid var(--slate-400);
+      border-radius:24px;
+      padding:10px;
+      color: var(--slate-700);
+    }
+  }
+
+  .info-card-icon-connect{
+    display: flex;
+    align-items: center;
+
+  }
+
+    .info-card-icon-connect-dot-small{
+      width:8px;
+      height:8px;
+      border-radius: 100%;
+      background: var(--slate-200);
+    }
+
+    .info-card-icon-connect-dot-large{
+      width:12px;
+      height:12px;
+      margin-left:14px;
+      margin-right:14px;
+      border-radius: 100%;
+      background: var(--slate-200);
+    }
+
+.info-card-header{
+  margin-top:24px;
+  color: var(--slate-700);
+  font-size: 32px;
+  font-weight: 500;
+  letter-spacing: -0.8px;
+  line-height: 1.2em;
+}
+
+.info-card-content{
+  margin-top:24px;
+}
+
+  .info-card-row{
+    margin-top:8px;
+    font-size: 14px;
+    color: var(--slate-700);
+    line-height: 1.5em;
+
+    span{
+      font-weight: 700;
+    }
+  }
+
+  .info-card-actions{
+    display: flex;
+    gap: 10px;               /* space between buttons */
+    align-items: stretch;
+    margin-top:32px;
+  }
+
+  /* Make either buttons or links behave like buttons */
+  .info-card-actions > a,
+  .info-card-actions > form{
+    flex: 1 1 0;             /* 50/50 when there are two */
+    min-width: 0;
+  }
+
+  /* When there is only one action, center it and make it wider */
+  .info-card-actions > :only-child{
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 420px;   /* cap */
+    margin: 0 auto;     /* center */
+  }
+
+
+  /* Ensure the actual clickable element fills its flex item */
+  .info-card-actions > form button,
+  .info-card-actions > a{
+    width: 100%;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  /* Button styles */
+  .info-card-button-primary{
+    padding:12px 16px;
+    border-radius:12px;
+    color:white;
+    background-color: var(--slate-900);
+    border:1px solid var(--slate-100);
+    font-size:14px;
+    line-height:1.2em;
+    font-weight:500;
+    cursor: pointer;
+  }
+
+  .info-card-button-secondary{
+    padding:12px 16px;
+    border-radius:12px;
+    color:var(--slate-700);
+    background-color: var(--slate-100);
+    border:1px solid var(--slate-200);
+    font-size:14px;
+    line-height:1.2em;
+    font-weight:500;
+    cursor: pointer;
+  }
+
+
+.info-card-state{
+  margin-top:24px;
+}
+
+.info-card-state-title{
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.info-card-row-label{
+ font-weight: 500;
+}

@@ -1,0 +1,151 @@
+<%# app/views/trust_center/docs/data-handling.html.erb %>
+
+<div class="trust-doc">
+  <div class="trust-doc-header">
+    <div class="trust-doc-breadcrumb">
+      <%= link_to "Trust Center", trust_home_url, class: "trust-doc-breadcrumb-link" %>
+      <span class="trust-doc-breadcrumb-sep">/</span>
+      <span class="trust-doc-breadcrumb-current">Data Handling & Retention</span>
+    </div>
+
+    <div class="trust-doc-title-row">
+      <%= image_tag "logo.png", class: "trust-doc-logo", alt: "Workplace.io" %>
+      <div class="trust-doc-title">Data Handling & Retention</div>
+    </div>
+
+    <div class="trust-doc-subtitle">
+      What data we collect, how it’s used, how long it’s retained, and how deletion works. This page is written for customer
+      security and privacy review and avoids proprietary model and taxonomy details.
+    </div>
+
+    <div class="trust-doc-updated">
+      Last updated: <%= @trust_center_stamp %>
+    </div>
+  </div>
+
+  <div class="trust-doc-body">
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Key principles</div>
+      <div class="trust-doc-bullets">
+        <ul class="trust-doc-bullet-list">
+          <li><strong>Workspace boundary:</strong> data access is scoped to the workspace a user belongs to.</li>
+          <li><strong>Short-lived message content:</strong> message content is processed briefly for analysis and then removed.</li>
+          <li><strong>Derived metadata retained:</strong> we retain structured results needed for reporting and trend analysis.</li>
+          <li><strong>Customer control:</strong> admins can connect/disconnect integrations and archive workspaces; deletion requests are supported.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Data categories</div>
+      <div class="trust-doc-text">
+        Workplace.io handles three main categories of data: account/workspace data, integration data (Slack/Teams), and derived analytics results.
+        The lists below describe typical data handled by category.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Account and workspace data:</strong> user name, email, role, workspace membership, workspace configuration, and administrative settings.</li>
+        <li><strong>Integration data (Slack/Teams):</strong> provider identifiers (workspace/team IDs, channel IDs, user IDs), and message events needed for analysis.</li>
+        <li><strong>Message content (short-lived):</strong> message text is processed during analysis and then removed from storage.</li>
+        <li><strong>Derived analytics data:</strong> structured outputs such as signal assignments, scores, counts, and aggregated trend data.</li>
+        <li><strong>Operational telemetry:</strong> service logs and metrics used for reliability and incident investigation (content minimized).</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">How we use data</div>
+      <div class="trust-doc-text">
+        We use data to (1) operate the service, (2) connect and maintain authorized integrations, and (3) generate organization-level insights.
+        We do not publish details of internal model architecture, training data, or proprietary signal taxonomy.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Operate the service:</strong> authentication, workspace membership, billing (if applicable), and support.</li>
+        <li><strong>Maintain integrations:</strong> connect/disconnect, synchronize events, and handle provider permissions and errors.</li>
+        <li><strong>Generate insights:</strong> convert short-lived message content into derived metadata and aggregated reporting.</li>
+        <li><strong>Security operations:</strong> monitor availability, investigate incidents, and respond to abuse.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Architecture & Data Flow →", trust_doc_url_for("architecture"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Retention overview</div>
+      <div class="trust-doc-text">
+        Retention depends on data type. Message content is intentionally short-lived; derived results and operational records may be retained longer
+        to support reporting, auditability, and service integrity. If your organization requires a specific retention schedule, contact us.
+      </div>
+
+      <div class="trust-doc-callout trust-doc-callout--note">
+        <div class="trust-doc-callout-title">Short-lived message content</div>
+        <div class="trust-doc-callout-text">
+          Message content is processed for a short period during analysis and then removed from storage. We retain primarily derived metadata and
+          aggregated results used for dashboards and trends.
+        </div>
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Message content:</strong> short-lived during processing; removed after analysis completes.</li>
+        <li><strong>Derived metadata:</strong> retained to support dashboards, trends, and product functionality.</li>
+        <li><strong>Account/workspace data:</strong> retained while the account/workspace is active; updated as membership changes.</li>
+        <li><strong>Operational logs:</strong> retained for troubleshooting, security investigation, and reliability; sensitive content minimized.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Deletion and customer requests</div>
+      <div class="trust-doc-text">
+        Customers may request deletion of workspace data. Deletion requests are scoped, verified, and executed according to an internal process to
+        prevent accidental loss and ensure correct tenancy boundaries.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Disconnect integrations:</strong> stops future ingestion and processing for that provider connection.</li>
+        <li><strong>Archive workspace:</strong> disables access and removes the workspace from selection; does not delete underlying data by itself.</li>
+        <li><strong>Delete workspace data:</strong> available upon request; we coordinate scope and timing with an authorized workspace admin.</li>
+        <li><strong>Export support:</strong> upon request, we can help provide data needed for audits or transition planning.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Trust & Security Contact →", trust_doc_url_for("contact"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Data access and least privilege</div>
+      <div class="trust-doc-text">
+        Access is scoped by workspace membership and roles. Administrative functions (integrations, billing, user management, archiving) are limited
+        to authorized roles. Internal access to production systems and sensitive data is restricted.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Access Controls →", trust_doc_url_for("access-controls"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Where data is processed</div>
+      <div class="trust-doc-text">
+        Workplace.io uses DigitalOcean for application hosting and managed databases. Classification and culture inference workloads run on AWS using
+        Amazon SageMaker. See Subprocessors for a vendor directory.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Subprocessors →", trust_doc_url_for("subprocessors"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-footer">
+      <div class="trust-doc-footer-title">Need a retention schedule?</div>
+      <div class="trust-doc-footer-text">
+        If your organization requires specific retention, deletion, or audit needs, contact us and we’ll coordinate.
+      </div>
+      <div class="trust-doc-footer-actions">
+        <%= link_to "Contact Trust & Security", trust_doc_url_for("contact"), class: "trust-doc-button" %>
+        <%= link_to "Back to Trust Center", trust_home_url, class: "trust-doc-button trust-doc-button--secondary" %>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,57 @@
+<section class="mts-container">
+  <!-- Breadcrumbs -->
+  <nav class="mtb-breadcrumbs" aria-label="Breadcrumb">
+    <%= render "model_tests/components/breadcrumb", model_test: @model_test %>
+  </nav>
+
+  <!-- Toolbar -->
+  <div class="mtt-toolbar">
+    <div class="mtt-wrap">
+      <div></div>
+      <div class="mtt-right">
+        <!-- Replace with real export endpoint if you have one -->
+        <%#= button_tag "Export Data", id: "mts-export", class: "mtt-btn", type: :button %>
+        <%= link_to "Review", detection_review_path(@model_test.id), class: "mtt-btn" %>
+      </div>
+    </div>
+  </div>
+
+  <section class="mts-charts">
+    <%= render "model_tests/components/charts",
+               quality_bins: @quality_bins,
+               subcat_labels: @subcat_labels,
+               subcat_avg_scores: @subcat_avg_scores,
+               polarity_pos: @polarity_pos,
+               polarity_neg: @polarity_neg %>
+  </section>
+
+  <section class="mts-grid" style="grid-template-columns: auto;">
+    <%= render "model_tests/components/summary",
+               model_test: @model_test,
+               model: @model,
+               category: @category,
+               det_count: @det_count,
+               avg_quality: @avg_quality,
+               input_tokens: @input_tokens,
+               output_tokens: @output_tokens,
+               duration_sec: @duration_sec,
+               estimated_cost: @estimated_cost %>
+  </section>
+
+  <section class="mts-split">
+    <%= render "model_tests/components/model_info", model: @model %>
+    <%= render "model_tests/components/workspace_info",
+               workspace: @workspace,
+               channels_count: @channels_count,
+               users_count: @users_count,
+               messages_count: @messages_count %>
+  </section>
+</section>
+
+<script>
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('#mts-export');
+    if (!btn) return;
+    alert('Export started (demo). Wire to your export endpoint.');
+  });
+</script>

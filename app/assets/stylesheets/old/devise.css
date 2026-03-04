@@ -1,0 +1,17 @@
+.devise-container{
+  width:500px;
+  padding:20px;
+  border:2px solid black;
+  margin-left: calc(50vw - 250px);
+  margin-top:100px
+}
+
+  .devise-slack-button{
+    padding:5px 10px;
+    background:pink;
+    margin:10px 0 10px 0;
+    display: inline-block;
+    text-decoration: none;
+    color: black;
+    cursor:pointer;
+  }

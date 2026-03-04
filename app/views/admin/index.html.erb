@@ -1,0 +1,23 @@
+<% content_for :page_title do %>
+  Admin Dashboard
+<% end %>
+
+<% content_for :page_subtitle do %>
+  Coming soon.
+<% end %>
+
+<section class="admin-section">
+  <div class="admin-card">
+    <div style="font-size:16px; font-weight:600; margin-bottom:6px;">Admin tools</div>
+    <div style="opacity:0.75;">This is a clean slate admin landing page. Add utilities here over time.</div>
+
+    <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+      <%= link_to "Users", admin_users_path, class: "admin-btn" %>
+      <%= link_to "Partner resources", admin_partner_resources_path, class: "admin-btn" %>
+      <%= link_to "Insights Studio", admin_insights_studio_path, class: "admin-btn" %>
+      <%= link_to "Benchmark Reviews", admin_benchmark_reviews_path, class: "admin-btn" %>
+      <%= link_to "Prompts", admin_prompts_path, class: "admin-btn" %>
+      <%= link_to "Legacy admin landing", admin_old_path, class: "admin-btn" %>
+    </div>
+  </div>
+</section>

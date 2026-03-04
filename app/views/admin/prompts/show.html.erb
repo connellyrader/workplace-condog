@@ -1,0 +1,266 @@
+<% content_for :page_title do %>
+  <%= @prompt_name %> prompt
+<% end %>
+<% content_for :page_subtitle do %>
+  Manage versions and run quick tests for this prompt.
+<% end %>
+
+<%= render "ai_chat/js_modules" if @prompt_type == :ai_chat %>
+
+<div class="admin-section">
+  <div class="admin-two-col">
+    <div class="admin-card">
+      <h3>Save a new version</h3>
+      <%= form_with url: admin_prompt_versions_path, method: :post, local: true do |f| %>
+        <%= hidden_field_tag "prompt_version[key]", @prompt_key %>
+        <div class="form-row">
+          <label>Label</label>
+          <%= text_field_tag "prompt_version[label]", @active_version&.label.to_s, class: "admin-input" %>
+        </div>
+        <div class="form-row">
+          <label>Content</label>
+          <%= text_area_tag "prompt_version[content]", @prefill_prompt || @default_prompt_body, rows: 12, class: "admin-textarea" %>
+        </div>
+        <div class="form-row">
+          <label class="admin-checkbox">
+            <%= check_box_tag :activate, "1", "CHECKED" %>
+            <span>Make Default</span>
+          </label>
+        </div>
+        <%= f.submit "Save version", class: "btn btn-primary" %>
+      <% end %>
+    </div>
+
+    <div class="admin-card">
+      <h3>Version history</h3>
+      <div class="admin-table-wrapper">
+        <table class="pp-table admin-templates-table">
+          <thead>
+            <tr>
+              <th>Version</th>
+              <th>Label</th>
+              <th>Active</th>
+              <th>Created</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @versions.each do |v| %>
+              <tr class="<%= "is-active" if v.active? %>">
+                <td>v<%= v.version %></td>
+                <td><%= v.label.presence || "—" %></td>
+                <td><%= v.active? ? "Yes" : "No" %></td>
+                <td><%= v.created_at&.strftime("%Y-%m-%d") %></td>
+                <td>
+                  <% unless v.active? %>
+                    <%= form_with url: admin_prompt_version_path(v), method: :patch, local: true do |f| %>
+                      <%= hidden_field_tag :active, true %>
+                      <%= f.submit "Make default", class: "btn btn-link" %>
+                    <% end %>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<% if @prompt_type == :ai_chat %>
+  <div class="admin-section">
+    <div class="admin-card" style="display:flex; flex-direction:row; gap:16px;">
+      <div class="form-row">
+        <h3>Test in the chat widget</h3>
+        <p>Select a prompt version for this test session, then start a new chat.</p>
+
+        <label>Prompt version</label>
+        <select id="prompt-version-select" class="admin-select">
+          <% @versions.each do |v| %>
+            <option value="<%= v.id %>" <%= "selected" if v.active? %>>v<%= v.version %> - <%= v.label.presence || "no label" %></option>
+          <% end %>
+          <% if @versions.blank? %>
+            <option value="">(no saved versions - using current default)</option>
+          <% end %>
+        </select>
+      </div>
+
+      <div id="prompt-chat-widget" class="ai-chat js-ai-chat-widget"
+           data-ai-chat-widget-list-url-value="<%= admin_prompt_chat_tests_path(format: :json) %>"
+           data-ai-chat-widget-show-url-value="<%= admin_prompt_chat_test_path(':id', format: :json) %>"
+           data-ai-chat-widget-create-url-value="<%= admin_prompt_chat_tests_path(format: :json) %>"
+           data-ai-chat-widget-prompt-version-id-value="<%= @active_version&.id %>">
+
+        <div class="ai-chat__main">
+          <div class="ai-chat__thread" data-ai-chat-widget-target="thread"></div>
+          <form class="ai-chat__composer">
+            <textarea rows="2" class="ai-chat__input" placeholder="Ask CLARA with this prompt..."
+                      data-ai-chat-widget-target="input"></textarea>
+            <button type="submit"
+              class="ai-chat__send"
+              data-ai-chat-widget-target="sendBtn">
+                <span class="ai-chat__send-icon ai-chat__send-icon--idle">
+                  <%= icon "arrow-up-circle" %>
+                </span>
+                <span class="ai-chat__send-icon ai-chat__send-icon--busy" hidden>
+                  <%= icon "clock" %>
+                </span>
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <button id="prompt-chat-new" class="btn btn-secondary" style="margin-top: 8px;">Start new chat with selected prompt</button>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function(){
+      var select = document.getElementById("prompt-version-select");
+      var newBtn = document.getElementById("prompt-chat-new");
+      var root   = document.getElementById("prompt-chat-widget");
+      var widget = root && root._aiChatWidget;
+
+      if (select && root) {
+        var applyVersion = function(){
+          var val = select.value || null;
+          root.dataset.aiChatWidgetPromptVersionIdValue = val || "";
+          if (widget && widget.setPromptVersionId) { widget.setPromptVersionId(val); }
+        };
+        select.addEventListener("change", applyVersion);
+        applyVersion();
+      }
+
+      if (newBtn && root) {
+        newBtn.addEventListener("click", function(e){
+          e.preventDefault();
+          var w = root._aiChatWidget;
+          if (w && w.createConversation) { w.createConversation(); }
+        });
+      }
+    });
+  </script>
+<% elsif @prompt_type == :clara_overview %>
+  <div class="admin-section"
+       data-controller="prompt-tests"
+       data-prompt-tests-key-value="<%= @prompt_key %>"
+       data-prompt-tests-prompt-type-value="<%= @prompt_type %>"
+       data-prompt-tests-history-url-value="<%= admin_prompt_test_runs_path(format: :json, prompt_key: @prompt_key, prompt_type: @prompt_type) %>"
+       data-prompt-tests-overview-preview-url-value="<%= admin_prompt_overview_preview_path(@prompt_key, format: :json) %>">
+    <div class="admin-two-col">
+      <div class="admin-card">
+        <h3>Preview an overview</h3>
+        <p class="admin-muted">Runs asynchronously and pins each response to the history on the right.</p>
+        <%= form_with url: admin_prompt_overview_preview_path(@prompt_key), method: :post, local: true,
+                      data: { prompt_tests_target: "overviewForm", action: "submit->prompt-tests#runOverviewPreview" } do %>
+          <div class="form-row">
+            <label>Workspace</label>
+            <%= select_tag :workspace_id,
+                           options_for_select(@workspaces.map { |w| ["#{w.id} - #{w.name}", w.id] }),
+                           class: "admin-select" %>
+          </div>
+          <div class="form-row">
+            <label>Metric</label>
+            <%= select_tag :metric_id, options_from_collection_for_select(@metrics, :id, :name), class: "admin-select" %>
+          </div>
+          <div class="form-row">
+            <label>Range start</label>
+            <%= date_field_tag :range_start, Date.current - 30.days, class: "admin-input" %>
+          </div>
+          <div class="form-row">
+            <label>Range end</label>
+            <%= date_field_tag :range_end, Date.current, class: "admin-input" %>
+          </div>
+          <div class="form-row">
+            <label>Prompt version</label>
+            <%= select_tag :prompt_version_id,
+                           options_from_collection_for_select(@versions, :id, ->(v){ "v#{v.version} - #{v.label.presence || 'no label'}" }, @active_version&.id),
+                           class: "admin-select",
+                           data: { prompt_tests_target: "versionSelect", action: "change->prompt-tests#reloadHistory" } %>
+          </div>
+          <%= submit_tag "Run preview", class: "btn btn-primary" %>
+        <% end %>
+
+        <div data-prompt-tests-target="overviewResult">
+          <% if @overview_preview_error.present? %>
+            <div class="admin-alert admin-alert--error"><%= @overview_preview_error %></div>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="admin-card" style="max-height:500px; overflow-y:scroll;">
+        <h3>Recent test runs</h3>
+        <p class="admin-muted">All versions for this prompt, newest first.</p>
+        <div data-prompt-tests-target="historyList" class="prompt-test-history"></div>
+        <div data-prompt-tests-target="historyEmpty" class="admin-muted">No runs for this version yet.</div>
+      </div>
+    </div>
+  </div>
+<% elsif @prompt_type == :insight_template %>
+  <div class="admin-section">
+    <div class="admin-card">
+      <h3><%= @prompt_template.name %> template</h3>
+      <p><strong>Key:</strong> <code><%= @prompt_template.key %></code></p>
+      <p><strong>Driver:</strong> <%= @prompt_template.driver_type %></p>
+      <p><strong>Scope:</strong> <%= @prompt_template.subject_scopes %></p>
+    </div>
+    <div class="admin-card"
+         data-controller="prompt-tests"
+         data-prompt-tests-key-value="<%= @prompt_key %>"
+         data-prompt-tests-prompt-type-value="<%= @prompt_type %>"
+         data-prompt-tests-history-url-value="<%= admin_prompt_test_runs_path(format: :json, prompt_key: @prompt_key, prompt_type: @prompt_type) %>"
+         data-prompt-tests-insight-preview-url-value="<%= admin_prompt_insight_preview_path(@prompt_key, format: :json) %>">
+      <h3>Preview an insight summary</h3>
+      <p class="admin-muted">Automatically reuses an existing insight’s detection when available, otherwise tries a recent detection.</p>
+      <div class="admin-two-col">
+        <div>
+          <%= form_with url: admin_prompt_insight_preview_path(@prompt_key), method: :post, local: true,
+                        data: { prompt_tests_target: "insightForm", action: "submit->prompt-tests#runInsightPreview" } do %>
+            <% if @prompt_template.key == "exec_summary" %>
+              <div class="form-row">
+                <label>Workspace</label>
+                <%= select_tag :workspace_id,
+                               options_for_select(@workspaces.map { |w| ["#{w.name} (##{w.id})", w.id] }, @workspaces.first&.id),
+                               class: "admin-select" %>
+              </div>
+            <% else %>
+              <div class="form-row">
+                <label>Workspace</label>
+                <%= select_tag :workspace_id,
+                               options_for_select([["Any workspace", ""]] + @workspaces.map { |w| ["#{w.name} (##{w.id})", w.id] }, params[:workspace_id]),
+                               class: "admin-select" %>
+              </div>
+            <% end %>
+            <div class="form-row">
+              <label>Prompt version</label>
+              <%= select_tag :prompt_version_id,
+                             options_from_collection_for_select(@versions, :id, ->(v){ "v#{v.version} - #{v.label.presence || 'no label'}" }, @active_version&.id),
+                             include_blank: "Active (if any)",
+                             class: "admin-select",
+                             data: { prompt_tests_target: "versionSelect", action: "change->prompt-tests#reloadHistory" } %>
+            </div>
+            <div class="form-row">
+              <label>Insight ID</label>
+              <%= number_field_tag :insight_id, nil, class: "admin-input", placeholder: "Latest for template if blank" %>
+            </div>
+            <%= submit_tag "Run preview", class: "btn btn-primary" %>
+          <% end %>
+
+          <div data-prompt-tests-target="insightResult">
+            <% if @insight_preview_error.present? %>
+              <div class="admin-alert admin-alert--error"><%= @insight_preview_error %></div>
+            <% end %>
+          </div>
+        </div>
+
+        <div>
+          <h4 style="margin-top:0;">Recent test runs</h4>
+          <p class="admin-muted">All versions for this prompt, newest first.</p>
+          <div data-prompt-tests-target="historyList" class="prompt-test-history"></div>
+          <div data-prompt-tests-target="historyEmpty" class="admin-muted">No runs for this version yet.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+<% end %>

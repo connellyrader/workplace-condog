@@ -1,0 +1,54 @@
+<section class="mtp-container">
+  <nav class="mtp-breadcrumbs" aria-label="Breadcrumb">
+    <%= render "model_tests/components/breadcrumb" %>
+  </nav>
+
+  <div class="mtp-toolbar">
+    <div class="mtt-wrap">
+      <div class="mtt-left">
+        <div class="mtt-search">
+          <svg class="mtt-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27a6.471 6.471 0 0 0 1.57-4.23A6.5 6.5 0 1 0 9.5 16a6.471 6.471 0 0 0 4.23-1.57l.27.28v.79L20 21.5 21.5 20l-6-6zM4 9.5C4 6.46 6.46 4 9.5 4S15 6.46 15 9.5 12.54 15 9.5 15 4 12.54 4 9.5Z"/></svg>
+          <input id="mt-search" class="mtt-input" type="search" placeholder="Search tests, models, workspaces…" />
+        </div>
+      </div>
+      <div class="mtt-right">
+        <%= link_to "View All Models", admin_models_path, class: "mtt-link" %>
+        <a class="mtt-btn" href="#" onclick="event.preventDefault(); NMT.open();">+ New Test</a>
+      </div>
+    </div>
+  </div>
+
+  <article class="mtp-card">
+    <%= render "model_tests/components/list", model_tests: @model_tests %>
+  </article>
+</section>
+
+<%= render "model_tests/components/new_model_test",
+           models: @models,
+           workspaces: @workspaces,
+           signal_categories: @signal_categories %>
+
+<script>
+  // Row link behavior
+  document.addEventListener('click', (e) => {
+    const row = e.target.closest('tr[data-href]');
+    if (row) {
+      const anchor = e.target.closest('a, button, input, label, svg');
+      if (!anchor) window.location.href = row.dataset.href;
+    }
+  });
+
+  // Simple client-side filter (name/model/workspace)
+  (() => {
+    const search = document.querySelector('#mt-search');
+    const rows = Array.from(document.querySelectorAll('.mt-table tbody tr'));
+    if (!search) return;
+    search.addEventListener('input', () => {
+      const q = search.value.trim().toLowerCase();
+      rows.forEach(r => {
+        const txt = r.textContent.toLowerCase();
+        r.style.display = txt.includes(q) ? '' : 'none';
+      });
+    });
+  })();
+</script>

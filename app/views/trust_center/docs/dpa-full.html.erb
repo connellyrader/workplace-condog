@@ -1,0 +1,374 @@
+<%# app/views/trust_center/docs/dpa-full.html.erb %>
+
+<div class="trust-doc">
+  <div class="trust-doc-header">
+    <div class="trust-doc-breadcrumb">
+      <%= link_to "Trust Center", trust_center_path, class: "trust-doc-breadcrumb-link" %>
+      <span class="trust-doc-breadcrumb-sep">/</span>
+      <span class="trust-doc-breadcrumb-current">Data Processing Addendum (DPA)</span>
+    </div>
+
+    <div class="trust-doc-title-row">
+      <%= image_tag "logo", class: "trust-doc-logo", alt: "Workplace.io" %>
+      <div class="trust-doc-title">Data Processing Addendum (DPA)</div>
+    </div>
+
+    <div class="trust-doc-subtitle">
+      This Data Processing Addendum (“DPA”) forms part of the agreement between the Customer and 5 Voices Inc. for Workplace.io where the Customer
+      is a Controller and 5 Voices Inc. acts as a Processor of Personal Data on behalf of the Customer.
+    </div>
+
+    <div class="trust-doc-updated">
+      Version / Effective date: <%= @trust_center_stamp %>
+    </div>
+  </div>
+
+  <div class="trust-doc-body">
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">1. Parties</div>
+      <div class="trust-doc-text">
+        This DPA is entered into by and between:
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Customer</strong> (as identified in the Order Form, subscription, or other agreement governing the Service) (“Customer”); and</li>
+        <li><strong>5 Voices Inc.</strong>, a Delaware corporation (“Company,” “5 Voices,” or “Processor”).</li>
+      </ul>
+
+      <div class="trust-doc-text">
+        This DPA applies to the extent Company processes Personal Data on behalf of Customer in connection with Customer’s use of Workplace.io (the “Service”).
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">2. Definitions</div>
+      <div class="trust-doc-text">
+        Capitalized terms not defined in this DPA have the meaning given in the agreement governing the Service (the “Agreement”).
+        The following terms apply:
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>“Controller”</strong>, <strong>“Processor”</strong>, <strong>“Personal Data”</strong>, and <strong>“Processing”</strong> have the meanings given in applicable Data Protection Laws.</li>
+        <li><strong>“Data Protection Laws”</strong> means applicable privacy and data protection laws and regulations, including (where applicable) the GDPR, UK GDPR, and Swiss data protection laws.</li>
+        <li><strong>“GDPR”</strong> means Regulation (EU) 2016/679.</li>
+        <li><strong>“UK GDPR”</strong> means the GDPR as incorporated into UK law.</li>
+        <li><strong>“Security Incident”</strong> means a breach of security leading to accidental or unlawful destruction, loss, alteration, unauthorized disclosure of, or access to Personal Data processed by Company on behalf of Customer.</li>
+        <li><strong>“Subprocessor”</strong> means a third party authorized under this DPA to process Personal Data on behalf of Company for the Service.</li>
+        <li><strong>“Standard Contractual Clauses”</strong> or <strong>“SCCs”</strong> means the standard contractual clauses approved for cross-border transfers under applicable law.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">3. Roles and scope of processing</div>
+      <div class="trust-doc-text">
+        The parties acknowledge that, for Personal Data processed under this DPA, Customer is the Controller and Company is the Processor.
+        Company will process Personal Data only on documented instructions from Customer as set out in this DPA, the Agreement, and Customer’s
+        configuration and use of the Service.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Customer instructions:</strong> Customer’s documented instructions include the Agreement, this DPA, and Customer’s configuration and use of the Service.</li>
+        <li><strong>Compliance:</strong> Each party will comply with its obligations under applicable Data Protection Laws.</li>
+        <li><strong>Details of Processing:</strong> The subject matter, duration, nature and purpose of processing, and types of Personal Data are described in <strong>Appendix A</strong>.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">4. Customer obligations</div>
+      <div class="trust-doc-text">
+        Customer is responsible for: (a) determining the lawful basis for Processing, (b) providing required notices to data subjects,
+        (c) obtaining any required consents, and (d) ensuring its instructions comply with applicable law.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Authorization:</strong> Customer represents it has the authority to provide Personal Data to Company for Processing.</li>
+        <li><strong>Configuration:</strong> Customer is responsible for configuring access controls, integrations, and governance settings in a manner consistent with its policies and applicable law.</li>
+        <li><strong>Data minimization:</strong> Customer should avoid configuring the Service for individual surveillance or other prohibited uses.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">5. Company obligations</div>
+      <div class="trust-doc-text">
+        Company will:
+      </div>
+
+      <ul class="trust-doc-list">
+        <li>Process Personal Data only on documented instructions from Customer, unless required by law (in which case Company will notify Customer unless prohibited).</li>
+        <li>Ensure persons authorized to process Personal Data are subject to confidentiality obligations.</li>
+        <li>Implement appropriate technical and organizational measures as described in <strong>Appendix B</strong>.</li>
+        <li>Assist Customer as set out in this DPA, including with data subject requests and Security Incident response.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">6. Confidentiality</div>
+      <div class="trust-doc-text">
+        Company ensures that persons authorized to process Personal Data have committed themselves to confidentiality or are under an appropriate statutory obligation of confidentiality.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">7. Security measures</div>
+      <div class="trust-doc-text">
+        Company will implement and maintain appropriate technical and organizational measures designed to protect Personal Data against a Security Incident.
+        Company’s current measures are described in <strong>Appendix B</strong> (Security Measures). Company may update these measures over time provided
+        they do not materially degrade the overall security of the Service.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Security Overview →", trust_doc_path("security-overview"), class: "trust-doc-link" %>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <%= link_to "Encryption →", trust_doc_path("encryption"), class: "trust-doc-link" %>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <%= link_to "Access Controls →", trust_doc_path("access-controls"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">8. Subprocessors</div>
+      <div class="trust-doc-text">
+        Customer provides a general authorization for Company to engage Subprocessors to process Personal Data for the Service.
+        Company will maintain an up-to-date list of Subprocessors and will impose data protection obligations on Subprocessors consistent with this DPA.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>List:</strong> Company’s current Subprocessors are listed at <%= link_to "Subprocessors", trust_doc_path("subprocessors"), class: "trust-doc-link" %>.</li>
+        <li><strong>Notification:</strong> Company will update the Subprocessors list when Subprocessors change. If Customer requires formal notice (e.g., 30 days), Customer may request it in writing.</li>
+        <li><strong>Objections:</strong> Customer may object to a new Subprocessor on reasonable data protection grounds by providing written notice within a reasonable time. The parties will work in good faith to resolve the objection.</li>
+        <li><strong>Liability:</strong> Company remains responsible for Subprocessors’ performance of their obligations to the extent required by law.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">9. Data subject requests</div>
+      <div class="trust-doc-text">
+        Taking into account the nature of processing, Company will assist Customer by appropriate technical and organizational measures, insofar as possible,
+        for the fulfilment of Customer’s obligation to respond to requests for exercising data subject rights under Data Protection Laws.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Customer-controlled data:</strong> Where requests relate to workplace collaboration data under Customer control, Customer is responsible for verifying the requester and instructions.</li>
+        <li><strong>Assistance:</strong> Company will provide reasonable assistance consistent with the Service and the parties’ agreement, and may charge reasonable fees for excessive or repetitive requests.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "GDPR & Data Rights →", trust_doc_path("gdpr"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">10. Security Incidents</div>
+      <div class="trust-doc-text">
+        Company will notify Customer without undue delay after becoming aware of a Security Incident involving Personal Data processed under this DPA.
+        Company will provide information reasonably requested by Customer to support Customer’s notification and compliance obligations.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Contents of notice:</strong> where feasible, description of the incident, likely consequences, and measures taken or proposed to address it.</li>
+        <li><strong>Customer cooperation:</strong> Customer agrees to coordinate external communications and regulatory notifications unless otherwise required by law.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Incident Response →", trust_doc_path("incident-response"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">11. Audits and compliance information</div>
+      <div class="trust-doc-text">
+        Company will make available to Customer information reasonably necessary to demonstrate compliance with this DPA. Where Customer requests audits,
+        the parties will cooperate in good faith to agree the scope, timing, and confidentiality protections. Company may satisfy audit requests through
+        appropriate documentation and summaries. Company is working toward formal assurance attestations (e.g., SOC 2) but is not currently attested unless
+        explicitly stated in writing by Company.
+      </div>
+
+      <div class="trust-doc-callout trust-doc-callout--note">
+        <div class="trust-doc-callout-title">Practical approach</div>
+        <div class="trust-doc-callout-text">
+          Most customer reviews are satisfied through Trust Center documentation, questionnaire responses (e.g., CAIQ-aligned), and subprocessor transparency.
+          Contact us to coordinate your review requirements.
+        </div>
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "CSA CAIQ →", trust_doc_path("caiq"), class: "trust-doc-link" %>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <%= link_to "SOC 2 →", trust_doc_path("soc2"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">12. Return or deletion of Personal Data</div>
+      <div class="trust-doc-text">
+        At the end of the provision of Services, Company will, at Customer’s choice and upon request, delete or return Personal Data processed under this DPA,
+        unless retention is required by law. Deletion will occur within a reasonable time, subject to technical limitations (including backups).
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Short-lived content:</strong> message content is processed briefly and then removed; derived metadata may be retained to support reporting until deletion is requested or the Agreement ends.</li>
+        <li><strong>Backups:</strong> backup copies may persist for a limited period consistent with reasonable operational practices and will be protected and eventually overwritten in the normal course.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Data Handling & Retention →", trust_doc_path("data-handling"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">13. International transfers</div>
+      <div class="trust-doc-text">
+        Where Data Protection Laws require a transfer mechanism for international transfers of Personal Data (e.g., from the EEA/UK/Switzerland to the United States or another jurisdiction),
+        the parties will implement an appropriate mechanism, such as SCCs, incorporated into this DPA or executed separately.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>SCCs:</strong> where applicable, SCCs will be made available and incorporated by reference or executed as needed.</li>
+        <li><strong>Subprocessors:</strong> Company will flow down transfer obligations to Subprocessors where required.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "International Transfers (SCCs) →", trust_doc_path("scc"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">14. Liability</div>
+      <div class="trust-doc-text">
+        Liability arising out of or related to this DPA will be subject to the liability limitations and exclusions in the Agreement,
+        unless Data Protection Laws require otherwise.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">15. Order of precedence</div>
+      <div class="trust-doc-text">
+        In the event of a conflict between this DPA and the Agreement regarding the processing of Personal Data, this DPA will control to the extent of that conflict.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">16. Contact</div>
+      <div class="trust-doc-text">
+        To request signatures, SCCs, or additional documentation, contact us at:
+        <a class="trust-doc-link" href="mailto:security@workplace.io">security@workplace.io</a>.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">17. Signature blocks</div>
+      <div class="trust-doc-text">
+        This DPA may be executed electronically and in counterparts.
+      </div>
+
+      <div class="trust-doc-callout trust-doc-callout--note">
+        <div class="trust-doc-callout-title">Customer</div>
+        <div class="trust-doc-callout-text">
+          Legal Name: _______________________________<br>
+          Authorized Signatory: _______________________<br>
+          Title: _____________________________________<br>
+          Date: ______________________________________
+        </div>
+      </div>
+
+      <div class="trust-doc-callout trust-doc-callout--note">
+        <div class="trust-doc-callout-title">5 Voices Inc.</div>
+        <div class="trust-doc-callout-text">
+          Authorized Signatory: _______________________<br>
+          Title: _____________________________________<br>
+          Date: ______________________________________
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================= -->
+    <!-- APPENDIX A: Details of Processing -->
+    <!-- ============================= -->
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Appendix A — Details of Processing</div>
+
+      <div class="trust-doc-text">
+        <strong>Subject matter:</strong> Processing of Personal Data to provide Workplace.io culture and performance analytics and related features.<br><br>
+
+        <strong>Duration:</strong> For the term of the Agreement, plus retention periods described in the Service and Customer instructions, and as required by law.<br><br>
+
+        <strong>Nature and purpose:</strong> Hosting, ingestion, processing, and analysis of customer-authorized collaboration signals to generate aggregate reporting and trends; security, reliability, and support.<br><br>
+
+        <strong>Categories of data subjects:</strong> Customer’s authorized users and members of Customer’s connected collaboration platforms.<br><br>
+
+        <strong>Categories of Personal Data:</strong> May include identifiers (name, email, user IDs), workspace/channel identifiers, message-related metadata, and short-lived message content during processing; derived metadata and aggregated results used for reporting.<br><br>
+
+        <strong>Special categories:</strong> The Service is not intended for processing special categories of personal data. Customer should avoid sending sensitive personal data in free-form inputs (including chat prompts) and should configure the Service consistent with internal policies.
+      </div>
+    </div>
+
+    <!-- ============================= -->
+    <!-- APPENDIX B: Security Measures -->
+    <!-- ============================= -->
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Appendix B — Security Measures</div>
+
+      <div class="trust-doc-text">
+        Company maintains technical and organizational measures designed to protect Personal Data processed under this DPA. Measures include:
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Access control:</strong> workspace membership and roles restrict access to administrative functions; internal access restricted by least privilege.</li>
+        <li><strong>Encryption in transit:</strong> TLS for communications between clients, providers, and services.</li>
+        <li><strong>Encryption at rest:</strong> encrypted storage in hosting environments; restricted handling of integration credentials.</li>
+        <li><strong>Logging and monitoring:</strong> operational monitoring and security-relevant logging with minimization of sensitive content in logs.</li>
+        <li><strong>Incident response:</strong> defined process for detection, triage, containment, remediation, and communication.</li>
+        <li><strong>Vendor management:</strong> subprocessor inventory and vendor risk practices; change management for vendors where applicable.</li>
+        <li><strong>Secure development:</strong> review, testing, dependency hygiene, and controlled releases.</li>
+        <li><strong>Data minimization:</strong> message content processed briefly then removed; derived metadata and aggregates retained for reporting.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Security Overview →", trust_doc_path("security-overview"), class: "trust-doc-link" %>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <%= link_to "Encryption →", trust_doc_path("encryption"), class: "trust-doc-link" %>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <%= link_to "Logging & Monitoring →", trust_doc_path("logging-monitoring"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <!-- ============================= -->
+    <!-- APPENDIX C: Subprocessors -->
+    <!-- ============================= -->
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Appendix C — Subprocessors</div>
+      <div class="trust-doc-text">
+        The current list of Subprocessors is maintained at:
+        <%= link_to "Subprocessors", trust_doc_path("subprocessors"), class: "trust-doc-link" %>.
+        Customer may request formal notice terms via written agreement.
+      </div>
+    </div>
+
+    <!-- ============================= -->
+    <!-- APPENDIX D: SCCs (if applicable) -->
+    <!-- ============================= -->
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Appendix D — Standard Contractual Clauses (if applicable)</div>
+      <div class="trust-doc-text">
+        Where required for international transfers, SCCs will be incorporated by reference or executed between the parties, with appropriate module
+        selections based on the parties’ roles. Customer may request SCCs by contacting:
+        <a class="trust-doc-link" href="mailto:security@workplace.io">security@workplace.io</a>.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "International Transfers (SCCs) →", trust_doc_path("scc"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-footer">
+      <div class="trust-doc-footer-title">Need this as a downloadable PDF?</div>
+      <div class="trust-doc-footer-text">
+        Contact us and we can provide a signature-ready version.
+      </div>
+      <div class="trust-doc-footer-actions">
+        <%= link_to "Contact Trust & Security", trust_doc_path("contact"), class: "trust-doc-button" %>
+        <%= link_to "Back to Trust Center", trust_center_path, class: "trust-doc-button trust-doc-button--secondary" %>
+      </div>
+    </div>
+  </div>
+</div>

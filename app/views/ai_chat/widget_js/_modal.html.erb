@@ -1,0 +1,122 @@
+<script>
+/* ============================== Chat Widget — Modal Overlay ============================== */
+(function (global){
+  var Modal = {
+    install: function(){
+      if (this._installed) return; this._installed = true;
+      this._build();
+      var self = this;
+
+      // Open on click of any widget container
+      document.addEventListener("click", function(e){
+        var el = e.target && e.target.closest && e.target.closest(".ai-widget");
+        if (el) { e.preventDefault(); self.openFromElement(el); }
+        // Close when clicking backdrop
+        if (self.isOpen() && e.target === self.$backdrop) { e.preventDefault(); self.close(); }
+      }, true);
+
+      // Keyboard: Enter/Space to open when focused on widget; Escape/Tab trap inside modal
+      document.addEventListener("keydown", function(e){
+        // If modal is open, handle Escape + focus trap
+        if (self.isOpen()) {
+          if (e.key === "Escape") { e.preventDefault(); self.close(); return; }
+          if (e.key === "Tab") {
+            var focusables = self._focusables();
+            if (!focusables.length) return;
+            var first = focusables[0], last = focusables[focusables.length - 1];
+            if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+            else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+          }
+          return;
+        }
+
+        // If not open: open with Enter/Space on focused widget
+        var t = e.target;
+        if (!t || !t.classList) return;
+        if (t.classList.contains("ai-widget") && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault(); self.openFromElement(t);
+        }
+      });
+
+      this.$close.addEventListener("click", function(e){ e.preventDefault(); self.close(); });
+    },
+
+    _build: function(){
+      var root = document.createElement("div");
+      root.className = "ai-modal";
+      root.innerHTML =
+        '<div class="ai-modal__backdrop"></div>' +
+        '<div class="ai-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="ai-modal-title">' +
+          '<div class="ai-modal__header">' +
+            '<h3 class="ai-modal__title" id="ai-modal-title">Preview</h3>' +
+            '<button class="ai-modal__close" aria-label="Close">✕</button>' +
+          '</div>' +
+          '<div class="ai-modal__content"></div>' +
+        '</div>';
+      document.body.appendChild(root);
+
+      this.$root = root;
+      this.$dialog = root.querySelector(".ai-modal__dialog");
+      this.$content = root.querySelector(".ai-modal__content");
+      this.$title = root.querySelector(".ai-modal__title");
+      this.$backdrop = root.querySelector(".ai-modal__backdrop");
+      this.$close = root.querySelector(".ai-modal__close");
+      this._prevFocus = null;
+      this._moved = null; // { fig, nodes[] }
+    },
+
+    isOpen: function(){ return this.$root.classList.contains("is-open"); },
+
+    openFromElement: function(fig){
+      // Title from data attr, then caption, else fallback
+      var title = fig.getAttribute("data-widget-title") ||
+                  (fig.querySelector && (fig.querySelector(".ai-chart__caption") || {}).textContent) ||
+                  "Widget";
+
+      // Move nodes (not clone) to avoid duplicate SVG IDs; restore on close
+      var moved = [], child;
+      while ((child = fig.firstChild)) { moved.push(child); this.$content.appendChild(child); }
+      fig.classList.add("ai-widget--open");
+      this._moved = { fig: fig, nodes: moved };
+
+      this.$title.textContent = title;
+      this.$root.classList.add("is-open");
+      this._prevFocus = document.activeElement;
+      document.body.dataset.__aiModalOverflow = document.body.style.overflow || "";
+      document.body.style.overflow = "hidden";
+      this.$close.focus();
+    },
+
+    close: function(){
+      if (!this.isOpen()) return;
+      // Restore nodes back to original fig
+      if (this._moved && this._moved.fig) {
+        var backTo = this._moved.fig;
+        var nodes = Array.prototype.slice.call(this.$content.childNodes || []);
+        nodes.forEach(function(n){ backTo.appendChild(n); });
+        backTo.classList.remove("ai-widget--open");
+      }
+      this._moved = null;
+
+      this.$root.classList.remove("is-open");
+      var prev = document.body.dataset.__aiModalOverflow || "";
+      document.body.style.overflow = prev;
+      delete document.body.dataset.__aiModalOverflow;
+
+      if (this._prevFocus && this._prevFocus.focus) { try { this._prevFocus.focus(); } catch(_){} }
+      this._prevFocus = null;
+    },
+
+    _focusables: function(){
+      var selectors = 'a[href], area[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])';
+      var list = this.$dialog.querySelectorAll(selectors);
+      return Array.prototype.filter.call(list, function(el){
+        return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+      });
+    }
+  };
+
+  global.AiChatModal = Modal;
+  document.addEventListener("DOMContentLoaded", function(){ Modal.install(); });
+})(window);
+</script>

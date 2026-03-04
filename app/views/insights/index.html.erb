@@ -1,0 +1,9 @@
+<h2>Your Insights</h2>
+<ul class="list-group">
+  <% @insights.each do |insight| %>
+    <li class="list-group-item">
+      <%= link_to insight.scope.titleize, insight_path(insight) %>
+      <small class="text-muted">(<%= insight.created_at.strftime("%Y-%m-%d %H:%M") %>)</small>
+    </li>
+  <% end %>
+</ul>

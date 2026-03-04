@@ -1,0 +1,15 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "rails",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["/Users/connellyrader/Desktop/workplace/.claude/proxy.mjs"],
+      "port": 3002,
+      "autoPort": true,
+      "env": {
+        "TARGET_PORT": "3001"
+      }
+    }
+  ]
+}

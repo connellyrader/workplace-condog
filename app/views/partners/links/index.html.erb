@@ -1,0 +1,118 @@
+<%= button_to "Create New Link",
+              partners_links_path,
+              method: :post,
+              class: "pp-create-btn" %>
+
+<h1>Referral Links</h1>
+
+<!-- Actions -->
+  <div class="pp-card-header" style="grid-template-columns: 1fr auto;">
+
+  </div>
+
+<!-- Table -->
+<section class="pp-card pp-span-3">
+  <div class="pp-table-wrap">
+    <table class="pp-table">
+      <thead>
+        <tr>
+          <th>URL</th>
+          <th class="pp-num">Clicks</th>
+          <th class="pp-num">Uniques</th>
+          <th class="pp-num">Leads</th>
+          <th class="pp-num">Trials</th>
+          <th class="pp-num">Paid Conversions</th>
+          <th class="pp-num">Gross Sales</th>
+          <th class="pp-num">Commissions</th>
+          <th>Created</th>
+          <th>Last Click</th>
+          <th></th>
+          <th></th>
+          <th></th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <% if @links.any? %>
+          <% @links.each do |link| %>
+            <% url = referral_redirect_url(code: link.code) %>
+            <tr>
+              <td class="pp-mono" style="max-width:420px;">
+                <span id="visible-url-<%= link.id %>"><%= url %></span>
+              </td>
+
+              <td class="pp-num"><%= number_with_delimiter(link.clicks) %></td>
+              <td class="pp-num"><%= number_with_delimiter(link.unique_clicks) %></td>
+              <td class="pp-num"><%= number_with_delimiter(link.signups) %></td>
+              <td class="pp-num"><%= number_with_delimiter(link.trials) %></td>
+              <td class="pp-num"><%= number_with_delimiter(link.conversions) %></td>
+
+              <td class="pp-num">$<%= number_with_precision(link.gross_sales.to_f / 100, precision: 2) %></td>
+              <td class="pp-num">$<%= number_with_precision(link.commissions.to_f / 100, precision: 2) %></td>
+
+              <td><%= link.created_at.strftime("%b %-d, %Y") %></td>
+              <td>
+                <% if link.last_click_at.present? %>
+                  <%= link.last_click_at.strftime("%b %-d, %Y") %>
+                <% else %>
+                  <span class="pp-muted">—</span>
+                <% end %>
+              </td>
+
+
+              <td style="text-align:right;">
+                <% if link.link_clicks.exists? %>
+                  <span class="pp-status">Locked</span>
+                <% else %>
+                  <%= link_to "Edit", edit_partners_link_path(link), class: "pp-btn pp-btn-sm" %>
+                <% end %>
+              </td>
+
+              <td style="text-align:right; white-space:nowrap;">
+                <%= link_to "Download QR",
+                            qr_partners_link_path(link, format: :png, size: 512),
+                            class: "pp-btn pp-btn-sm",
+                            style: "margin-left:6px;" %>
+              </td>
+
+              <td style="text-align:right;">
+                <button
+                  type="button"
+                  class="pp-btn"
+                  style="padding:6px 10px; font-size:12px;"
+                  data-copy-url="<%= url %>"
+                  data-link-id="<%= link.id %>">
+                  Copy
+                </button>
+              </td>
+            </tr>
+          <% end %>
+        <% else %>
+          <tr>
+            <td colspan="10" class="pp-muted">No links yet. Click “Create New Link” to get started.</td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Toast -->
+<div id="copy-toast" class="pp-toast" style="display:none;">
+  Copied to clipboard!
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll("[data-copy-url]").forEach(btn => {
+      btn.addEventListener("click", function () {
+        const url = this.dataset.copyUrl;
+        navigator.clipboard.writeText(url).then(() => {
+          const toast = document.getElementById("copy-toast");
+          toast.style.display = "block";
+          setTimeout(() => toast.style.display = "none", 1800);
+        }).catch(err => console.error("Failed to copy link", err));
+      });
+    });
+  });
+</script>

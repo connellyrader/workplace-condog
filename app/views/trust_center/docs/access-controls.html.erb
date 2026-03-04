@@ -1,0 +1,160 @@
+<%# app/views/trust_center/docs/access-controls.html.erb %>
+
+<div class="trust-doc">
+  <div class="trust-doc-header">
+    <div class="trust-doc-breadcrumb">
+      <%= link_to "Trust Center", trust_home_url, class: "trust-doc-breadcrumb-link" %>
+      <span class="trust-doc-breadcrumb-sep">/</span>
+      <span class="trust-doc-breadcrumb-current">Access Controls</span>
+    </div>
+
+    <div class="trust-doc-title-row">
+      <%= image_tag "logo.png", class: "trust-doc-logo", alt: "Workplace.io" %>
+      <div class="trust-doc-title">Access Controls</div>
+    </div>
+
+    <div class="trust-doc-subtitle">
+      Workplace.io uses workspace membership and role-based access control to ensure users only access the data and settings
+      they are authorized to view or manage.
+    </div>
+
+    <div class="trust-doc-updated">
+      Last updated: <%= @trust_center_stamp %>
+    </div>
+  </div>
+
+  <div class="trust-doc-body">
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">At a glance</div>
+      <div class="trust-doc-bullets">
+        <ul class="trust-doc-bullet-list">
+          <li><strong>Workspace boundary:</strong> data access is scoped to a workspace; users only see workspaces they belong to.</li>
+          <li><strong>Roles:</strong> roles control administrative actions such as integrations, billing, and member management.</li>
+          <li><strong>Archived workspaces:</strong> archived workspaces are removed from selection and cannot be activated.</li>
+          <li><strong>Session security:</strong> sessions use secure, HTTP-only cookies with CSRF protection on state-changing requests.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Core concepts</div>
+      <div class="trust-doc-text">
+        Access to Workplace.io is governed by a combination of identity (who you are), workspace membership (which organizations you
+        belong to), and role-based permissions (what you can do inside a workspace).
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Identity:</strong> users authenticate via SSO or email/password.</li>
+        <li><strong>Membership:</strong> membership ties a user to a workspace.</li>
+        <li><strong>Authorization:</strong> roles determine which settings and actions are permitted.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Workspace isolation</div>
+      <div class="trust-doc-text">
+        Workplace.io is organized around workspaces. Each workspace is a tenant boundary for data access and administration.
+        Users only have access to data for workspaces where they are members.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Scoped views:</strong> dashboards, insights, and settings are scoped to the active workspace.</li>
+        <li><strong>Membership required:</strong> users cannot access a workspace unless they have an explicit membership.</li>
+        <li><strong>Archive behavior:</strong> archiving a workspace disables access without deleting underlying data.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Roles and permissions</div>
+      <div class="trust-doc-text">
+        Roles control which users can manage sensitive settings. Typical capabilities are summarized below. Exact permissions may
+        evolve as the product develops, but the guiding principle is least privilege.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Owner/Admin:</strong> can manage integrations, billing, members/roles, and high-impact settings (including archiving a workspace).</li>
+        <li><strong>User/Member:</strong> can access standard dashboards and features allowed by the workspace configuration.</li>
+        <li><strong>Viewer:</strong> read-only access to dashboards and reports, without administrative permissions.</li>
+      </ul>
+
+      <div class="trust-doc-callout trust-doc-callout--note">
+        <div class="trust-doc-callout-title">Recommended practice</div>
+        <div class="trust-doc-callout-text">
+          Limit administrative roles to a small set of trusted operators. Use SSO and enforce MFA in your identity provider where possible.
+        </div>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Integration administration</div>
+      <div class="trust-doc-text">
+        Connecting data sources is a privileged action. Only authorized roles can connect, disconnect, or change integration settings.
+        Integration credentials are protected and access-restricted to the services that require them.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Slack / Microsoft Teams:</strong> workspace admins authorize integrations via OAuth.</li>
+        <li><strong>Credential protection:</strong> integration credentials are restricted to synchronization and processing services.</li>
+        <li><strong>Disconnect:</strong> disabling an integration stops future synchronization.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Architecture & Data Flow →", trust_doc_url_for("architecture"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Reporting access and aggregation</div>
+      <div class="trust-doc-text">
+        Workplace.io is designed for organizational insight. Reporting is structured to emphasize aggregated results and trends.
+        Customers can use groups to structure analysis, and we encourage configurations that reduce the risk of identifying individuals.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Groups:</strong> used to scope reporting and comparisons.</li>
+        <li><strong>Anonymity considerations:</strong> configurations may limit visibility for very small groups to reduce identification risk.</li>
+        <li><strong>Short-lived message content:</strong> message content is processed briefly and removed; results are retained as metadata.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Aggregation & Anonymity →", trust_doc_url_for("anonymity-aggregation"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Administrative actions and auditability</div>
+      <div class="trust-doc-text">
+        Administrative actions (such as changing roles, connecting integrations, or archiving a workspace) are limited to authorized roles.
+        We maintain operational logs to support troubleshooting and incident investigation, and we minimize sensitive content in logs.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Session controls</div>
+      <div class="trust-doc-text">
+        We use standard web session protections to reduce risk from session theft or cross-site request attacks.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Cookies:</strong> secure, HTTP-only session cookies.</li>
+        <li><strong>CSRF protection:</strong> enforced on state-changing requests.</li>
+        <li><strong>Sign-out:</strong> sign-out invalidates active sessions.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Encryption →", trust_doc_url_for("encryption"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-footer">
+      <div class="trust-doc-footer-title">Need a permission review?</div>
+      <div class="trust-doc-footer-text">
+        If you need help mapping Workplace.io roles to your internal access policies, contact us and we’ll assist.
+      </div>
+      <div class="trust-doc-footer-actions">
+        <%= link_to "Contact Trust & Security", trust_doc_url_for("contact"), class: "trust-doc-button" %>
+        <%= link_to "Back to Trust Center", trust_home_url, class: "trust-doc-button trust-doc-button--secondary" %>
+      </div>
+    </div>
+  </div>
+</div>

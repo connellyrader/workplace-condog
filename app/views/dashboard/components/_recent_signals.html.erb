@@ -1,0 +1,108 @@
+<div class="dashboard-last-100">
+  <div class="last-100-title">
+    Recent Signals
+    <div class="last-100-dot"></div>
+  </div>
+
+  <div id="signals-list">
+    <%= render "/dashboard/components/signals" %>
+  </div>
+
+  <div id="signal-tooltip" class="signal-tooltip">
+    <div class="signal-tooltip-title">Title</div>
+    <div class="signal-tooltip-description">Description</div>
+    <div class="signal-tooltip-icons">
+      <!-- Show both icons on the template and toggle which shows from js -->
+      <%= icon "arrow-top-right",    class_name: "signal-tooltip-icon-up" %>
+      <%= icon "arrow-bottom-right", class_name: "signal-tooltip-icon-down" %>
+    </div>
+  </div>
+</div>
+
+
+<script>
+  (function () {
+    const barW = 5;   // px (match --barW)
+    const gap  = 2;   // px (match --gap)
+
+    function resizeSignals() {
+      const $wrap = $('.dashboard-last-100');
+      const $list = $wrap.find('.signals');      // <-- re-query each time
+      if ($list.length === 0) return;
+
+      $list.addClass('adaptive');
+
+      const available = $wrap.width();
+      const maxBars   = Math.floor((available + gap) / (barW + gap));
+
+      const $bars = $list.children('li');
+      $bars.hide();
+      $bars.slice(-maxBars).show();              // show RIGHTMOST N
+    }
+
+    // initial run
+    $(resizeSignals);
+    // recompute on resize
+    $(window).on('resize', resizeSignals);
+    // recompute after AJAX swap
+    document.addEventListener('signals:updated', resizeSignals);
+  })();
+</script>
+
+
+
+
+<script>
+  (function () {
+    const $ = window.jQuery;
+    let currentEl = null;
+
+    // safer to re-grab the tooltip each time if you ever move it
+    function $tip() { return $('#signal-tooltip'); }
+
+    function showTip(el) {
+      const rect = el.getBoundingClientRect();
+      const $t   = $tip();
+      const tw   = $t.outerWidth();
+      const vw   = $(window).width();
+      const pad  = 24;
+
+      let left = rect.left + rect.width / 2;
+      const half = tw / 2;
+      left = Math.max(pad + half, Math.min(vw - pad - half, left));
+
+      $t.css({
+        top: rect.top - 24,
+        left: left,
+        transform: 'translateX(-50%) translateY(-100%)',
+        position: 'fixed',
+        display: 'block'
+      });
+    }
+
+    // ✅ delegate to a stable ancestor (document), not to the UL being replaced
+    $(document).on('mouseenter', '.signals li', function () {
+      if ($(this).hasClass('zero')) return;   // ⛔ skip zero bars
+
+      currentEl = this;
+
+      const $t = $tip();
+      $t.find('.signal-tooltip-title').text($(this).data('title') || '');
+      $t.find('.signal-tooltip-description').text($(this).data('description') || '');
+
+      const trend = ($(this).data('trend') || 'up').toString();
+      $t.find('.signal-tooltip-icon-up, .signal-tooltip-icon-down').hide();
+      $t.find(trend === 'down' ? '.signal-tooltip-icon-down' : '.signal-tooltip-icon-up').show();
+
+      showTip(this);
+    });
+
+    $(document).on('mouseleave', '.signals li', function () {
+      if (currentEl === this) { currentEl = null; $tip().hide(); }
+    });
+
+    $(window).on('resize scroll', function () {
+      if (currentEl) showTip(currentEl);
+    });
+  })();
+</script>

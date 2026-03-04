@@ -1,0 +1,9 @@
+
+<div class="categories-wrapper">
+  <% categories.each do |name, score| %>
+    <div class="category-box" style="display:inline-block;width:150px;padding:10px;margin:10px;border:1px solid #ccc;text-align:center;">
+      <div class="category-title"><strong><%= name.capitalize %></strong></div>
+      <div class="category-score" style="font-size:24px;margin-top:5px;"><%= score %></div>
+    </div>
+  <% end %>
+</div>

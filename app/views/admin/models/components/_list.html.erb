@@ -1,0 +1,91 @@
+<!-- app/views/admin/models/components/list.html.erb -->
+<table class="mo-table" aria-describedby="models-table-caption">
+  <caption id="models-table-caption" class="sr-only">Models list</caption>
+
+  <thead>
+    <tr>
+      <th><button class="mo-sort mo-sort--active" data-dir="asc" data-type="text">Name</button></th>
+      <th>Description</th>
+      <th><button class="mo-sort" data-type="text">Status</button></th>
+      <th><button class="mo-sort" data-type="text">Inference</button></th>
+      <th><button class="mo-sort" data-type="text">Instance</button></th>
+      <th><button class="mo-sort" data-type="number">Hourly Rate</button></th>
+      <th><button class="mo-sort" data-type="text">HF Model ID</button></th>
+      <th><button class="mo-sort" data-type="text">Autoscaling (min–max)</button></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% models.each do |m| %>
+      <% ai      = m.aws_instance %>
+      <% dollars = ai&.hourly_price ? (ai.hourly_price.to_f / 100.0) : nil %>
+      <% min     = m.min_server_instances || 0 %>
+      <% max     = m.max_server_instances || 1 %>
+
+      <tr
+        data-search="<%= [m.name, m.status, m.deployment_type, ai&.instance_type, m.hf_model_id].compact.join(' ') %>">
+        <td data-sort-value="<%= m.name.to_s %>"><%= m.name %></td>
+
+        <td>
+          <% if m.description.present? %>
+            <details class="mo-desc">
+              <summary><%= truncate(m.description, length: 80) %></summary>
+              <div class="mo-desc-body"><%= simple_format(m.description) %></div>
+            </details>
+          <% else %>—<% end %>
+        </td>
+
+        <td data-sort-value="<%= m.status.to_s.downcase %>">
+          <% badge_class =
+               case m.status.to_s
+               when 'deployed' then 'mo-badge--ok'
+               when 'pending'  then 'mo-badge--warn'
+               when 'failed'   then 'mo-badge--fail'
+               else                  'mo-badge--warn'
+               end %>
+          <span class="mo-badge <%= badge_class %>"><%= m.status || '—' %></span>
+        </td>
+
+        <td data-sort-value="<%= m.inference_mode.to_s.downcase %>"><%= m.inference_mode || '—' %></td>
+
+        <td data-sort-value="<%= ai&.instance_type.to_s.downcase %>"><%= ai&.instance_type || '—' %></td>
+
+        <td data-sort-value="<%= dollars ? ('%.4f' % dollars) : '0' %>">
+          <%= dollars ? "#{number_to_currency(dollars)}/hr" : '—' %>
+        </td>
+
+        <td data-sort-value="<%= m.hf_model_id.to_s.downcase %>"><%= m.hf_model_id || '—' %></td>
+
+        <td data-sort-value="<%= "#{min}-#{max}" %>">
+          <% if m.inference_mode.to_s == 'realtime' %>
+            <div class="rt-toggle">
+              <% on = (m.status.to_s == 'deployed' && m.endpoint_name.present?) %>
+              <span class="mo-badge <%= on ? 'mo-badge--ok' : 'mo-badge--fail' %>">
+                <%= on ? 'On' : 'Off' %>
+              </span>
+
+              <%= form_with url: toggle_model_endpoint_path(m), method: :post, class: "inline-form" do %>
+                <%= hidden_field_tag :enabled, (!on).to_s %>
+                <button type="submit" class="nm-mini-btn"><%= on ? 'Turn Off' : 'Turn On' %></button>
+              <% end %>
+            </div>
+          <% else %>
+            <%= "#{min}–#{max}" %>
+            <button type="button" class="nm-mini-btn"
+                    data-url="<%= update_model_scaling_path(m) %>"
+                    data-name="<%= m.name %>"
+                    data-min="<%= min %>"
+                    data-max="<%= max %>"
+                    data-deployment="<%= m.deployment_type %>"
+                    data-status="<%= m.status %>"
+                    data-id="<%= m.id %>"
+                    onclick="SM.open(this)">
+              Edit
+            </button>
+          <% end %>
+        </td>
+
+      </tr>
+    <% end %>
+  </tbody>
+</table>

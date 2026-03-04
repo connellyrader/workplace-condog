@@ -1,0 +1,25 @@
+.navigation{
+  width:300px;
+  position: fixed;
+  top:0;
+  left:0;
+  bottom:0;
+  padding:20px;
+
+  a{
+    display:block;
+  }
+}
+
+  .logo{
+    font-weight: 700;
+    font-size:20px;
+    margin-bottom:10px;
+  }
+
+
+  .navigation-footer{
+    position: absolute;
+    bottom:0;
+    padding-bottom:20px;
+  }

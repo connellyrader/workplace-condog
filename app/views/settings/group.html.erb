@@ -1,0 +1,327 @@
+<%= render "settings/topbar" %>
+<%= render "settings/navigation" %>
+
+<% is_everyone = defined?(@is_everyone_group) && @is_everyone_group %>
+
+<div class="settings-main">
+
+  <div class="settings-breadcrumb">
+    <%= link_to "All Groups", groups_path %>
+    <%= icon "chevron-right" %>
+    <%= @group.name %>
+  </div>
+
+  <div class="settings-topbar">
+    <div class="settings-topbar-left">
+      <div class="settings-main-heading">
+        <%= @group.name %>
+        <% if @group.integration_users.count < 3 %>
+          <span class="settings-info-tooltip"
+                data-tooltip="This group needs at least 3 members before it will be visible on your dashboard to protect the anonymity of its members.">
+            <%= icon "warning", class_name: "settings-group-warning" %>
+          </span>
+        <% end %>
+      </div>
+      <div class="settings-main-subheading">
+        <% if is_everyone %>
+          This default group includes everyone who is selected to be included in your culture analytics.
+        <% else %>
+          This custom group is used to filter your culture analytics. Members added here will be included in group-based dashboards and insights.
+        <% end %>
+      </div>
+    </div>
+
+    <div class="settings-topbar-button js-group-edit-trigger"
+         data-group-id="<%= @group.id %>"
+         data-group-name="<%= @group.name %>"
+         data-member-ids="<%= @group_member_ids.join(',') %>">
+      Edit group
+    </div>
+  </div>
+
+  <!-- MEMBERS SECTION -->
+  <div class="settings-section-boxed">
+    <div class="settings-group-members-title">Members</div>
+    <div class="settings-group-members-subtitle">
+      <%= @members.count %> <%= @members.count == 1 ? "member" : "members" %> in this group.
+    </div>
+
+    <% @members.each do |iu| %>
+      <% avatar_url     = iu.avatar_url.presence %>
+      <% workspace_user = @workspace_users_by_user_id[iu.user_id] %>
+
+      <%
+        if workspace_user
+          status_key   = workspace_user.data_status_key
+          status_label = workspace_user.data_status_label
+        else
+          status_key   = iu.data_status_key_for_workspace(@active_workspace)
+          status_label = iu.data_status_label_for_workspace(@active_workspace)
+        end
+
+        status_tooltip =
+          case status_key
+          when :data_synced
+            "This person’s collaboration data is fully connected and included in your culture scores for this group."
+          when :partial_data
+            "We have limited collaboration data for this person through other connected users, but not all of their data. Invite them to become a Workplace user and connect their direct collaboration channels for complete data."
+          when :no_data
+            "We don’t have any usable collaboration data for this person yet. Invite them to become a user and connect their direct collaboration channels for complete data."
+          else
+            "Data status is unknown for this person."
+          end
+      %>
+
+      <div class="settings-row">
+        <div class="settings-row-icon"
+             style="<%= "background-image: url('#{avatar_url}')" if avatar_url %>">
+          <% unless avatar_url %>
+            <%= icon "user" %>
+          <% end %>
+        </div>
+
+        <div class="settings-row-middle">
+          <div class="settings-row-middle-title">
+            <div>
+              <%= iu.real_name.presence || iu.display_name.presence || iu.email %>
+            </div>
+            <div class="settings-row-middle-tag">
+              <%= iu.integration&.kind&.titleize || "Slack" %>
+            </div>
+          </div>
+          <div class="settings-row-middle-subtitle">
+            <%= iu.email %>
+          </div>
+        </div>
+
+        <div class="settings-row-data-status-block">
+          <span class="settings-info-tooltip" data-tooltip="<%= status_tooltip %>">
+            <%= icon "info" %>
+          </span>
+          <div class="settings-row-data-status
+                      <%= 'settings-row-data-status--no-data'   if status_key == :no_data %>
+                      <%= ' settings-row-data-status--synced'   if status_key == :data_synced %>
+                      <%= ' settings-row-data-status--partial'  if status_key == :partial_data %>">
+            <%= icon "database" %>
+            <%= status_label %>
+          </div>
+        </div>
+
+        <div class="settings-row-right">
+          <div class="settings-row-invite-button js-group-member-remove"
+               data-group-id="<%= @group.id %>"
+               data-integration-user-id="<%= iu.id %>"
+               data-member-name="<%= iu.real_name.presence || iu.display_name.presence || iu.email %>">
+            Remove
+          </div>
+        </div>
+      </div>
+    <% end %>
+
+  </div>
+
+  <!-- DELETE GROUP SECTION (hidden for Everyone) -->
+  <% unless is_everyone %>
+    <div class="settings-section-title" style="margin-top:24px;">Group settings</div>
+
+    <div class="settings-section-boxed">
+      <div class="settings-group">
+        <div class="settings-group-middle">
+          <div class="settings-group-members-title">Delete group</div>
+          <div class="settings-group-members-subtitle" style="margin-bottom:0;">
+            This cannot be undone.
+          </div>
+        </div>
+
+        <div class="settings-group-right">
+          <div class="settings-group-right-delete-button js-group-delete-button"
+               data-group-id="<%= @group.id %>">
+            Delete group
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+</div>
+
+<%= render "settings/group_edit_modal" %>
+
+<script>
+  document.addEventListener("turbo:load", initGroupDelete);
+  document.addEventListener("turbo:load", initGroupMemberRemove);
+
+  function initGroupDelete() {
+    var deleteBtn = document.querySelector(".js-group-delete-button");
+    if (!deleteBtn) return; // nothing to do (e.g., Everyone group)
+
+    var csrfMeta  = document.querySelector('meta[name="csrf-token"]');
+    var csrfToken = csrfMeta && csrfMeta.content;
+    var groupId   = deleteBtn.dataset.groupId;
+
+    if (!groupId) return;
+
+    deleteBtn.addEventListener("click", function () {
+      if (typeof warning !== "function") {
+        var fallbackMsg = "Delete this group? This cannot be undone.";
+        if (!window.confirm(fallbackMsg)) return;
+        return doDelete();
+      }
+
+      warning(
+        "Delete this group? This will remove “<%= j @group.name %>” from your account. This action cannot be undone.",
+        { confirmLabel: "Delete group", cancelLabel: "Cancel" }
+      ).then(function(confirmed) {
+        if (!confirmed) return;
+        doDelete();
+      });
+    });
+
+    function doDelete() {
+      if (!csrfToken) {
+        console.error("CSRF token missing; cannot delete group.");
+        return;
+      }
+
+      $.ajax({
+        url: "/settings/groups/" + encodeURIComponent(groupId),
+        method: "DELETE",
+        headers: {
+          "X-CSRF-Token": csrfToken,
+          "Accept": "application/json"
+        },
+        success: function(resp) {
+          var msg = (resp && resp.message) || "Group deleted.";
+
+          if (typeof showToast === "function") {
+            showToast(msg);
+          } else {
+            console.log(msg);
+          }
+
+          window.location.href = "/settings/groups";
+        },
+        error: function(xhr) {
+          var msg =
+            (xhr.responseJSON && xhr.responseJSON.error) ||
+            "Failed to delete group. Please try again.";
+
+          if (typeof showToast === "function") {
+            showToast(msg);
+          } else {
+            alert(msg);
+          }
+        }
+      });
+    }
+  }
+
+  function initGroupMemberRemove() {
+    var buttons = document.querySelectorAll(".js-group-member-remove");
+    if (!buttons.length) return;
+
+    var csrfMeta  = document.querySelector('meta[name="csrf-token"]');
+    var csrfToken = csrfMeta && csrfMeta.content;
+
+    buttons.forEach(function(btn) {
+      btn.addEventListener("click", function () {
+        var groupId = btn.dataset.groupId;
+        var iuId    = btn.dataset.integrationUserId;
+        var name    = btn.dataset.memberName || "this member";
+        var row     = btn.closest(".settings-row");
+
+        if (!groupId || !iuId) return;
+
+        function doRemove() {
+          if (!csrfToken) {
+            console.error("CSRF token missing; cannot remove member.");
+            return;
+          }
+
+          $.ajax({
+            url: "/settings/groups/" + encodeURIComponent(groupId) + "/members/" + encodeURIComponent(iuId),
+            method: "DELETE",
+            headers: {
+              "X-CSRF-Token": csrfToken,
+              "Accept": "application/json"
+            },
+            success: function(resp) {
+              var msg = (resp && resp.message) || "Member removed from group.";
+
+              // Remove the row from the DOM with a small animation
+              if (row) {
+                $(row).slideUp(150, function() {
+                  this.remove();
+
+                  // ---- Recompute and update current membership IDs ----
+                  var memberButtons = document.querySelectorAll(".js-group-member-remove");
+                  var currentIds = Array.prototype.map.call(memberButtons, function(b) {
+                    return b.dataset.integrationUserId;
+                  }).filter(function(id) { return !!id; });
+
+                  // Update the top member count text ("X members in this group.")
+                  var countEl = document.querySelector(".settings-group-members-subtitle");
+                  if (countEl) {
+                    var count = currentIds.length;
+                    countEl.textContent = count + " " + (count === 1 ? "member" : "members") + " in this group.";
+                  }
+
+                  // Update the edit-group trigger's data-member-ids
+                  var editTrigger = document.querySelector(".js-group-edit-trigger");
+                  if (editTrigger) {
+                    editTrigger.dataset.memberIds = currentIds.join(",");
+                  }
+
+                  // Update hidden field & original-ids used by the edit modal
+                  var hiddenInput = document.getElementById("group-edit-selected-ids");
+                  if (hiddenInput) {
+                    var joined = currentIds.join(",");
+                    hiddenInput.value = joined;
+                    hiddenInput.dataset.originalIds = joined;
+                  }
+
+                  // Update the modal header count (Members (X / Y))
+                  var headerCountEl = document.querySelector(".js-group-edit-selected-count");
+                  if (headerCountEl) {
+                    headerCountEl.textContent = String(currentIds.length);
+                  }
+                });
+              }
+
+              if (typeof showToast === "function") {
+                showToast(msg);
+              } else {
+                console.log(msg);
+              }
+            },
+            error: function(xhr) {
+              var msg =
+                (xhr.responseJSON && xhr.responseJSON.error) ||
+                "Failed to remove member. Please try again.";
+
+              if (typeof showToast === "function") {
+                showToast(msg);
+              } else {
+                alert(msg);
+              }
+            }
+          });
+        }
+
+        if (typeof warning === "function") {
+          warning(
+            "Remove " + name + " from this group? This will stop including their data in this group’s dashboards.",
+            { confirmLabel: "Remove member", cancelLabel: "Cancel" }
+          ).then(function(confirmed) {
+            if (!confirmed) return;
+            doRemove();
+          });
+        } else {
+          var fallbackMsg = "Remove " + name + " from this group?";
+          if (!window.confirm(fallbackMsg)) return;
+          doRemove();
+        }
+      });
+    });
+  }
+</script>

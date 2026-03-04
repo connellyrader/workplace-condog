@@ -1,0 +1,431 @@
+<div class="topbar">
+  <% if @back_path %>
+    <%= link_to @back_path do %>
+      <%= icon "left-arrow", class_name: "topbar-back" %>
+    <% end %>
+    <div class="topbar-back-line"></div>
+  <% end %>
+
+  <span class="topbar-title" style="<%= @back_path.present? ? "font-size:14px;" : "" %>">
+    <%= @topbar_title %>
+  </span>
+
+  <%# --- figure out the selected option from @range_start/@range_end --- %>
+  <%
+    wid = @active_workspace&.id
+
+    days_analyzed =
+      if wid
+        Integration.where(workspace_id: wid).maximum(:days_analyzed).to_i
+      else
+        0
+      end
+
+    analyze_complete =
+      if wid
+        Integration.where(workspace_id: wid, analyze_complete: true).exists?
+      else
+        false
+      end
+
+    # "All time" readiness should reflect true backfill completion.
+    # Use per-channel backfill_complete flags, not days analyzed heuristics.
+    incomplete_backfill_channels = 0
+
+    if wid
+      incomplete_backfill_channels = Channel
+        .joins(:integration)
+        .where(integrations: { workspace_id: wid, kind: %w[slack microsoft_teams] })
+        .where(is_archived: false)
+        .where(history_unreachable: [false, nil])
+        .where(kind: [nil, '', 'public_channel', 'private_channel'])
+        .where(backfill_complete: [false, nil])
+        .count
+    end
+
+    all_time_backfill_complete = incomplete_backfill_channels.zero?
+
+    options = [
+      { preset: 'last_30', label: 'Last 30 days',  start: 29.days.ago.to_date, end: Date.today, min_days: 30 },
+      { preset: 'last_60', label: 'Last 60 days',  start: 59.days.ago.to_date, end: Date.today, min_days: 60 },
+      { preset: 'last_90', label: 'Last 90 days',  start: 89.days.ago.to_date, end: Date.today, min_days: 90 },
+
+      # Completed periods (range end is NOT today)
+      begin
+        this_q_start = Date.today.beginning_of_quarter
+        last_q_end   = this_q_start - 1.day
+        last_q_start = last_q_end.beginning_of_quarter
+        { preset: 'last_quarter', label: 'Last quarter', start: last_q_start, end: last_q_end, min_days: 90 }
+      end,
+
+      begin
+        last_year_end   = Date.today.beginning_of_year - 1.day
+        last_year_start = last_year_end.beginning_of_year
+        { preset: 'last_year', label: 'Last year', start: last_year_start, end: last_year_end, min_days: 365 }
+      end,
+
+      {
+        preset: 'ytd',
+        label: 'Year to date',
+        start: Date.today.beginning_of_year,
+        end: Date.today,
+        min_days: (Date.today - Date.today.beginning_of_year).to_i + 1
+      },
+
+      # All time should unlock only when backfill is actually complete.
+      { preset: 'all_time', label: 'All time', start: Date.new(2000,1,1), end: Date.today, requires_all_time_backfill: true }
+    ].compact
+
+
+    is_all_time = (defined?(@is_all_time) && @is_all_time) ? true : false
+
+    sel =
+      if defined?(@range_preset) && @range_preset.present?
+        options.find { |o| o[:preset].to_s == @range_preset.to_s }
+      elsif is_all_time
+        options.find { |o| o[:preset].to_s == 'all_time' }
+      else
+        options.find { |o| o[:start] == @range_start && (o[:end] || Date.today) == @range_end }
+      end
+
+    label =
+      if sel
+        sel[:label]
+      elsif @range_start && @range_end
+        # Custom or unmatched range — show actual dates
+        "#{@range_start.strftime('%b %-d')} – #{@range_end.strftime('%b %-d')}"
+      else
+        options.first[:label]
+      end
+
+    current_start = @range_start || options.first[:start]
+    current_end   = @range_end   || (sel && sel[:end]) || Date.today
+  %>
+
+  <!-- DATE FILTER -->
+  <div class="filter-button"
+       data-current-start="<%= current_start %>"
+       data-current-end="<%= current_end %>"
+       data-current-preset="<%= (defined?(@range_preset) && @range_preset.present?) ? @range_preset : '' %>">
+    <%= icon "calendar", class_name: "calendar-icon" %>
+    <span class="phone-hide" id="calendar-button-text"><%= label %></span>
+
+    <div class="filter-dropdown" style="padding:4px;">
+      <% options.each do |o| %>
+        <%
+          ready =
+            if o[:requires_all_time_backfill]
+              all_time_backfill_complete
+            elsif o[:requires_complete]
+              analyze_complete
+            elsif o[:min_days]
+              days_analyzed >= o[:min_days]
+            else
+              true
+            end
+
+          disabled_class = ready ? '' : 'is-disabled'
+          active_class   = (sel && sel[:start] == o[:start]) ? 'active' : ''
+        %>
+
+        <div
+          class="filter-date-button <%= active_class %> <%= disabled_class %>"
+          data-start="<%= o[:start] %>"
+          data-end="<%= (o[:end] || Date.today) %>"
+          data-preset="<%= o[:preset].to_s %>"
+          data-ready="<%= ready %>"
+          <% unless ready %>
+            tabindex="0"
+            data-tooltip="This date range is still processing in the background. Try again later."
+          <% end %>
+        >
+
+          <span class="filter-date-label"><%= o[:label] %></span>
+
+          <% unless ready || analyze_complete %>
+            <span class="filter-date-spinner" aria-hidden="true"></span>
+          <% end %>
+        </div>
+
+      <% end %>
+    </div>
+  </div>
+
+  <%# --- GROUP FILTER (real groups, including Everyone) --- %>
+  <%
+    group_options  = Array(@topbar_groups)
+    # Prefer the real "Everyone" group if it exists
+    everyone_group = group_options.find { |g| g.name == "Everyone" } || group_options.first
+
+    # Use @selected_group if present, otherwise default to Everyone
+    selected_group = @selected_group || everyone_group
+
+    group_label =
+      if selected_group
+        selected_group.name
+      else
+        "Everyone"
+      end
+
+    current_group_id =
+      if selected_group
+        "group:#{selected_group.id}"
+      else
+        nil
+      end
+  %>
+
+  <!-- GROUP FILTER -->
+  <div class="filter-button group-filter"
+       data-current-group-id="<%= current_group_id %>">
+    <span id="group-button-text"><%= group_label %></span>
+    <%= icon "chevron-down", class_name: "group-icon phone-hide" %>
+
+    <div class="filter-dropdown">
+      <input type="text"
+             class="filter-dropdown-search"
+             placeholder="Search for anything..." />
+
+      <% group_options.each do |g| %>
+        <div class="filter-group-button <%= current_group_id == "group:#{g.id}" ? "active" : "" %>"
+             data-group-id="group:<%= g.id %>">
+          <span class="filter-group-label"><%= g.name %></span>
+          <span class="filter-group-check"><%= icon "check" %></span>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<script>
+  /*
+    Topbar dropdown controller
+
+    - Manages opening/closing of the date and group dropdowns.
+    - Updates labels when options are selected.
+    - Emits "filters:change" events when filters change.
+  */
+  (function ($) {
+    function initTopbar($root) {
+      if (!$root || !$root.length) return;
+      if ($root.data('topbar-init') === true) return;
+      $root.data('topbar-init', true);
+
+      const $buttons = $root.find('.filter-button');
+
+      // ---- Helpers ----------------------------------------------------------
+
+      function closeAll() {
+        $buttons.each(function () {
+          const $btn  = $(this);
+          const $menu = $btn.children('.filter-dropdown');
+
+          if ($btn.hasClass('is-open')) {
+            $menu.addClass('closing');
+            $btn.removeClass('is-open');
+            setTimeout(() => {
+              $menu.removeClass('closing');
+              if ($menu[0]) {
+                $menu[0].style.removeProperty('position');
+                $menu[0].style.removeProperty('top');
+                $menu[0].style.removeProperty('right');
+                $menu[0].style.removeProperty('left');
+              }
+            }, 200);
+          }
+        });
+      }
+
+      function closeFilterMenu($btn) {
+        const $menu = $btn.children('.filter-dropdown');
+        if ($menu[0]) {
+          $menu[0].style.removeProperty('display');
+          $menu[0].style.removeProperty('position');
+          $menu[0].style.removeProperty('top');
+          $menu[0].style.removeProperty('right');
+          $menu[0].style.removeProperty('left');
+        }
+        $menu.addClass('closing');
+        $btn.removeClass('is-open');
+        setTimeout(() => $menu.removeClass('closing'), 200);
+      }
+
+      function currentGroupId() {
+        const $groupBtn = $root.find('.filter-button.group-filter');
+        const val = $groupBtn.data('current-group-id');
+        return val ? val.toString() : null; // no more "all" default
+      }
+
+      function currentDateRange() {
+        const $dateBtn = $root.find('.filter-button[data-current-start]');
+        return {
+          start:  $dateBtn.data('current-start')?.toString(),
+          end:    $dateBtn.data('current-end')?.toString(),
+          preset: $dateBtn.data('current-preset')?.toString()
+        };
+      }
+
+      // ---- Date option picked ----------------------------------------------
+
+      $root.on('mousedown.topbar', '.filter-dropdown .filter-date-button', function (e) {
+        const $btn = $(this);
+
+        if ($btn.hasClass('is-disabled')) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          return;
+        }
+
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        e.preventDefault();
+
+        const label  = $btn.text().trim();
+        const preset = ($btn.data('preset') || '').toString();
+        const start  = $btn.data('start');
+        const end    = ($btn.data('end') || new Date().toISOString().slice(0,10));
+
+        const $menu = $btn.closest('.filter-dropdown');
+        $menu.find('.filter-date-button')
+             .removeClass('active')
+             .attr('aria-selected', 'false');
+        $btn.addClass('active').attr('aria-selected', 'true');
+
+        $root.find('#calendar-button-text').text(label);
+        closeFilterMenu($btn.closest('.filter-button'));
+
+        const group_id = currentGroupId();
+
+        document.dispatchEvent(new CustomEvent('filters:change', {
+          detail: {
+            type: 'date',
+            label: label,
+            preset: preset,
+            start: start,
+            end:   end,
+            group_id: group_id
+          }
+        }));
+
+        $root.find('.filter-button[data-current-start]')
+             .data('current-start', start)
+             .data('current-end',   end)
+             .data('current-preset', preset);
+      });
+
+      // ---- Group option picked ---------------------------------------------
+
+      $root.on('mousedown.topbar', '.filter-dropdown .filter-group-button', function (e) {
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        e.preventDefault();
+
+        const $item   = $(this);
+        const label   = $item.find('.filter-group-label').text().trim();
+        const groupId = String($item.data('group-id') || '');
+
+        const $menu = $item.closest('.filter-dropdown');
+        $menu.find('.filter-group-button')
+             .removeClass('active')
+             .attr('aria-selected', 'false');
+        $item.addClass('active').attr('aria-selected', 'true');
+
+        $root.find('#group-button-text').text(label);
+
+        closeFilterMenu($item.closest('.filter-button'));
+
+        const range = currentDateRange();
+
+        document.dispatchEvent(new CustomEvent('filters:change', {
+          detail: {
+            type: 'group',
+            label: label,
+            group_id: groupId,   // e.g. "group:12"
+            start: range.start,
+            end:   range.end
+          }
+        }));
+
+        const $groupBtn = $root.find('.filter-button.group-filter');
+        $groupBtn.attr('data-current-group-id', groupId);
+      });
+
+      // ---- Group search filter ---------------------------------------------
+
+      $root.on('input.topbar', '.filter-dropdown-search', function () {
+        const term = $(this).val().toString().toLowerCase();
+        const $items = $(this).closest('.filter-dropdown').find('.filter-group-button');
+        if (!term) {
+          $items.show();
+          return;
+        }
+        $items.each(function () {
+          const label = $(this).find('.filter-group-label').text().toLowerCase();
+          $(this).toggle(label.includes(term));
+        });
+      });
+
+      // ---- Toggler & closers -----------------------------------------------
+
+      $buttons.on('click.topbar', function (e) {
+        e.stopPropagation();
+
+        const $btn   = $(this);
+        const $menu  = $btn.children('.filter-dropdown');
+        const isOpen = $btn.hasClass('is-open');
+
+        closeAll();
+
+        if (!isOpen) {
+          if ($menu[0]) {
+            $menu[0].style.removeProperty('display');
+            // Use position:fixed so dropdown escapes overflow clipping and floats over content
+            const rect = $btn[0].getBoundingClientRect();
+            $menu[0].style.position = 'fixed';
+            $menu[0].style.top = (rect.bottom + 4) + 'px';
+            $menu[0].style.right = (window.innerWidth - rect.right) + 'px';
+            $menu[0].style.left = 'auto';
+          }
+          $menu.removeClass('closing');
+          $btn.addClass('is-open');
+        }
+      });
+
+      $root.find('.filter-dropdown').on('click.topbar', function (e) {
+        e.stopPropagation();
+      });
+
+      $(document).on('click.topbar', function (e) {
+        if ($root.has(e.target).length === 0) closeAll();
+      });
+
+      $(document).on('keydown.topbar', function (e) {
+        if (e.key === 'Escape') closeAll();
+      });
+
+      $(window).on('resize.topbar', closeAll);
+
+      document.addEventListener('turbo:before-cache', () => {
+        closeAll();
+        $buttons.off('.topbar');
+        $root.find('.filter-dropdown').off('.topbar');
+        $(document).off('.topbar');
+        $(window).off('.topbar');
+        $root.off('.topbar');
+        $root.removeData('topbar-init');
+      }, { once: true });
+    }
+
+    // Initialize on full page load
+    $(function () {
+      initTopbar($('.topbar'));
+    });
+
+    // Initialize again after Turbo-driven navigations (if used)
+    document.addEventListener('turbo:load', function () {
+      initTopbar($('.topbar'));
+    });
+
+  })(jQuery);
+</script>

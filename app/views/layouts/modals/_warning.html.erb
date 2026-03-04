@@ -1,0 +1,249 @@
+<div class="warning-modal">
+  <div class="warning-modal-heading">
+    <div class="warning-modal-heading-left">
+      <div class="warning-modal-title">Warning</div>
+      <div class="warning-modal-description">This is a warning message</div>
+    </div>
+    <div class="warning-modal-heading-close warning-modal-close">
+      <%= icon "x-mark" %>
+    </div>
+  </div>
+
+  <!-- ✅ Optional confirm input -->
+  <div class="warning-modal-confirm-wrap" style="display:none; margin-top: 14px;">
+    <div class="warning-modal-confirm-label" style="font-weight:600; margin-bottom: 8px;">
+      Type DELETE to confirm
+    </div>
+    <input class="warning-modal-confirm-input"
+           type="text"
+           autocomplete="off"
+           spellcheck="false"
+           style="width:100%; padding:10px 12px; border-radius:12px; border:1px solid var(--slate-200);" />
+  </div>
+
+  <div class="warning-modal-footer">
+    <div class="warning-modal-cancel">Cancel</div>
+    <div class="warning-modal-continue">Continue</div>
+  </div>
+</div>
+
+<div class="warning-modal-backdrop"></div>
+
+
+<script>
+  (function () {
+    var modal, backdrop, titleEl, descEl, cancelBtn, confirmBtn, closeBtn;
+    var confirmWrap, confirmLabelEl, confirmInput;
+
+    function initWarningModal() {
+      if (modal) return;
+
+      modal     = document.querySelector(".warning-modal");
+      backdrop  = document.querySelector(".warning-modal-backdrop");
+      if (!modal) return;
+
+      titleEl    = modal.querySelector(".warning-modal-title");
+      descEl     = modal.querySelector(".warning-modal-description");
+      cancelBtn  = modal.querySelector(".warning-modal-cancel");
+      confirmBtn = modal.querySelector(".warning-modal-continue");
+      closeBtn   = modal.querySelector(".warning-modal-close");
+
+      confirmWrap    = modal.querySelector(".warning-modal-confirm-wrap");
+      confirmLabelEl = modal.querySelector(".warning-modal-confirm-label");
+      confirmInput   = modal.querySelector(".warning-modal-confirm-input");
+    }
+
+    function setConfirmDisabled(disabled) {
+      if (!confirmBtn) return;
+      if (disabled) {
+        confirmBtn.classList.add("is-disabled");
+        confirmBtn.style.opacity = "0.55";
+        confirmBtn.style.pointerEvents = "none";
+      } else {
+        confirmBtn.classList.remove("is-disabled");
+        confirmBtn.style.opacity = "";
+        confirmBtn.style.pointerEvents = "";
+      }
+    }
+
+    function openWarningModal(options) {
+      initWarningModal();
+      if (!modal) return Promise.resolve(false);
+
+      var opts         = options || {};
+      var kind         = opts.kind || "warning";
+      var title        = opts.title || (kind === "warning" ? "Warning" : "Notice");
+      var description  = opts.message || "";
+      var confirmLabel = opts.confirmLabel || (kind === "warning" ? "Delete" : "Continue");
+      var cancelLabel  = opts.cancelLabel  || "Cancel";
+
+      var requireText        = (opts.requireText || "").toString();
+      var requirePlaceholder = (opts.requirePlaceholder || "").toString();
+      var returnValue        = (opts.returnValue || "boolean"); // "boolean" or "object"
+      var keepOpenOnConfirm  = !!opts.keepOpenOnConfirm;
+      var loadingLabel       = (opts.loadingLabel || "Working...").toString();
+
+      if (titleEl) titleEl.textContent = title;
+      if (descEl)  descEl.textContent  = description;
+      if (confirmBtn) {
+        confirmBtn.textContent = confirmLabel;
+        confirmBtn.dataset.defaultLabel = confirmLabel;
+      }
+      if (cancelBtn)  cancelBtn.textContent  = cancelLabel;
+
+      // Style confirm button according to kind
+      if (confirmBtn) {
+        confirmBtn.classList.remove("warning-modal-delete", "warning-modal-continue");
+        confirmBtn.classList.add(kind === "warning" ? "warning-modal-delete" : "warning-modal-continue");
+      }
+
+      // Require input gating
+      if (confirmWrap && confirmInput && confirmLabelEl) {
+        if (requireText.length > 0) {
+          confirmWrap.style.display = "";
+          confirmLabelEl.textContent = "Type " + requireText + " to confirm";
+          confirmInput.value = "";
+          confirmInput.placeholder = requirePlaceholder || ("Type " + requireText);
+          setConfirmDisabled(true);
+        } else {
+          confirmWrap.style.display = "none";
+          confirmInput.value = "";
+          setConfirmDisabled(false);
+        }
+      } else {
+        // No input present in DOM -> don't gate
+        requireText = "";
+        setConfirmDisabled(false);
+      }
+
+      modal.classList.add("is-open");
+      if (backdrop) backdrop.classList.add("is-open");
+
+      return new Promise(function (resolve) {
+        var resolved = false;
+
+        function setLoading(loading) {
+          if (!confirmBtn) return;
+          if (loading) {
+            confirmBtn.classList.add("is-loading");
+            confirmBtn.textContent = loadingLabel;
+            setConfirmDisabled(true);
+            if (cancelBtn) cancelBtn.style.pointerEvents = "none";
+            if (closeBtn) closeBtn.style.pointerEvents = "none";
+            if (backdrop) backdrop.style.pointerEvents = "none";
+          } else {
+            confirmBtn.classList.remove("is-loading");
+            confirmBtn.textContent = confirmBtn.dataset.defaultLabel || confirmLabel;
+            if (!requireText || !confirmInput || (confirmInput.value || "") === requireText) {
+              setConfirmDisabled(false);
+            }
+            if (cancelBtn) cancelBtn.style.pointerEvents = "";
+            if (closeBtn) closeBtn.style.pointerEvents = "";
+            if (backdrop) backdrop.style.pointerEvents = "";
+          }
+        }
+
+        function setError(message) {
+          setLoading(false);
+          if (descEl && message) descEl.textContent = message;
+        }
+
+        function cleanup() {
+          modal.classList.remove("is-open");
+          if (backdrop) backdrop.classList.remove("is-open");
+          resolved = true;
+
+          if (confirmBtn) confirmBtn.removeEventListener("click", onConfirm);
+          if (cancelBtn)  cancelBtn.removeEventListener("click", onCancel);
+          if (closeBtn)   closeBtn.removeEventListener("click", onCancel);
+          if (backdrop)   backdrop.removeEventListener("click", onCancel);
+          if (confirmInput) confirmInput.removeEventListener("input", onInput);
+          document.removeEventListener("keydown", onKeydown);
+
+          // reset gating visuals
+          setLoading(false);
+          setConfirmDisabled(false);
+          if (confirmWrap) confirmWrap.style.display = "none";
+          if (confirmInput) confirmInput.value = "";
+        }
+
+        function onInput() {
+          if (!requireText || !confirmInput) return;
+          var ok = (confirmInput.value || "") === requireText;
+          setConfirmDisabled(!ok);
+        }
+
+        function onConfirm(evt) {
+          if (evt) evt.preventDefault();
+          if (resolved) return;
+
+          // Extra guard: if requireText is set but doesn't match, do nothing
+          if (requireText && confirmInput && (confirmInput.value || "") !== requireText) return;
+
+          var inputVal = confirmInput ? (confirmInput.value || "") : "";
+
+          if (keepOpenOnConfirm) {
+            setLoading(true);
+            if (returnValue === "object") {
+              resolve({ ok: true, input: inputVal, close: cleanup, setLoading: setLoading, setError: setError });
+            } else {
+              resolve(true);
+            }
+            return;
+          }
+
+          cleanup();
+          if (returnValue === "object") {
+            resolve({ ok: true, input: inputVal });
+          } else {
+            resolve(true);
+          }
+        }
+
+        function onCancel(evt) {
+          if (evt) evt.preventDefault();
+          if (resolved) return;
+          cleanup();
+          if (returnValue === "object") {
+            resolve({ ok: false, input: "" });
+          } else {
+            resolve(false);
+          }
+        }
+
+        function onKeydown(evt) {
+          if (confirmBtn && confirmBtn.classList.contains("is-loading")) return;
+          if (evt.key === "Escape" || evt.key === "Esc") onCancel(evt);
+        }
+
+        if (confirmBtn) confirmBtn.addEventListener("click", onConfirm);
+        if (cancelBtn)  cancelBtn.addEventListener("click", onCancel);
+        if (closeBtn)   closeBtn.addEventListener("click", onCancel);
+        if (backdrop)   backdrop.addEventListener("click", onCancel);
+        if (confirmInput) confirmInput.addEventListener("input", onInput);
+        document.addEventListener("keydown", onKeydown);
+
+        // autofocus input if required
+        if (requireText && confirmInput) {
+          setTimeout(function(){ confirmInput.focus(); }, 0);
+        }
+      });
+    }
+
+    window.warning = function (message, options) {
+      var opts = options || {};
+      opts.kind    = "warning";
+      opts.title   = opts.title || "Warning";
+      opts.message = message;
+      return openWarningModal(opts);
+    };
+
+    window.notice = function (message, options) {
+      var opts = options || {};
+      opts.kind    = "notice";
+      opts.title   = opts.title || "Notice";
+      opts.message = message;
+      return openWarningModal(opts);
+    };
+  })();
+</script>

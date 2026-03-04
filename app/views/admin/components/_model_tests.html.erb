@@ -1,0 +1,26 @@
+<article class="admin-card">
+  <h3>Model Tests Overview — Model Performance</h3>
+  <canvas id="model-performance-chart" class="admin-chart"></canvas>
+</article>
+
+<script>
+(() => {
+  const ctx = document.getElementById('model-performance-chart');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Model A','Model B','Model C','Model D','Model E'],
+      datasets: [{
+        label: 'Avg Quality Score',
+        data: [78, 83, 71, 88, 92],
+        backgroundColor: 'rgba(34,211,238,.55)',
+        borderColor: 'rgba(34,211,238,1)', borderWidth: 1, borderRadius: 6
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: { y: { suggestedMin: 0, suggestedMax: 100, grid: { color:'#223' } }, x:{ grid:{ display:false } } }
+    }
+  });
+})();
+</script>

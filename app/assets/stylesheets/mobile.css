@@ -1,0 +1,299 @@
+/* ===== Mobile: default mini gutter; full overlay on .drawer-open ===== */
+
+@media (max-width: 1280px){
+  .settings-integrations-connected-box, .settings-integrations-available-box, .settings-integrations-future-box{
+    flex: 0 0 calc((100% - 1 * 16px) / 2);
+    max-width: calc((100% - 1 * 16px) / 2);
+  }
+
+  .layout.chat-open{
+    --chat-w: 0px;
+  }
+
+  .chat {
+    display: none !important;
+    position: absolute;
+    background: var(--slate-0);
+    border-left: 1px solid var(--slate-200);
+    width: 400px;
+    max-width: 80%;
+    right: 0;
+    z-index: 31;
+  }
+
+  .ai-chat__topbar-close{
+    display:block;
+  }
+
+  .right-panel-toggle-button {
+    display: block;
+  }
+
+  /* When user taps toggle button, show panel */
+  body.right-panel-open .chat.is-visible {
+   display: block !important;
+  }
+
+  body.right-panel-open .backdrop {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  body.right-panel-open .right-panel-toggle-button {
+    display: none;
+  }
+}
+
+@media (max-width: 1024px){
+
+
+  .settings-navigation {
+    width:220px;
+  }
+
+  .settings-main{
+    width: calc(100% - 220px);
+  }
+
+  .settings-integrations-connected-box, .settings-integrations-available-box, .settings-integrations-future-box{
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
+  .gauge-container-metric-page{
+    width:100% !important;
+
+    .gauge{
+      margin-left: calc((100% - 250px)/2) !important;
+    }
+  }
+
+  .ai-overview{
+    padding-right:0px;
+    width:100%;
+    margin-bottom:40px;
+  }
+
+
+  .metric-footer{
+    flex-direction: column;
+    gap: 24px; /* optional */
+  }
+
+  .metric-footer > .recent-insights,
+  .metric-footer > .framework-container{
+    flex: 0 0 auto;
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px){
+  /* Grid always reserves the mini gutter (icons only) */
+  .layout{
+    grid-template-columns: var(--nav-mini-w, 60px) 1fr;
+    grid-template-areas: "nav main";
+    /* Un-lock vertical scrolling on mobile. Desktop uses a viewport-locked shell,
+       but mobile pages need natural document flow to reach below-the-fold content. */
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  /* Main content: reduce padding + avoid cramped fixed-height scroll areas on mobile */
+  .content{ padding: 6px; }
+  .content-inner{
+    padding: 16px;
+    border-radius: 16px;
+    height: auto;
+    min-height: calc(100dvh - 12px);
+    overflow: visible;
+  }
+
+  /* Mini presentation (default on mobile) */
+  .navigation{
+    position: relative; inset: auto; width: auto;
+    transform: none; z-index: 1; transition: none;
+    padding: 16px 8px 16px 18px;
+  }
+
+  .navigation-link{
+    justify-content: center; gap: 0; padding: 0;
+  }
+  .navigation-link span,
+  .navigation-link .bubble{ display: none; }
+  .pp-logo {display: none;}
+
+  /* Keep Connect CTA icon-only in thin mobile nav */
+  .navigation-integration-connect {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 12px;
+    justify-content: center;
+    margin: 0 auto 12px;
+    gap: 0;
+  }
+  .navigation-integration-connect-text,
+  .navigation-integration-connect-chevron-icon{
+    display: none;
+  }
+  .navigation-integration-connect-warning-icon{
+    width: 22px;
+    height: 22px;
+    margin: 0;
+  }
+
+  /* In thin nav, center fallback avatar SVG perfectly */
+  .navigation-footer-avatar{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .navigation-footer-avatar svg{
+    display: block;
+    margin: 0;
+  }
+
+  .settings-navigation {
+    width:72px;
+    border-right: 1px solid var(--slate-100);
+    margin-right:24px;
+    padding-right:0;
+  }
+
+
+  .settings-main{
+    width: calc(100% - 100px);
+  }
+
+  .settings-navigation-link{
+    width:40px;
+  }
+
+  .settings-navigation-link span {
+     display: none;      /* hide labels */
+   }
+
+  .navigation-workspace-button{
+    display: none;
+  }
+
+
+  /* Neutralize .nav-full on mobile: keep mini unless drawer is open */
+  .layout.nav-full .navigation{
+    position: relative; inset: auto; width: auto;
+    transform: none; z-index: 1;
+    background: transparent; border-right: 0;
+    padding: 16px 8px 16px 18px;
+    transition: none;
+  }
+
+  /* Full overlay drawer only when .drawer-open is present */
+  .layout.drawer-open .navigation{
+    position: fixed; inset: 0 auto 0 0; z-index: 40;
+    width: calc(min(80vw, 240px));
+    background: var(--slate-0);
+    border-right: 1px solid var(--slate-200);
+    padding: 16px;                       /* reset padding */
+    transform: translateX(0);
+    transition: transform .22s ease;
+    justify-content: flex-start;
+  }
+  .layout.drawer-open .navigation-link{
+    justify-content: flex-start; gap: 8px; padding: 0 11px;
+  }
+  .layout.drawer-open .navigation-link span{ display: inline; }
+  .layout.drawer-open .navigation-link .bubble{ display: inline-flex; }
+  .layout.drawer-open .pp-logo{ display: inline-block; }
+
+  /* In drawer-open (full nav), show full Connect CTA again */
+  .layout.drawer-open .navigation-integration-connect{
+    width: auto;
+    height: auto;
+    padding: 8px 12px;
+    border-radius: 24px;
+    justify-content: flex-start;
+    margin: 0 0 12px 0;
+    gap: 6px;
+  }
+  .layout.drawer-open .navigation-integration-connect-text,
+  .layout.drawer-open .navigation-integration-connect-chevron-icon{
+    display: inline-flex;
+  }
+  .layout.drawer-open .navigation-integration-connect-warning-icon{
+    width: 18px;
+    height: 18px;
+  }
+
+
+  .layout.drawer-open .backdrop{
+    opacity: 1; pointer-events: auto;
+  }
+
+  .layout.drawer-open .navigation-workspace-button{
+    display: flex;
+  }
+
+  .layout.drawer-open .navigation-toggle{
+    margin: 8px 0 12px auto;       /* top-right */
+  }
+
+  .layout.chat-open{
+    --chat-w: 0px;
+  }
+
+  .dashboard-last-100-container{
+    display: block  !important;
+    width:100% !important;
+    margin-left:0  !important;
+    margin-top:24px  !important;
+  }
+
+  #gauge-container{
+    width:100% !important;
+  }
+
+  .gauge{
+    margin-left: calc((100% - 250px)/2) !important;
+  }
+
+  .recent-insights{
+    width:100%;
+    margin-right:0;
+  }
+
+  .framework-container{
+    width:100%;
+  }
+}
+
+@media (max-width: 576px){
+
+  .phone-hide{
+    display:none;
+  }
+
+  /* Tighter main padding on phones */
+  .content{ padding: 4px; }
+  .content-inner{
+    padding: 12px;
+    border-radius: 14px;
+    min-height: calc(100dvh - 8px);
+  }
+
+  /* Keep long tables usable */
+  .table-wrap, .pp-table-wrap{ overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* Reduce header crowding */
+  h1{ font-size: 22px; }
+  h2{ font-size: 18px; }
+
+  .calendar-icon{
+    margin-right:0px;
+  }
+
+  .filter-button{
+    padding: 0 12px;
+  }
+
+}

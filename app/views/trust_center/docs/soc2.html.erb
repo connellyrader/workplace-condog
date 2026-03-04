@@ -1,0 +1,184 @@
+<%# app/views/trust_center/docs/soc2.html.erb %>
+
+<div class="trust-doc">
+  <div class="trust-doc-header">
+    <div class="trust-doc-breadcrumb">
+      <%= link_to "Trust Center", trust_home_url, class: "trust-doc-breadcrumb-link" %>
+      <span class="trust-doc-breadcrumb-sep">/</span>
+      <span class="trust-doc-breadcrumb-current">SOC 2</span>
+    </div>
+
+    <div class="trust-doc-title-row">
+      <%= image_tag "logo.png", class: "trust-doc-logo", alt: "Workplace.io" %>
+      <div class="trust-doc-title">SOC 2</div>
+    </div>
+
+    <div class="trust-doc-subtitle">
+      Workplace.io is working toward SOC 2. We are not currently SOC 2 attested or certified. This page explains our approach,
+      what we are implementing, and how customers can assess our security program during procurement.
+    </div>
+
+    <div class="trust-doc-updated">
+      Last updated: <%= @trust_center_stamp %>
+    </div>
+  </div>
+
+  <div class="trust-doc-body">
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Status</div>
+      <div class="trust-doc-text">
+        We are actively working toward SOC 2 readiness and eventual independent attestation. Today, we provide security controls,
+        documentation, and due diligence support through this Trust Center and customer review processes. We do not claim SOC 2
+        compliance or certification at this time.
+      </div>
+
+      <div class="trust-doc-callout trust-doc-callout--note">
+        <div class="trust-doc-callout-title">What “SOC 2” means</div>
+        <div class="trust-doc-callout-text">
+          SOC 2 is an independent attestation report based on the Trust Services Criteria. A report is issued by a licensed CPA firm
+          after evaluating a service organization’s controls over a defined period. This page describes our roadmap and controls,
+          not a completed third-party report.
+        </div>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Trust Services Criteria focus</div>
+      <div class="trust-doc-text">
+        Our roadmap is organized around the Trust Services Criteria categories most relevant to Workplace.io. The scope of a future SOC 2
+        report will be defined as part of our audit process.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Security:</strong> controls to protect against unauthorized access and misuse.</li>
+        <li><strong>Availability:</strong> controls to support reliable operation and resilience.</li>
+        <li><strong>Confidentiality:</strong> controls to protect sensitive customer data and secrets.</li>
+        <li><strong>Privacy:</strong> controls and policies for personal data handling and user rights (where applicable).</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Current controls and practices</div>
+      <div class="trust-doc-text">
+        While we are not yet attested, we implement security controls and operational practices aligned with enterprise expectations.
+        The sections below summarize the areas most commonly reviewed during SOC 2 due diligence.
+      </div>
+
+      <div class="trust-doc-grid">
+        <div class="trust-doc-mini">
+          <div class="trust-doc-mini-title">Access Controls</div>
+          <div class="trust-doc-mini-text">
+            Workspace membership and role-based access control restrict administrative settings and sensitive actions.
+          </div>
+          <div class="trust-doc-mini-link">
+            <%= link_to "Access Controls →", trust_doc_url_for("access-controls"), class: "trust-doc-link" %>
+          </div>
+        </div>
+
+        <div class="trust-doc-mini">
+          <div class="trust-doc-mini-title">Encryption</div>
+          <div class="trust-doc-mini-text">
+            TLS protects data in transit and encryption at rest protects stored data. Message content is short-lived by design.
+          </div>
+          <div class="trust-doc-mini-link">
+            <%= link_to "Encryption →", trust_doc_url_for("encryption"), class: "trust-doc-link" %>
+          </div>
+        </div>
+
+        <div class="trust-doc-mini">
+          <div class="trust-doc-mini-title">Logging & Monitoring</div>
+          <div class="trust-doc-mini-text">
+            Operational monitoring and security-relevant logging support reliability and incident investigation.
+          </div>
+          <div class="trust-doc-mini-link">
+            <%= link_to "Logging & Monitoring →", trust_doc_url_for("logging-monitoring"), class: "trust-doc-link" %>
+          </div>
+        </div>
+      </div>
+
+      <div class="trust-doc-grid" style="margin-top:14px;">
+        <div class="trust-doc-mini">
+          <div class="trust-doc-mini-title">Incident Response</div>
+          <div class="trust-doc-mini-text">
+            Incident handling procedures support triage, containment, remediation, and customer communication.
+          </div>
+          <div class="trust-doc-mini-link">
+            <%= link_to "Incident Response →", trust_doc_url_for("incident-response"), class: "trust-doc-link" %>
+          </div>
+        </div>
+
+        <div class="trust-doc-mini">
+          <div class="trust-doc-mini-title">Secure Development</div>
+          <div class="trust-doc-mini-text">
+            Review, testing, dependency hygiene, and controlled releases reduce risk of vulnerabilities.
+          </div>
+          <div class="trust-doc-mini-link">
+            <%= link_to "Secure Development →", trust_doc_url_for("secure-development"), class: "trust-doc-link" %>
+          </div>
+        </div>
+
+        <div class="trust-doc-mini">
+          <div class="trust-doc-mini-title">Subprocessors</div>
+          <div class="trust-doc-mini-text">
+            Infrastructure and processing vendors are documented and managed through vendor risk practices.
+          </div>
+          <div class="trust-doc-mini-link">
+            <%= link_to "Subprocessors →", trust_doc_url_for("subprocessors"), class: "trust-doc-link" %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">SOC 2 roadmap</div>
+      <div class="trust-doc-text">
+        Our SOC 2 roadmap focuses on maturing documentation, strengthening operational controls, and preparing evidence suitable for an
+        independent audit. We prioritize control areas most relevant to the nature of Workplace.io, including secure integration handling,
+        access control, logging/monitoring, and incident response.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Policies and procedures:</strong> documented security policies, incident response procedures, and vendor management practices.</li>
+        <li><strong>Evidence readiness:</strong> operational logging, access control records, and change management evidence.</li>
+        <li><strong>Vendor documentation:</strong> subprocessor inventory and supporting documentation for key vendors.</li>
+        <li><strong>Testing and review:</strong> targeted security testing and follow-up remediation tracking.</li>
+      </ul>
+
+      <div class="trust-doc-callout trust-doc-callout--note">
+        <div class="trust-doc-callout-title">No overstatement</div>
+        <div class="trust-doc-callout-text">
+          We will only claim SOC 2 attestation after an independent CPA firm issues a SOC 2 report covering a defined scope and period.
+        </div>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Customer due diligence support</div>
+      <div class="trust-doc-text">
+        We support customer security reviews. If your organization requires a security questionnaire, policy artifacts, or a tailored review,
+        contact us and we’ll coordinate what we can provide.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li>Security questionnaire support (including CAIQ-aligned responses where requested).</li>
+        <li>Trust Center documentation for common control topics.</li>
+        <li>Subprocessor and architecture summaries.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "CSA CAIQ →", trust_doc_url_for("caiq"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-footer">
+      <div class="trust-doc-footer-title">Need SOC 2 updates?</div>
+      <div class="trust-doc-footer-text">
+        If your procurement process needs a status update or additional materials, reach out and we’ll respond.
+      </div>
+      <div class="trust-doc-footer-actions">
+        <%= link_to "Contact Trust & Security", trust_doc_url_for("contact"), class: "trust-doc-button" %>
+        <%= link_to "Back to Trust Center", trust_home_url, class: "trust-doc-button trust-doc-button--secondary" %>
+      </div>
+    </div>
+  </div>
+</div>

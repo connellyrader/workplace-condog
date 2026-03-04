@@ -1,0 +1,271 @@
+<%= render "settings/topbar" %>
+<%= render "settings/navigation" %>
+
+<div class="settings-main">
+  <% if @connected_integrations.count > 0 %>
+    <div class="settings-integrations-connected-heading">Installed Apps</div>
+    <div class="settings-integrations-connected-subheading">
+      Manage your connected culture data sources
+    </div>
+
+    <div class="settings-integrations-grid">
+      <% @connected_integrations.each do |integration| %>
+        <% app = @apps_by_kind[integration.kind] %>
+
+        <% user_connected = @user_connected_by_integration_id[integration.id] %>
+        <% connect_path   = @user_connect_path_by_integration_id[integration.id] %>
+
+        <div class="settings-integrations-connected-box">
+          <% if app.present? %>
+            <% icon_name = "apps/#{app.name.downcase.tr(' ', '_')}.png" %>
+            <% begin %>
+              <%= image_tag icon_name,
+                    alt: app.name,
+                    class: "settings-integrations-app-icon" %>
+            <% rescue Sprockets::Rails::Helper::AssetNotFound %>
+            <% end %>
+
+            <div class="settings-integrations-name"><%= app.name %></div>
+            <div class="settings-integrations-description"><%= app.description %></div>
+          <% else %>
+            <div class="settings-integrations-name"><%= integration.kind.to_s.titleize %></div>
+          <% end %>
+
+          <%# --- Workspace label (Slack + Teams) --- %>
+          <%
+            connected_label =
+              case integration.kind.to_s
+              when "slack"
+                (integration.domain.to_s.strip.presence ? "#{integration.domain}.slack.com" : nil)
+              when "microsoft_teams"
+                integration.ms_display_name.to_s.strip.presence
+              else
+                nil
+              end
+          %>
+
+          <%# Only show "Workspace connected to ..." IF this user has connected (token present) %>
+          <% if user_connected %>
+            <div class="settings-integrations-status">
+              Workspace connected to <%= connected_label %>
+              <div
+                class="settings-integrations-disconnect-button js-integration-disconnect"
+                role="button"
+                tabindex="0"
+                data-url="<%= disconnect_integration_path(integration) %>"
+                data-app-name="<%= app&.name || integration.kind.to_s.titleize %>"
+                data-connected-label="<%= connected_label.to_s %>">
+                Remove my connection
+              </div>
+
+
+            </div>
+          <% end %>
+
+          <%# If user is NOT connected yet, show a connect/install button instead %>
+          <% if connect_path.present? && !user_connected %>
+            <div class="settings-integrations-status2">
+              You haven’t connected your account yet.
+            </div>
+
+            <%= link_to "Connect #{app.name}",
+                        connect_path,
+                        method: :get,
+                        class: "settings-integrations-connect-link" %>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <%# -------------------------------------------------- %>
+  <%# Admin/Owner only: Available + Future apps sections %>
+  <%# -------------------------------------------------- %>
+  <% if workspace_admin? %>
+    <% if @available_integrations.count > 0 %>
+      <div class="settings-integrations-available-heading">Available Apps</div>
+      <div class="settings-integrations-available-subheading">
+        Browse and connect new culture data sources
+      </div>
+
+      <div class="settings-integrations-grid">
+        <% @available_integrations.each do |app| %>
+          <div class="settings-integrations-available-box">
+            <% icon_name = "apps/#{app.name.downcase.tr(' ', '_')}.png" %>
+            <% begin %>
+              <%= image_tag icon_name,
+                    alt: app.name,
+                    class: "settings-integrations-app-icon" %>
+            <% rescue Sprockets::Rails::Helper::AssetNotFound %>
+            <% end %>
+
+            <div class="settings-integrations-name"><%= app.name %></div>
+            <div class="settings-integrations-description"><%= app.description %></div>
+
+            <% if app.name == "Microsoft Teams" %>
+              <% if @active_workspace&.ms_teams_admin_approved_at.present? %>
+                <div class="settings-integrations-need-admin">
+                  <div class="settings-integrations-admin-heading">
+                    Approved by admin at <%= @active_workspace.ms_teams_admin_approved_at.in_time_zone("Eastern Time (US & Canada)").strftime("%b %-d, %Y %-I:%M%p %Z") %>
+                  </div>
+                </div>
+              <% else %>
+                <div class="settings-integrations-need-admin">
+                  <div class="settings-integrations-admin-heading">Need admin approval?</div>
+                  <div
+                    class="settings-integrations-admin-subheading"
+                    data-link="<%= @teams_admin_intro_url %>">
+                    Copy this link and send to your Microsoft 365 admin first.
+                    <%= icon "copy" %>
+                  </div>
+                </div>
+              <% end %>
+            <% end %>
+
+            <% install_path = @install_paths[app.name] %>
+            <% if install_path.present? %>
+              <%= link_to "Install #{app.name}",
+                          install_path,
+                          method: :get,
+                          class: "settings-integrations-connect-link" %>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <% if @future_integrations.count > 0 %>
+      <div class="settings-integrations-available-heading">Future Apps</div>
+      <div class="settings-integrations-available-subheading">
+        A look at our roadmap for future culture integrations
+      </div>
+
+      <div class="settings-integrations-grid">
+        <% @future_integrations.each do |app| %>
+          <div class="settings-integrations-future-box">
+            <% icon_name = "apps/#{app.name.downcase.tr(' ', '_')}.png" %>
+            <% begin %>
+              <%= image_tag icon_name,
+                    alt: app.name,
+                    class: "settings-integrations-app-icon" %>
+            <% rescue Sprockets::Rails::Helper::AssetNotFound %>
+            <% end %>
+
+            <div class="settings-integrations-name"><%= app.name %></div>
+            <div class="settings-integrations-description"><%= app.description %></div>
+            <div class="settings-integrations-status">Coming soon</div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  <% end %>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    document.addEventListener("click", function(event) {
+      const target = event.target.closest(".settings-integrations-admin-subheading");
+      if (!target) return;
+
+      const link = target.getAttribute("data-link");
+      if (!link) return;
+
+      copyToClipboard(link)
+        .then(function() {
+          showToast("Link copied to clipboard", link, true);
+        })
+        .catch(function() {
+          showToast("Copy link", "Unable to copy link. You can copy it manually.", true);
+        });
+    });
+
+    function copyToClipboard(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text);
+      }
+
+      return new Promise(function(resolve, reject) {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.left = "-9999px";
+        textarea.style.top = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+
+        try {
+          const successful = document.execCommand("copy");
+          document.body.removeChild(textarea);
+          successful ? resolve() : reject();
+        } catch (e) {
+          document.body.removeChild(textarea);
+          reject(e);
+        }
+      });
+    }
+  });
+</script>
+
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // --- existing copy-to-clipboard code stays as-is ---
+
+    // -----------------------------
+    // Remove my connection
+    // -----------------------------
+    document.addEventListener("click", function(event) {
+      const btn = event.target.closest(".js-integration-disconnect");
+      if (!btn) return;
+
+      const url           = btn.getAttribute("data-url");
+      const appName       = btn.getAttribute("data-app-name") || "this integration";
+      const connectedLabel= btn.getAttribute("data-connected-label") || "";
+
+      if (!url) return;
+
+      const msg =
+        `Remove your ${appName} connection? This only removes your tokens. ` +
+        `It will not remove ${appName} for the workspace.` +
+        (connectedLabel ? `\n\nWorkspace: ${connectedLabel}` : "");
+
+      // Use your custom confirm modal
+      if (typeof warning === "function") {
+        warning(msg, {
+          title: "Remove connection?",
+          confirmLabel: "Remove connection",
+          cancelLabel: "Cancel"
+        }).then(function(ok) {
+          if (!ok) return;
+          disconnect(url, appName);
+        });
+      } else {
+        // Fallback if warning() is not present for any reason
+        if (window.confirm(msg)) disconnect(url, appName);
+      }
+    });
+
+    function disconnect(url, appName) {
+      const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content");
+
+      fetch(url, {
+        method: "DELETE",
+        headers: {
+          "Accept": "application/json",
+          ...(csrf ? { "X-CSRF-Token": csrf } : {})
+        },
+        credentials: "same-origin"
+      })
+      .then(async function(res) {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) throw new Error(data.error || "disconnect_failed");
+
+        showToast("Disconnected", `Removed your ${appName} connection.`, false);
+        window.location.reload();
+      })
+      .catch(function() {
+        showToast("Error", "Unable to remove connection. Please try again.", true);
+      });
+    }
+  });
+</script>

@@ -1,0 +1,100 @@
+<%# app/views/ai_chat/widgets/_aggregate_gauge.html.erb %>
+<%# Expected locals:
+    value        (0–100 numeric)
+    metric_name  (string)
+    trend_delta  (numeric, + or - percentage points)
+    range_phrase (string, e.g. "Oct 1–31")
+    notch1       (integer, default 25)
+    notch2       (integer, default 75)
+    reversed     (boolean; if true, flip low/high colors)
+%>
+
+<% dv = value %>
+
+<% notch1 ||= 25
+   notch2 ||= 75 %>
+
+<% zone =
+     if dv.nil?
+       "no-data"
+     elsif dv < notch1
+       "low"
+     elsif dv < notch2
+       "mid"
+     else
+       "high"
+     end %>
+
+<% color_zone =
+     if zone == "no-data"
+       "no-data"
+     elsif reversed
+       (zone == "low" ? "high" : (zone == "high" ? "low" : "mid"))
+     else
+       zone
+     end %>
+
+<% arrow_dir =
+     if trend_delta.to_f >= 0
+       "up"
+     else
+       "down"
+     end %>
+
+<% color_dir =
+     if trend_delta.to_f == 0
+       "neutral"
+     elsif trend_delta.to_f > 0
+       "up"
+     else
+       "down"
+     end %>
+
+<% delta_abs = trend_delta.to_f.abs %>
+
+<div class="ai-gauge <%= "ai-gauge--#{color_zone}" %> <%= reversed ? 'ai-gauge--reversed' : '' %>">
+  <div class="ai-gauge__progress zone-<%= color_zone %>" style="--value:<%= dv.nil? ? 0 : dv %>">
+    <div class="ai-gauge__notch" style="--pos:<%= notch1 %>"></div>
+    <div class="ai-gauge__notch" style="--pos:<%= notch2 %>"></div>
+  </div>
+
+  <div class="ai-gauge__data">
+    <div class="ai-gauge__number">
+      <span class="ai-gauge__number-inner"><%= dv.nil? ? "--" : dv %></span>
+    </div>
+
+    <div class="ai-gauge__title">
+      <%= metric_name.presence || "Current Health" %> <%= icon "pie-chart" %>
+    </div>
+
+    <% if !dv.nil? && delta_abs > 0 %>
+      <div class="ai-gauge__subtitle">
+        <span class="ai-gauge__trend ai-gauge__trend--<%= color_dir %>">
+          <%= icon "#{arrow_dir}-arrow" %> <%= delta_abs %>%
+        </span>
+        <%= range_phrase %>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="ai-gauge__tooltip">
+    <div class="ai-gauge__tooltip-title">About your score</div>
+
+    <div class="ai-gauge__tooltip-row">
+      <div class="ai-gauge__tooltip-indicator ai-gauge__indicator--great"></div>Great
+      <div class="ai-gauge__tooltip-range"><%= notch2 %>-100</div>
+    </div>
+
+    <div class="ai-gauge__tooltip-row">
+      <div class="ai-gauge__tooltip-indicator ai-gauge__indicator--warn"></div>Needs Improvement
+      <div class="ai-gauge__tooltip-range"><%= notch1 %>-<%= (notch2 - 1) %></div>
+    </div>
+
+    <div class="ai-gauge__tooltip-row">
+      <div class="ai-gauge__tooltip-indicator ai-gauge__indicator--danger"></div>Danger
+      <div class="ai-gauge__tooltip-range">Below <%= notch1 %></div>
+    </div>
+
+    <div class="ai-gauge__tooltip-footer">Based on averages of companies using Workplace</div>
+  </div>
+</div>

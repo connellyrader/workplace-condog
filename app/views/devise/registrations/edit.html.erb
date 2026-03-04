@@ -1,0 +1,123 @@
+<%= render "settings/topbar" %>
+<%= render "settings/navigation" %>
+
+<style>
+  .field{
+    margin-top:16px;
+  }
+
+  .settings-section-general-input.is-locked{
+    background: #f8fafc;
+    color: #64748b;
+    cursor: not-allowed;
+  }
+
+  .profile-edit-password-link{
+    display: inline-block;
+    margin-top: 10px;
+    font-size: 14px;
+    text-decoration: underline;
+    cursor: pointer;
+    opacity: 0.9;
+  }
+  .profile-edit-password-link:hover{ opacity: 1; }
+
+  .profile-password-fields{ display:none; }
+</style>
+
+<div class="settings-main">
+  <div class="settings-subtitle">Profile</div>
+
+  <%
+    auth_provider =
+      resource.respond_to?(:auth_provider) ? resource.auth_provider.to_s.strip : ""
+
+    provider = auth_provider.downcase
+    native_providers = ["", "email", "password"]
+    is_sso = provider.present? && !native_providers.include?(provider)
+  %>
+
+  <%= form_for(resource, as: resource_name, url: settings_profile_path, html: { method: :put, id: "profile-form" }) do |f| %>
+    <%= render "devise/shared/error_messages", resource: resource %>
+
+    <div class="field">
+      <%= f.label :first_name %><br />
+      <%= f.text_field :first_name, autocomplete: "given-name", class: "settings-section-general-input" %>
+    </div>
+
+    <div class="field">
+      <%= f.label :last_name %><br />
+      <%= f.text_field :last_name, autocomplete: "family-name", class: "settings-section-general-input" %>
+    </div>
+
+    <div class="field">
+      <%= f.label :email %><br />
+
+      <%= f.email_field :email,
+            autofocus: true,
+            autocomplete: "email",
+            class: "settings-section-general-input #{'is-locked' if is_sso}",
+            disabled: is_sso,
+            readonly: is_sso %>
+
+      <% if is_sso %>
+        <div style="margin-top:8px; font-size:13px; opacity:0.75;">
+          Email is managed by <%= auth_provider.titleize %> SSO and can’t be edited here.
+        </div>
+      <% end %>
+    </div>
+
+    <% if devise_mapping.confirmable? && resource.pending_reconfirmation? %>
+      <div style="margin-top:12px;">
+        Currently waiting confirmation for: <%= resource.unconfirmed_email %>
+      </div>
+    <% end %>
+
+    <% unless is_sso %>
+      <div class="field" style="margin-top:16px;">
+        <a href="#"
+           class="profile-edit-password-link js-edit-password">
+          Edit password
+        </a>
+
+        <div class="profile-password-fields js-password-fields">
+          <div class="field" style="margin-top:12px;">
+            <%= f.label :password %> <i>(leave blank if you don't want to change it)</i><br />
+            <%= f.password_field :password, autocomplete: "new-password", class: "settings-section-general-input js-password" %>
+
+            <% if @minimum_password_length %>
+              <br />
+              <em><%= @minimum_password_length %> characters minimum</em>
+            <% end %>
+          </div>
+
+          <div class="field">
+            <%= f.label :password_confirmation %><br />
+            <%= f.password_field :password_confirmation, autocomplete: "new-password", class: "settings-section-general-input js-password-confirmation" %>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
+    <div class="actions" style="margin-top:16px;">
+      <%= f.submit "Update", class: "settings-section-general-button" %>
+    </div>
+  <% end %>
+</div>
+
+<script>
+  (function() {
+    const btn = document.querySelector(".js-edit-password");
+    const wrap = document.querySelector(".js-password-fields");
+    const pass = document.querySelector(".js-password");
+
+    if (!btn || !wrap) return;
+
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      wrap.style.display = "block";
+      btn.style.display = "none";
+      if (pass) pass.focus();
+    });
+  })();
+</script>

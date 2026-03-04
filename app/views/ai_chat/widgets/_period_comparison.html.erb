@@ -1,0 +1,79 @@
+<%# Period comparison table widget
+  Expected locals:
+    period_a_label - label for period A (e.g. "2025 Q1")
+    period_b_label - label for period B (e.g. "2025 Q2")
+    metrics        - Array of hashes:
+                      {
+                        name: "Engagement",
+                        a: "72%",
+                        b: "75%",
+                        delta: "+3 pp",
+                        direction: "up" | "down" | "flat" (optional)
+                      }
+%>
+<%
+  period_a_label = (local_assigns[:period_a_label] || local_assigns[:periodA] || "Period A").to_s
+  period_b_label = (local_assigns[:period_b_label] || local_assigns[:periodB] || "Period B").to_s
+  rows           = Array(local_assigns[:metrics] || local_assigns[:rows])
+%>
+
+<div class="ai-chat-widget ai-chat-widget--table ai-chat-widget--period-comparison">
+  <div class="ai-chat-widget__header">
+    <div>
+      <div class="ai-chat-widget__title">Metric comparison</div>
+      <div class="ai-chat-widget__subtitle"><%= "#{period_a_label} vs #{period_b_label}" %></div>
+    </div>
+  </div>
+
+  <div class="ai-chat-widget__body">
+    <table class="ai-table ai-table--compact">
+      <thead>
+        <tr>
+          <th>Metric</th>
+          <th><%= period_a_label %></th>
+          <th><%= period_b_label %></th>
+          <th>Δ</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if rows.empty? %>
+          <tr>
+            <td colspan="4">No metrics available for this comparison.</td>
+          </tr>
+        <% else %>
+          <% rows.each do |row| %>
+            <%
+              name      = row[:name]      || row["name"]
+              a_val     = row[:a]         || row["a"]
+              b_val     = row[:b]         || row["b"]
+              delta     = row[:delta]     || row["delta"]
+              direction = row[:direction] || row["direction"]
+              dir_class =
+                case direction.to_s
+                when "up"   then "ai-delta--up"
+                when "down" then "ai-delta--down"
+                else "ai-delta--flat"
+                end
+            %>
+            <tr>
+              <td><%= name %></td>
+              <td><%= a_val %></td>
+              <td><%= b_val %></td>
+              <td>
+                <% if delta.present? %>
+                  <span class="ai-delta <%= dir_class %>">
+                    <span class="ai-delta__icon"></span>
+                    <span class="ai-delta__text"><%= delta %></span>
+                  </span>
+                <% else %>
+                  —
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
+

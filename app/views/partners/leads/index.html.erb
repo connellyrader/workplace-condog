@@ -1,0 +1,111 @@
+<%= link_to "Export Leads", request.params.merge(format: :csv), class: "pp-export-btn" %>
+<h1>Leads</h1>
+
+<section class="pp-card pp-span-3 pp-card--no-border" style="margin-bottom: 12px;">
+  <div class="pp-card-header">
+    <h3>Filters</h3>
+    <div class="pp-muted">Search + filter leads without changing what gets exported.</div>
+  </div>
+
+  <%= form_with url: partners_leads_path, method: :get, local: true, class: "pp-actions", style: "flex-wrap:wrap;" do %>
+    <input type="text" name="q" class="pp-input" placeholder="Search name or email" value="<%= @q %>" style="max-width: 320px;">
+
+    <select name="status" class="pp-input" style="max-width: 180px;">
+      <option value="">All statuses</option>
+      <option value="lead" <%= 'selected' if @status == 'lead' %>>Lead</option>
+      <option value="trial" <%= 'selected' if @status == 'trial' %>>Trial</option>
+      <option value="active" <%= 'selected' if @status == 'active' %>>Active</option>
+      <option value="canceled" <%= 'selected' if @status == 'canceled' %>>Canceled</option>
+    </select>
+
+    <select name="link_id" class="pp-input" style="max-width: 220px;">
+      <option value="">All links</option>
+      <% current_user.links.order(:id).each do |lnk| %>
+        <option value="<%= lnk.id %>" <%= 'selected' if @link_id.to_s == lnk.id.to_s %>><%= lnk.code %></option>
+      <% end %>
+    </select>
+
+    <input type="date" name="from" class="pp-input" value="<%= params[:from].to_s %>">
+    <input type="date" name="to" class="pp-input" value="<%= params[:to].to_s %>">
+
+    <button class="pp-btn" type="submit">Apply</button>
+    <%= link_to "Reset", partners_leads_path, class: "pp-link", style: "margin-left:8px;" %>
+  <% end %>
+</section>
+
+<section class="pp-card pp-span-3">
+  <div class="pp-table-wrap">
+    <table class="pp-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Link</th>
+          <th>Signed Up</th>
+          <th>Status</th>
+          <th>Plan</th>
+          <th class="pp-num">Amount</th>
+          <th>Last Active</th>
+          <th></th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <% if @referrals.any? %>
+          <% @referrals.each do |referral| %>
+            <% sub = referral.subscriptions.max_by(&:created_at) %>
+            <% status_label = sub&.status.present? ? sub.status.capitalize : "Lead" %>
+
+            <tr>
+              <td><%= referral.full_name.presence || "—" %></td>
+              <td class="pp-mono" style="max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                <%= referral.email %>
+              </td>
+
+              <td class="pp-mono">
+                <%= @link_code_by_id[referral.referred_by_link_id].presence || "—" %>
+              </td>
+
+              <td><%= referral.created_at.strftime("%b %-d, %Y") %></td>
+              <td>
+                <span class="pp-status"><%= status_label %></span>
+              </td>
+              <td><%= sub&.interval&.capitalize || "—" %></td>
+              <td class="pp-num">
+                <% if sub&.amount.present? %>
+                  $<%= number_with_precision(sub.amount.to_i / 100.0, precision: 2) %>
+                <% else %>
+                  —
+                <% end %>
+              </td>
+              <td><%= (sub&.updated_at || referral.updated_at)&.strftime("%b %-d, %Y") || "—" %></td>
+              <td class="pp-num">
+                <%= link_to "View", partners_lead_path(referral), class: "pp-link" %>
+              </td>
+            </tr>
+          <% end %>
+        <% else %>
+          <tr>
+            <td colspan="9" class="pp-muted">No leads found.</td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <% if @referrals.respond_to?(:total_pages) && @referrals.total_pages > 1 %>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
+      <div class="pp-muted">
+        Page <%= @referrals.current_page %> of <%= @referrals.total_pages %>
+      </div>
+      <div class="pp-actions" style="gap:8px;">
+        <% if @referrals.prev_page %>
+          <%= link_to "← Prev", url_for(request.params.merge(page: @referrals.prev_page)), class: "pp-link" %>
+        <% end %>
+        <% if @referrals.next_page %>
+          <%= link_to "Next →", url_for(request.params.merge(page: @referrals.next_page)), class: "pp-link" %>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</section>

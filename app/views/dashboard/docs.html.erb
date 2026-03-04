@@ -1,0 +1,319 @@
+<style>
+  .clara-docs {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 24px 0 40px;
+    color: #111827;
+  }
+
+  .clara-docs h1 {
+    font-size: 26px;
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+
+  .clara-docs h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 24px 0 4px;
+  }
+
+  .clara-docs h3 {
+    font-size: 15px;
+    font-weight: 500;
+    margin: 16px 0 4px;
+  }
+
+  .clara-docs p {
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 4px 0 10px;
+  }
+
+  .clara-docs ul {
+    font-size: 14px;
+    margin: 4px 0 20px 18px;
+    padding: 0;
+  }
+
+  .clara-docs li {
+    margin-bottom: 5px;
+  }
+
+  .clara-docs hr {
+    border: none;
+    border-top: 1px solid #e5e7eb;
+    margin: 32px 0;
+  }
+
+  .clara-docs a {
+    color: #2563eb;
+    text-decoration: none;
+  }
+
+  .clara-docs a:hover {
+    text-decoration: underline;
+  }
+
+  .clara-docs-lead {
+    font-size: 14px;
+    color: #4b5563;
+    margin-top: 4px;
+    max-width: 640px;
+  }
+
+  .clara-prompt-box {
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    background: var(--slate-50);
+    padding: 8px 10px;
+    margin: 8px 0;
+  }
+
+  .clara-prompt-box-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .clara-prompt-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: #6b7280;
+  }
+
+  .clara-prompt-cta {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: #4f46e5;
+    font-weight: 500;
+    white-space: nowrap;
+    background: var(--slate-200);
+    padding: 0px 6px;
+    border-radius: 6px;
+  }
+
+  .clara-prompt-text {
+    font-size: 14px;
+    white-space: pre-wrap;
+    color: #111827;
+  }
+
+  /* Make examples feel like clickable buttons */
+  .clara-prompt-box--clickable {
+    cursor: pointer;
+    transition: background 0.12s ease, box-shadow 0.12s ease, transform 0.08s ease;
+  }
+
+  .clara-prompt-box--clickable:hover {
+    background: var(--slate-100);
+    box-shadow: 0px 5px 16px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+  }
+
+  .clara-prompt-box--clickable:active {
+    transform: translateY(0);
+    box-shadow: 0px 5px 16px rgba(0, 0, 0, 0.1);
+  }
+</style>
+
+<div class="clara-docs">
+  <h1>CLARA Docs</h1><h3><%= @version %></h3>
+  <p class="clara-docs-lead">
+    Clara is your culture copilot. Ask questions in plain language and it will pull your live data,
+    explain what it means, and suggest what to do next.
+  </p>
+
+  <hr>
+
+  <h2>Start here</h2>
+  <p>
+    New to Clara? Try these to get a quick, useful read on what’s happening right now.
+  </p>
+
+  <div class="clara-prompt-box clara-prompt-box--clickable"
+       role="button" tabindex="0"
+       data-clara-prompt="Give me a simple culture pulse for the last 30 days. What’s healthy, what’s risky, and what changed most?">
+    <div class="clara-prompt-box-header">
+      <div class="clara-prompt-label">Quick pulse check</div>
+      <div class="clara-prompt-cta">Click to try →</div>
+    </div>
+    <div class="clara-prompt-text">
+“Give me a simple culture pulse for the last 30 days. What’s healthy, what’s risky, and what changed most?”    </div>
+  </div>
+
+  <div class="clara-prompt-box clara-prompt-box--clickable"
+       role="button" tabindex="0"
+       data-clara-prompt="Summarize the last 30 days across Employee Engagement, Alignment, Psychological Safety, Execution Risk, Conflict, and Burnout in 6 bullet points.">
+    <div class="clara-prompt-box-header">
+      <div class="clara-prompt-label">Executive summary</div>
+      <div class="clara-prompt-cta">Click to try →</div>
+    </div>
+    <div class="clara-prompt-text">
+“Summarize the last 30 days across Employee Engagement, Alignment, Psychological Safety, Execution Risk, Conflict, and Burnout in 6 bullet points.”    </div>
+  </div>
+
+  <div class="clara-prompt-box clara-prompt-box--clickable"
+       role="button" tabindex="0"
+       data-clara-prompt="Which teams improved the most in the last 30 days, and what do they have in common?">
+    <div class="clara-prompt-box-header">
+      <div class="clara-prompt-label">Biggest wins</div>
+      <div class="clara-prompt-cta">Click to try →</div>
+    </div>
+    <div class="clara-prompt-text">
+“Which teams improved the most in the last 30 days, and what do they have in common?”    </div>
+  </div>
+
+  <div class="clara-prompt-box clara-prompt-box--clickable"
+       role="button" tabindex="0"
+       data-clara-prompt="What should I be paying attention to this week based on the most recent signals?">
+    <div class="clara-prompt-box-header">
+      <div class="clara-prompt-label">What matters now</div>
+      <div class="clara-prompt-cta">Click to try →</div>
+    </div>
+    <div class="clara-prompt-text">
+“What should I be paying attention to this week based on the most recent signals?”    </div>
+  </div>
+
+  <hr>
+
+  <h2>Go deeper</h2>
+  <p>
+    Use these when something looks off and you want the “why,” not just the score.
+  </p>
+
+  <div class="clara-prompt-box clara-prompt-box--clickable"
+       role="button" tabindex="0"
+       data-clara-prompt="Do a deep dive on Burnout for the last 45 days. Which submetrics are in the worst shape, and which signals are driving them?">
+    <div class="clara-prompt-box-header">
+      <div class="clara-prompt-label">Root-cause the issue</div>
+      <div class="clara-prompt-cta">Click to try →</div>
+    </div>
+    <div class="clara-prompt-text">
+“Do a deep dive on Burnout for the last 45 days. Which submetrics are in the worst shape, and which signals are driving them?”    </div>
+  </div>
+
+  <div class="clara-prompt-box clara-prompt-box--clickable"
+       role="button" tabindex="0"
+       data-clara-prompt="Explain what’s behind the recent dip in Psychological Safety. Use the top 5 negative signals and translate them into plain language.">
+    <div class="clara-prompt-box-header">
+      <div class="clara-prompt-label">Translate signals</div>
+      <div class="clara-prompt-cta">Click to try →</div>
+    </div>
+    <div class="clara-prompt-text">
+“Explain what’s behind the recent dip in Psychological Safety. Use the top 5 negative signals and translate them into plain language.”    </div>
+  </div>
+
+  <div class="clara-prompt-box clara-prompt-box--clickable"
+       role="button" tabindex="0"
+       data-clara-prompt="Show how Engagement and Burnout moved together over the last 90 days. Are they linked, or drifting apart?">
+    <div class="clara-prompt-box-header">
+      <div class="clara-prompt-label">Connect the dots</div>
+      <div class="clara-prompt-cta">Click to try →</div>
+    </div>
+    <div class="clara-prompt-text">
+“Show how Engagement and Burnout moved together over the last 90 days. Are they linked, or drifting apart?”    </div>
+  </div>
+
+  <hr>
+
+  <h2>Compare & contrast</h2>
+  <p>
+    Great for spotting gaps between teams, leaders, or time periods.
+  </p>
+
+  <div class="clara-prompt-box clara-prompt-box--clickable"
+       role="button" tabindex="0"
+       data-clara-prompt="Compare Psychological Safety for leaders vs frontline teams over the last 60 days. How big is the gap and is it widening?">
+    <div class="clara-prompt-box-header">
+      <div class="clara-prompt-label">Leaders vs teams</div>
+      <div class="clara-prompt-cta">Click to try →</div>
+    </div>
+    <div class="clara-prompt-text">
+“Compare Psychological Safety for leaders vs frontline teams over the last 60 days. How big is the gap and is it widening?”    </div>
+  </div>
+
+  <div class="clara-prompt-box clara-prompt-box--clickable"
+       role="button" tabindex="0"
+       data-clara-prompt="Which groups are the biggest outliers for Conflict in the last 30 days? Summarize the top 5 and the themes you see.">
+    <div class="clara-prompt-box-header">
+      <div class="clara-prompt-label">Find outliers</div>
+      <div class="clara-prompt-cta">Click to try →</div>
+    </div>
+    <div class="clara-prompt-text">
+“Which groups are the biggest outliers for Conflict in the last 30 days? Summarize the top 5 and the themes you see.”    </div>
+  </div>
+
+  <div class="clara-prompt-box clara-prompt-box--clickable"
+       role="button" tabindex="0"
+       data-clara-prompt="We launched a new meeting policy on March 1. Compare Burnout and Engagement 14 days before vs 14 days after that date and explain what changed.">
+    <div class="clara-prompt-box-header">
+      <div class="clara-prompt-label">Before / after event</div>
+      <div class="clara-prompt-cta">Click to try →</div>
+    </div>
+    <div class="clara-prompt-text">
+“We launched a new meeting policy on March 1. Compare Burnout and Engagement 14 days before vs 14 days after that date and explain what changed.”    </div>
+  </div>
+
+  <hr>
+
+  <h2>Get recommendations</h2>
+  <p>
+    When you’re ready to act, ask Clara for focused, practical next steps.
+  </p>
+
+  <div class="clara-prompt-box clara-prompt-box--clickable"
+       role="button" tabindex="0"
+       data-clara-prompt="Based on the last 60 days of Burnout and Psychological Safety, give me 3 specific actions we should take in the next 30 days.">
+    <div class="clara-prompt-box-header">
+      <div class="clara-prompt-label">Short action list</div>
+      <div class="clara-prompt-cta">Click to try →</div>
+    </div>
+    <div class="clara-prompt-text">
+“Based on the last 60 days of Burnout and Psychological Safety, give me 3 specific actions we should take in the next 30 days.”    </div>
+  </div>
+
+  <div class="clara-prompt-box clara-prompt-box--clickable"
+       role="button" tabindex="0"
+       data-clara-prompt="Conflict is high in Customer Success. Using our data and playbooks, outline a 30-day plan to reduce conflict and rebuild trust.">
+    <div class="clara-prompt-box-header">
+      <div class="clara-prompt-label">Team intervention plan</div>
+      <div class="clara-prompt-cta">Click to try →</div>
+    </div>
+    <div class="clara-prompt-text">
+“Conflict is high in Customer Success. Using our data and playbooks, outline a 30-day plan to reduce conflict and rebuild trust.”    </div>
+  </div>
+
+  <hr>
+
+  <h2>Pro tips</h2>
+  <p>
+    The best answers come from clear questions. Be specific about time range, metric, and group — and ask for the format you want.
+  </p>
+
+  <div class="clara-prompt-box clara-prompt-box--clickable"
+       role="button" tabindex="0"
+       data-clara-prompt="Rewrite my question to get a clearer answer: “Are we okay?”">
+    <div class="clara-prompt-box-header">
+      <div class="clara-prompt-label">Level up the question</div>
+      <div class="clara-prompt-cta">Click to try →</div>
+    </div>
+    <div class="clara-prompt-text">
+“Rewrite my question to get a clearer answer: “Are we okay?””    </div>
+  </div>
+
+  <div class="clara-prompt-box clara-prompt-box--clickable"
+       role="button" tabindex="0"
+       data-clara-prompt="Give me a template I can reuse for asking about any metric (time window, group, comparison, and a clear output format).">
+    <div class="clara-prompt-box-header">
+      <div class="clara-prompt-label">Reusable prompt template</div>
+      <div class="clara-prompt-cta">Click to try →</div>
+    </div>
+    <div class="clara-prompt-text">
+“Give me a template I can reuse for asking about any metric (time window, group, comparison, and a clear output format).”    </div>
+  </div>
+</div>

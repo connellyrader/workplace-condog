@@ -1,0 +1,138 @@
+<div id="dashboard-root" class="metric-detail-page">
+
+  <%= render "dashboard/components/topbar" %>
+
+  <%= render "dashboard/components/clara_overview_card" %>
+
+  <div class="dashboard-last-100-container" style="margin-top:40px;">
+    <%= render "dashboard/components/recent_signals" %>
+  </div>
+
+  <div class="metric-overview">
+    <div class="metric-overview-title"><%= @metric.name %> Overview</div>
+    <div class="metric-overview-subtitle"><%= @metric.short_description %></div>
+
+    <div id="metric-overview-sparkline">
+      <%= render "dashboard/components/metric_sparkline",
+             points:   @spark_points,        # Array of 0..100 (ints/floats)
+             comparison_points: @spark_points_compare,
+             x_labels: @x_labels,            # full point labels (tooltip)
+             x_axis_start: @range_start,     # uniform axis spacing labels
+             x_axis_end: @range_end,
+             y_title:  "Score",            # Optional axis title
+             x_title:  nil,                  # Optional axis title
+             curve:    :smooth,
+             curve_tension: 0.7,
+             curve_pad_px: 8
+      %>
+    </div>
+  </div>
+
+  <div id="submetric-breakdown-container">
+    <%= render "dashboard/components/submetric_breakdown",
+          metric: @metric,
+          submetric_rates: @submetric_rates,
+          submetric_detection_counts: @submetric_detection_counts,
+          submetric_last30_counts: @submetric_last30_counts,
+          signal_category_rates: @signal_category_rates,
+          signal_category_detection_counts: @signal_category_detection_counts,
+          signal_category_debug_detections: @signal_category_debug_detections %>
+  </div>
+
+
+
+
+  <div class="metric-footer">
+    <%# Temporarily hide Recent Insights on the metric page. %>
+    <%#= render "dashboard/components/recent_insights" %>
+
+    <div class="framework-container">
+      <div class="metric-footer-title">About <%= @metric.name %></div>
+
+      <div class="metric-footer-framework-description">
+        <%= sanitize(@metric.about.to_s, tags: %w[b strong i em br], attributes: []) %>
+
+        <a href="<%= @metric.link %>" target="_blank">
+          <%= icon "doc" %> Further reading
+        </a>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+  document.addEventListener('filters:change', function (e) {
+    const d = e.detail;
+    if (!d || !d.type) return;
+
+    const dateButton  = document.querySelector('.topbar .filter-button[data-current-start]');
+    const groupButton = document.querySelector('.topbar .filter-button.group-filter');
+    let currentStart  = dateButton ? dateButton.dataset.currentStart  : null;
+    let currentEnd    = dateButton ? dateButton.dataset.currentEnd    : null;
+    let currentPreset = dateButton ? (dateButton.dataset.currentPreset || '') : '';
+    let currentGroup = groupButton ? String(groupButton.dataset.currentGroupId || 'all') : 'all';
+
+    const nextPreset = (typeof d.preset === 'string' ? d.preset : '') || currentPreset;
+    const nextStart  = d.start || currentStart;
+    const nextEnd    = d.end   || currentEnd;
+    const nextGroup  = d.group_id ? String(d.group_id) : currentGroup;
+
+    if (nextStart === currentStart && nextEnd === currentEnd && nextGroup === currentGroup && nextPreset === currentPreset) return;
+
+    const params = new URLSearchParams();
+
+    if (nextPreset) {
+      params.set('preset', nextPreset);
+    } else {
+      if (nextStart) params.set('start', nextStart);
+      if (nextEnd)   params.set('end', nextEnd);
+    }
+
+    params.set('group_id', nextGroup);
+
+    const root  = document.getElementById('dashboard-root'); // wraps the whole dashboard
+    const grid  = document.querySelector('.dashboard-box-grid');
+    const gauge = document.getElementById('gauge-container');
+    const last100 = document.getElementById('signals-list');
+    const metric_sparkline = document.getElementById('metric-overview-sparkline');
+    const submetricBreakdown = document.getElementById('submetric-breakdown-container');
+
+    // Numbers-only shimmer: add .loading on the root so
+    // .metric-value and .gauge-value animate via CSS
+    if (root) root.classList.add('loading');
+    $('#signals-list li').removeClass('pos neg').addClass('zero');
+
+    const jsonUrl = "<%= metric_path(@metric, format: :json) %>";
+
+    fetch(jsonUrl + '?' + params.toString(), {
+      headers: { 'Accept': 'application/json' }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (gauge && data.gauge)       gauge.innerHTML = data.gauge;
+        if (last100 && data.last100)   last100.innerHTML = data.last100;
+        if (metric_sparkline && data.metric_sparkline) metric_sparkline.innerHTML = data.metric_sparkline;
+        if (submetricBreakdown && data.submetric_breakdown) submetricBreakdown.innerHTML = data.submetric_breakdown;
+
+        if (dateButton) {
+          dateButton.dataset.currentStart = nextStart;
+          dateButton.dataset.currentEnd   = nextEnd;
+        }
+        if (groupButton) {
+          groupButton.dataset.currentGroupId = nextGroup;
+        }
+
+        document.dispatchEvent(new CustomEvent('signals:updated'));
+      })
+      .catch(err => {
+        console.error('Dashboard AJAX error:', err);
+      })
+      .finally(() => {
+        if (root) root.classList.remove('loading');
+      });
+  });
+</script>
+
+<%= render "dashboard/js/metric_js" %>

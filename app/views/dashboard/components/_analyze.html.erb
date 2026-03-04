@@ -1,0 +1,497 @@
+<div class="analyze-container">
+  <div class="analyze-title">Building your dashboard</div>
+  <div class="analyze-subtitle">
+    Calculating your culture can take several minutes. You can leave this page anytime and we'll email you when your dashboard is ready.
+  </div>
+
+  <div class="analyze-stat-row">
+    <div class="analyze-stat">
+      <div class="analyze-stat-title">Total people</div>
+      <div id="stat-total-people" class="analyze-stat-value">
+        <%= @active_workspace&.groups&.first&.group_members&.count.to_i %>
+      </div>
+    </div>
+
+    <div class="analyze-stat">
+      <div class="analyze-stat-title">Messages</div>
+      <div id="stat-messages-scanned" class="analyze-stat-value">0</div>
+    </div>
+
+    <div class="analyze-stat">
+      <div class="analyze-stat-title">Signals found</div>
+      <div id="stat-signals-found" class="analyze-stat-value">0</div>
+    </div>
+  </div>
+
+  <div class="analyze-time-container">
+    <div class="analyze-time-title">Estimated time remaining</div>
+    <div class="analyze-time-value">Calculating...</div>
+    <div class="analyze-time-bar is-loading">
+      <div class="analyze-time-bar-inner"></div>
+    </div>
+  </div>
+
+  <div class="analyze-line"></div>
+
+  <div class="analyze-detections">
+    <div class="analyze-detections-fade"></div>
+  </div>
+
+  <div class="analyze-footer">Finding signals...</div>
+</div>
+
+<% if @show_analyze_panel && @show_right_panel %>
+  <script>
+    /*
+      Analyze panel controller (velocity-based ETA with smoothing)
+
+      - Polls /dashboard/detections_stats every 6s (scanned + signals + people_count).
+      - Polls /dashboard/analyze_estimate every 6s (velocity-based ETA + phase + progress).
+      - Streams random detections for UI motion.
+      - Loading bar stays indeterminate until analysis is complete.
+    */
+    (function () {
+      if (window.__analyzePanelRunning) return;
+      window.__analyzePanelRunning = true;
+
+      const DEBUG   = true;
+      const POLL_MS = 6000;
+      const WS_ID   = <%= @active_workspace&.id || "null" %>;
+
+      console.log('[Analyze] script loaded', { ws_id: WS_ID });
+
+      window.addEventListener('error', function (e) {
+        console.log('[Analyze] window.error', e.message, e.filename, e.lineno, e.colno);
+      });
+      window.addEventListener('unhandledrejection', function (e) {
+        console.log('[Analyze] unhandledrejection', e.reason);
+      });
+
+      window.__dumpAnalyzeLogs = function () {
+        try {
+          const key = `analyze_logs_ws_${WS_ID}`;
+          const arr = JSON.parse(sessionStorage.getItem(key) || "[]");
+          console.log(`[Analyze] dump ${arr.length} logs`);
+          arr.forEach(([ts, args]) => console.log(new Date(ts).toISOString(), ...(args || [])));
+        } catch (e) {
+          console.log('[Analyze] dump failed', e);
+        }
+      };
+
+      function persistLog(args) {
+        try {
+          const key = `analyze_logs_ws_${WS_ID}`;
+          const arr = JSON.parse(sessionStorage.getItem(key) || "[]");
+          arr.push([Date.now(), args]);
+          if (arr.length > 500) arr.splice(0, arr.length - 500);
+          sessionStorage.setItem(key, JSON.stringify(arr));
+        } catch (e) {}
+      }
+
+      function restoreLogsOnce() {
+        try {
+          const key = `analyze_logs_ws_${WS_ID}`;
+          const arr = JSON.parse(sessionStorage.getItem(key) || "[]");
+          if (arr.length) {
+            console.groupCollapsed(`[Analyze] restored ${arr.length} logs from before reload`);
+            arr.forEach(([ts, args]) => console.log(new Date(ts).toISOString(), ...(args || [])));
+            console.groupEnd();
+            sessionStorage.removeItem(key);
+          }
+        } catch (e) {}
+      }
+
+      function log() {
+        if (!DEBUG || !window.console) return;
+        const args = Array.from(arguments);
+        persistLog(args);
+        console.log.apply(console, args);
+      }
+
+      function formatEta(sec) {
+        if (sec == null || !isFinite(sec)) return null;
+        sec = Math.floor(sec);
+        if (sec <= 0) return null;
+        if (sec < 60) return '< 1 min remaining';
+        const mins = Math.round(sec / 60);
+        if (mins < 60) return `${mins} min remaining`;
+        const h = Math.floor(mins / 60);
+        const m = mins % 60;
+        return m === 0 ? `${h} hr remaining` : `${h} hr ${m} min remaining`;
+      }
+
+      function setTimeStatus(title, value) {
+        $('.analyze-time-title').text(title);
+        $('.analyze-time-value').text(value);
+      }
+
+      const METRIC_ICONS = {
+        'burnout':              '<%= j icon("burnout") %>',
+        'alignment':            '<%= j icon("alignment") %>',
+        'employee-engagement':  '<%= j icon("employee-engagement") %>',
+        'psychological-safety': '<%= j icon("psychological-safety") %>',
+        'execution-risk':       '<%= j icon("execution-risk") %>',
+        'conflict':             '<%= j icon("conflict") %>',
+        'default':              '<%= j icon("alignment") %>'
+      };
+
+      let analyzeActive = true;
+
+      function iconFor(metricKey) {
+        return METRIC_ICONS[metricKey] || METRIC_ICONS.default;
+      }
+
+      // -------------------------
+      // Loading bar
+      // -------------------------
+      function setLoadingBar() {
+        const $bar = $('.analyze-time-bar');
+        if (!$bar.length) return;
+        $bar.removeClass('is-complete').addClass('is-loading');
+      }
+
+      function setCompleteBar() {
+        const $bar = $('.analyze-time-bar');
+        if (!$bar.length) return;
+        $bar.removeClass('is-loading').addClass('is-complete');
+      }
+
+      // -------------------------
+      // Signal bars
+      // -------------------------
+      function buildSignalLi(d) {
+        const cls = d.positive ? 'pos' : 'neg';
+        const m   = d.magnitude || 3;
+
+        return $('<li>', {
+          'class': cls,
+          'style': `--m:${m}`,
+          'data-title': d.signal || 'Signal',
+          'data-description': d.text || '',
+          'data-trend': d.positive ? 'up' : 'down'
+        });
+      }
+
+      function pinRight($vp) {
+        const el = $vp[0];
+        if (!el) return;
+        const maxRight = Math.max(0, el.scrollWidth - el.clientWidth);
+        el.scrollLeft = maxRight;
+      }
+
+      function pushSignalBar(d) {
+        const $vp = $('.signals-viewport');
+        const $ul = $vp.find('.signals');
+        if (!$ul.length) return;
+
+        const $items = $ul.children('li');
+        const $newLi = buildSignalLi(d);
+
+        if ($items.length >= 100) $items.first().remove();
+        $ul.append($newLi);
+        pinRight($vp);
+      }
+
+      $(function () {
+        restoreLogsOnce();
+
+        const $vp = $('.signals-viewport');
+        if ($vp.length) pinRight($vp);
+
+        let rAF;
+        $(window).on('resize.analyzePanel', function () {
+          cancelAnimationFrame(rAF);
+          rAF = requestAnimationFrame(function () {
+            if ($vp.length) pinRight($vp);
+          });
+        });
+
+        setLoadingBar();
+      });
+
+      // -------------------------
+      // Sliding detections
+      // -------------------------
+      function buildSlidingDetection(d) {
+        var txt = $('<div/>').text(d.text || '').html();
+        var svg = iconFor(d.metric_key);
+
+        return $(
+          '<div class="analyze-detection animating" style="height:0;">' +
+            '<div class="ad-inner">' +
+              '<span class="detect-icon-wrap">' + svg + '</span>' +
+              '<span class="detect-text">' + txt + '</span>' +
+            '</div>' +
+          '</div>'
+        );
+      }
+
+      var seen = new Set();
+
+      function fetchOneRandom() {
+        if (!analyzeActive) return;
+
+        $.getJSON('/dashboard/detections_random', function (d) {
+          if (!d || !d.id) return;
+          if (seen.has(d.id)) return;
+          seen.add(d.id);
+
+          var $list = $('.analyze-detections');
+          if (!$list.length) return;
+
+          var $el = buildSlidingDetection(d);
+          $list.append($el);
+
+          var target = $el.find('.ad-inner')[0].scrollHeight;
+          void $el[0].offsetHeight;
+
+          $el.css('height', target + 'px');
+          $el.find('.ad-inner').css('opacity', 1);
+
+          $el.one('transitionend', function (e) {
+            if (e.originalEvent && e.originalEvent.propertyName !== 'height') return;
+            $el.removeClass('animating').css('height', '');
+          });
+
+          var MAX = 30;
+          var $items = $list.children('.analyze-detection');
+          if ($items.length > MAX) $items.slice(0, $items.length - MAX).remove();
+
+          pushSignalBar(d);
+        }).always(function () {
+          setTimeout(fetchOneRandom, POLL_MS);
+        });
+      }
+
+      // -------------------------
+      // Stats polling
+      // -------------------------
+      function pollStats() {
+        if (!analyzeActive) return;
+
+        $.getJSON('/dashboard/detections_stats', function (s) {
+          const signals = s.signals_found || 0;
+
+          // Messages stat is driven by analyze_estimate so denominator stays in sync with banner state.
+          $('#stat-signals-found').text(signals.toLocaleString());
+
+          if (s.people_count != null) {
+            $('#stat-total-people').text(Number(s.people_count).toLocaleString());
+          }
+
+          if (DEBUG) {
+            log('[Analyze] detections_stats @', new Date().toISOString(), {
+              signals, daysAnalyzed: s.days_analyzed, peopleCount: s.people_count
+            });
+          }
+        }).always(function () {
+          setTimeout(pollStats, POLL_MS);
+        });
+      }
+
+      // -------------------------
+      // Ready handling
+      // -------------------------
+      function hardReload() {
+        try {
+          window.location.replace(window.location.href);
+        } catch (e) {
+          window.location.reload();
+        }
+      }
+
+      // -------------------------
+      // Estimate polling (velocity-based)
+      // -------------------------
+      function pollEstimate() {
+        if (!analyzeActive) return;
+
+        $.getJSON('/dashboard/analyze_estimate', function (resp) {
+          if (!resp || !resp.ok) {
+            if (DEBUG) log('[Analyze] analyze_estimate bad @', new Date().toISOString(), resp);
+            return;
+          }
+
+          if (resp.people_count != null) {
+            $('#stat-total-people').text(Number(resp.people_count).toLocaleString());
+          }
+
+          const phase = resp.phase || 'importing_analyzing';
+          const progressPct = resp.progress_pct || 0;
+          const etaSeconds = resp.eta_seconds;
+          const etaCalculating = resp.eta_calculating;
+
+          const ingested = Number(resp.messages_ingested || 0);
+          const processed = Number(resp.messages_processed || 0);
+          const expected = Number(resp.total_expected || 0);
+          const ingestionComplete = !!resp.ingestion_complete;
+
+          // Keep top Messages stat synchronized with the active denominator in the banner.
+          const messagesDisplayTotal = ingested;
+          $('#stat-messages-scanned').text(Number(messagesDisplayTotal || 0).toLocaleString());
+
+          const slackTotal = Number(resp.slack_channels_total || 0);
+          const slackDone = Number(resp.slack_channels_with_estimate || 0);
+          const slackPending = Number(resp.slack_channels_pending_estimate || 0);
+
+          const teamsDone = Number(resp.teams_channels_backfilled || 0);
+          const teamsTotal = Number(resp.teams_channels_total || 0);
+          const teamsPending = Number(resp.teams_channels_pending_backfill || 0);
+          const teamsReportDone = Number(resp.teams_report_done || 0);
+          const teamsReportTotal = Number(resp.teams_report_total || 0);
+          const teamsReportPhase = String(resp.teams_report_phase || '');
+          const teamsChatDone = Number(resp.teams_chat_model_done || 0);
+          const teamsChatTotal = Number(resp.teams_chat_model_total || 0);
+          const teamsChatPhase = String(resp.teams_chat_model_phase || '');
+          const etaText = formatEta(etaSeconds);
+
+          // Provider-aware, monotonic status progression (no bouncing backward).
+          const teamsSignals = teamsTotal > 0 || teamsReportTotal > 0 || teamsChatTotal > 0 || teamsPending > 0;
+          const slackSignals = slackTotal > 0;
+          const flow = (teamsSignals && !slackSignals) ? 'teams' : 'slack';
+          const stageKey = `__analyzeStageRank_${flow}`;
+          const prevRank = Number(window[stageKey] || 0);
+
+          function setStage(rank, title, subtitle) {
+            const nextRank = Math.max(prevRank, rank);
+            window[stageKey] = nextRank;
+
+            const map = {
+              // Slack flow
+              1: ['Fetching channel info', `Searching channels ${slackDone.toLocaleString()}/${Math.max(slackTotal, 1).toLocaleString()}`],
+              2: ['Calculating workload', ingested > 0 ? `Processing messages ${processed.toLocaleString()}/${ingested.toLocaleString()}` : `Processing messages ${processed.toLocaleString()}`],
+              3: ['Estimated time remaining', etaText || (ingested > 0 ? `Processing messages ${processed.toLocaleString()}/${ingested.toLocaleString()}` : `Processing messages ${processed.toLocaleString()}`)],
+              4: ['Finalizing analysis', ingested > 0 ? `Finalizing messages ${processed.toLocaleString()}/${ingested.toLocaleString()}` : `Finalizing messages ${processed.toLocaleString()}`],
+              5: ['Analysis complete', 'Loading dashboard...'],
+
+              // Teams flow offset by +10
+              11: ['Syncing Teams channels', `Syncing channels ${teamsDone.toLocaleString()}/${Math.max(teamsTotal, 1).toLocaleString()}`],
+              12: ['Fetching Teams reports', `Fetching reports ${teamsReportDone.toLocaleString()}/${Math.max(teamsReportTotal, 1).toLocaleString()}`],
+              13: ['Searching channels', `Searching channels ${teamsChatDone.toLocaleString()}/${Math.max(teamsChatTotal, 1).toLocaleString()}`],
+              14: ['Calculating workload', ingested > 0 ? `Processing messages ${processed.toLocaleString()}/${ingested.toLocaleString()}` : `Processing messages ${processed.toLocaleString()}`],
+              15: ['Estimated time remaining', etaText ? `Finishing in ${etaText}` : (ingested > 0 ? `Processing messages ${processed.toLocaleString()}/${ingested.toLocaleString()}` : `Processing messages ${processed.toLocaleString()}`)],
+              16: ['Finalizing analysis', ingested > 0 ? `Finalizing messages ${processed.toLocaleString()}/${ingested.toLocaleString()}` : `Finalizing messages ${processed.toLocaleString()}`],
+              17: ['Analysis complete', 'Loading dashboard...']
+            };
+
+            const chosen = map[nextRank] || [title, subtitle];
+            setTimeStatus(chosen[0], chosen[1]);
+          }
+
+          // Update time display
+          if (phase === 'complete' || resp.dashboard_ready) {
+            setStage(flow === 'teams' ? 17 : 5, 'Analysis complete', 'Loading dashboard...');
+            setCompleteBar();
+          } else {
+            setLoadingBar();
+
+            if (flow === 'teams') {
+              let desired = 14;
+              if (!ingestionComplete) {
+                if (teamsPending > 0 && processed === 0 && ingested === 0) {
+                  desired = 11;
+                } else if (teamsReportPhase === 'fetching_reports' || (teamsReportTotal > 0 && teamsReportDone < teamsReportTotal)) {
+                  desired = 12;
+                } else if (teamsChatPhase === 'modeling' || (teamsChatTotal > 0 && teamsChatDone < teamsChatTotal)) {
+                  desired = 13;
+                } else if (etaText) {
+                  desired = 15;
+                }
+              } else {
+                desired = 16;
+              }
+              setStage(desired, 'Calculating workload', '');
+            } else {
+              let desired = 2;
+              if (!ingestionComplete) {
+                if (slackPending > 0 && processed === 0 && ingested === 0) {
+                  desired = 1;
+                } else if (etaText) {
+                  desired = 3;
+                }
+              } else {
+                desired = 4;
+              }
+              setStage(desired, 'Calculating workload', '');
+            }
+          }
+
+          // Update footer based on phase
+          if (phase === 'finishing' && Number(resp.ingestion_complete ? 1 : 0) === 1) {
+            const processed = Number(resp.messages_processed || 0);
+            if (processed > 0) {
+              $('.analyze-footer').text('Finishing analysis...');
+            } else {
+              $('.analyze-footer').text('Importing & analyzing messages...');
+            }
+          } else if (phase === 'importing_analyzing' || Number(resp.ingestion_complete ? 1 : 0) === 0) {
+            $('.analyze-footer').text('Importing & analyzing messages...');
+          } else {
+            $('.analyze-footer').text('Finding signals...');
+          }
+
+          if (DEBUG) {
+            log('[Analyze] ETA @', new Date().toISOString(), {
+              phase,
+              progress_pct: progressPct,
+              eta_seconds: etaSeconds,
+              eta_calculating: etaCalculating,
+              velocity: resp.velocity,
+              messages_ingested: resp.messages_ingested,
+              messages_processed: resp.messages_processed,
+              ingestion_complete: resp.ingestion_complete,
+              dashboard_ready: resp.dashboard_ready,
+              days_analyzed: resp.days_analyzed,
+              snapshots_count: resp.snapshots_count
+            });
+          }
+
+          // READY: swap and reload
+          // Use completion OR dashboard_ready to avoid "Done" text without closing panel.
+          const uiDone = (phase === 'complete') || !!resp.dashboard_ready;
+          if (uiDone && !window.__analyzeCompleteReloaded) {
+            window.__analyzeCompleteReloaded = true;
+            analyzeActive = false;
+
+            try {
+              $('#right-panel-analyze').stop(true, true).fadeOut(150);
+              $('#right-panel-chat').stop(true, true).fadeIn(150);
+            } catch (e) {}
+
+            setTimeout(hardReload, 100);
+            return;
+          }
+
+        }).fail(function (xhr) {
+          if (DEBUG) log('[Analyze] analyze_estimate failed:', xhr.status, xhr.responseText);
+        }).always(function () {
+          setTimeout(pollEstimate, POLL_MS);
+        });
+      }
+
+      // -------------------------
+      // Boot
+      // -------------------------
+      $(function () {
+        setTimeStatus('Calculating estimate', 'Calculating...');
+        if (DEBUG) log('[Analyze] panel started @', new Date().toISOString(), { ws_id: WS_ID });
+
+        fetchOneRandom();
+        pollStats();
+        pollEstimate();
+      });
+
+      // -------------------------
+      // Cleanup
+      // -------------------------
+      document.addEventListener('turbo:before-cache', function () {
+        analyzeActive = false;
+        window.__analyzePanelRunning = false;
+        $(window).off('resize.analyzePanel');
+        if (DEBUG) log('[Analyze] cleanup @', new Date().toISOString());
+      }, { once: true });
+
+    })();
+  </script>
+
+<% end %>

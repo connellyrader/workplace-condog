@@ -1,0 +1,282 @@
+<script>
+  $(function(){
+    $(document).on('click', '.navigation-toggle', function (e) {
+      e.preventDefault();
+      const $layout = $('.layout');
+      const isMobile = window.matchMedia('(max-width: 768px)').matches;
+
+      if (isMobile) {
+        // Mobile: mini by default; overlay only when drawer-open is present
+        const open = !$layout.hasClass('drawer-open');
+        $layout.toggleClass('drawer-open', open);
+        // a11y hint if your toggle is a <button>
+        $(this).attr('aria-expanded', open);
+      } else {
+        // Desktop/tablet: push layout by flipping mini/full widths
+        const wasMini = $layout.hasClass('nav-mini');
+        $layout.toggleClass('nav-mini nav-full');
+        $(this).attr('aria-expanded', wasMini); // mini -> expanding
+      }
+    });
+
+    // Backdrop only closes the mobile drawer
+    $(document).on('click', '.backdrop', function () {
+      $('.layout').removeClass('drawer-open');
+    });
+
+    // Optional: if user resizes from mobile->desktop, clean up drawer state
+    const mq = window.matchMedia('(max-width: 768px)');
+    mq.addEventListener?.('change', (e) => {
+      if (!e.matches) { // now desktop/tablet
+        $('.layout').removeClass('drawer-open');
+      }
+    });
+
+  })
+</script>
+
+
+<script>
+  // Auto Injection to AI Chat
+  (function () {
+    function findChatElements() {
+      var input = document.querySelector('.ai-chat__composer textarea[data-ai-chat-widget-target="input"]') ||
+                  document.querySelector('.ai-chat__composer textarea.ai-chat__input') ||
+                  document.querySelector('.ai-chat__input');
+
+      var form = input ? input.closest('form.ai-chat__composer') : null;
+      var sendBtn = form ? (form.querySelector('button[type="submit"]') || form.querySelector('.ai-chat__send')) : null;
+
+      return { input: input, form: form, sendBtn: sendBtn };
+    }
+
+    function handlePromptClick(promptText) {
+
+      // Make sure the right panel/chat is open
+      if (window.jQuery) {
+        $('body').addClass('right-panel-open');
+
+        // Force scroll to bottom of the chat thread
+        var $thread = $('.ai-chat__thread');
+        if ($thread.length) {
+          // smooth scroll
+          $thread.animate({ scrollTop: $thread[0].scrollHeight }, 200);
+        }
+      }
+
+      var els = findChatElements();
+      if (!els.input || !els.form) {
+        console.warn("Clara docs: chat form or input not found.");
+        return;
+      }
+
+      els.input.value = promptText;
+
+      // Prefer clicking the send button if it exists (lets the widget JS clear the input, stream tokens, etc.)
+      if (els.sendBtn && typeof els.sendBtn.click === "function") {
+        els.sendBtn.click();
+        setTimeout(function () { if (els.input) els.input.value = ""; }, 0);
+        return;
+      }
+
+      // Next best: requestSubmit triggers normal submit flow + submit event
+      if (typeof els.form.requestSubmit === "function") {
+        els.form.requestSubmit();
+        setTimeout(function () { if (els.input) els.input.value = ""; }, 0);
+        return;
+      }
+
+      // Let any JS/controller intercept the submit first
+      var event = new Event('submit', { bubbles: true, cancelable: true });
+      if (!els.form.dispatchEvent(event)) {
+        // canceled by JS handler; that handler should submit + clear, but ensure we clear anyway
+        setTimeout(function () { if (els.input) els.input.value = ""; }, 0);
+        return;
+      }
+
+      // Fallback: submit the form normally (bypasses submit handlers)
+      if (typeof els.form.submit === "function") {
+        els.form.submit();
+        setTimeout(function () { if (els.input) els.input.value = ""; }, 0);
+      }
+    }
+
+    function initClaraPromptBoxes(root) {
+      root.querySelectorAll('.clara-prompt-box--clickable[data-clara-prompt]').forEach(function (box) {
+        box.addEventListener('click', function () {
+          var prompt = box.getAttribute('data-clara-prompt') || '';
+          if (prompt.trim().length === 0) return;
+          handlePromptClick(prompt.trim());
+        });
+
+        box.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            var prompt = box.getAttribute('data-clara-prompt') || '';
+            if (prompt.trim().length === 0) return;
+            handlePromptClick(prompt.trim());
+          }
+        });
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      var root = document.querySelector('.clara-docs');
+      if (root) initClaraPromptBoxes(root);
+    });
+
+    document.addEventListener('turbo:load', function () {
+      var root = document.querySelector('.clara-docs');
+      if (root) initClaraPromptBoxes(root);
+    });
+  })();
+</script>
+
+
+
+<script>
+  // Smart tooltip positioning inside .settings-main or .main containers
+  document.addEventListener("DOMContentLoaded", initSettingsTooltips);
+  document.addEventListener("turbo:load", initSettingsTooltips);
+
+  // Gauge "About your score" tooltip: use position:fixed so it floats over content
+  document.addEventListener('mouseover', function (e) {
+    var gauge = e.target.closest && e.target.closest('.gauge');
+    if (!gauge) return;
+    if (e.relatedTarget && gauge.contains(e.relatedTarget)) return;
+    var tooltip = gauge.querySelector('.gauge-tooltip');
+    if (!tooltip) return;
+    var rect = gauge.getBoundingClientRect();
+    tooltip.style.position = 'fixed';
+    tooltip.style.left = (rect.left + rect.width / 2) + 'px';
+    tooltip.style.top = (rect.bottom + 8) + 'px';
+    tooltip.style.transform = 'translateX(-50%)';
+  });
+
+  function initSettingsTooltips() {
+    var tooltips = document.querySelectorAll("[data-tooltip]");
+    if (!tooltips.length) return;
+
+    tooltips.forEach(function (el) {
+      // prevent double-binding if turbo:load fires multiple times
+      if (el.dataset.tooltipInit === "1") return;
+      el.dataset.tooltipInit = "1";
+
+      var container =
+        el.closest(".settings-main") ||
+        el.closest(".main") ||
+        document.documentElement;
+
+      var marginX = 200;
+      var marginY = 200;
+
+      ["mouseenter", "focus"].forEach(function (evtName) {
+        el.addEventListener(evtName, function () {
+          var rect = el.getBoundingClientRect();
+          var containerRect = container.getBoundingClientRect();
+
+          el.classList.remove("tooltip-pos-left", "tooltip-pos-right", "tooltip-pos-bottom");
+
+          var centerX = rect.left + rect.width / 2;
+          var distToLeft = centerX - containerRect.left;
+          var distToRight = containerRect.right - centerX;
+
+          if (distToLeft < marginX) {
+            el.classList.add("tooltip-pos-right");
+          } else if (distToRight < marginX) {
+            el.classList.add("tooltip-pos-left");
+          }
+
+          var distToTop = rect.top - containerRect.top;
+          if (distToTop < marginY) {
+            el.classList.add("tooltip-pos-bottom");
+          }
+        });
+      });
+    });
+  }
+
+
+
+  // converts rails flash notices and alerts into a toast slide in
+  $(function () {
+    var el = document.getElementById("flash-toasts");
+    if (!el) return;
+
+    var notice = (el.dataset.notice || "").trim();
+    var alertMsg = (el.dataset.alert || "").trim();
+    var errorMsg = (el.dataset.error || "").trim();
+
+    function showToast(message, type) {
+      // Prefer your app's toast function if it exists.
+      // Adjust these names to match what your toast modal uses.
+      if (window.showToast) {
+        var isErr = (type === "error");
+        return window.showToast(message, null, isErr);
+      }
+      if (window.toast) return window.toast(message, type);
+
+      // Last-resort fallback
+      console.log(type + ": " + message);
+    }
+
+    if (notice.length) showToast(notice, "success");
+    if (alertMsg.length) showToast(alertMsg, "error");
+    if (errorMsg.length) showToast(errorMsg, "error");
+  });
+
+  // Demo workspace read-only: convert mutation-block responses into a toast.
+  // This keeps modals/confirmations working, but shows a toast instead of a jarring redirect/alert.
+  (function () {
+    function demoToastFromPayload(payload) {
+      try {
+        if (!payload) return false;
+        if (payload.error !== "demo_read_only") return false;
+        var msg = payload.message || "Demo dashboard is read-only. Changes are disabled.";
+        if (window.showToast) window.showToast(msg, null, true);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    // jQuery AJAX
+    if (window.jQuery) {
+      $(document).ajaxError(function (_evt, xhr) {
+        if (!xhr) return;
+        if (xhr.status !== 403) return;
+
+        var payload = xhr.responseJSON;
+        if (!payload) {
+          try { payload = JSON.parse(xhr.responseText || "{}"); } catch (e) { payload = null; }
+        }
+
+        demoToastFromPayload(payload);
+      });
+    }
+
+    // fetch()
+    if (window.fetch && !window.__demoFetchPatched) {
+      window.__demoFetchPatched = true;
+      var _fetch = window.fetch;
+
+      window.fetch = function () {
+        return _fetch.apply(this, arguments).then(function (resp) {
+          try {
+            if (!resp || resp.status !== 403) return resp;
+            var ct = (resp.headers && resp.headers.get && resp.headers.get("content-type")) || "";
+            if (ct.indexOf("application/json") === -1) return resp;
+
+            // Clone so we don't consume the original body.
+            resp.clone().json().then(function (payload) {
+              demoToastFromPayload(payload);
+            }).catch(function () {});
+          } catch (e) {}
+
+          return resp;
+        });
+      };
+    }
+  })();
+
+</script>

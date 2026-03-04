@@ -1,0 +1,93 @@
+<%= link_to "← Back to Leads", partners_leads_path, class: "pp-link" %>
+<h1>Lead</h1>
+
+<section class="pp-card pp-span-3" style="margin-bottom: 12px;">
+  <div class="pp-card-header">
+    <h3><%= @lead.full_name.presence || @lead.email %></h3>
+    <div class="pp-muted"><%= @lead.email %></div>
+  </div>
+
+  <div class="pp-muted" style="margin-top:8px;">
+    Signed up: <strong><%= @lead.created_at.in_time_zone.strftime("%b %-d, %Y") %></strong>
+    <% if @link.present? %>
+      · Link: <span class="pp-mono"><%= @link.code %></span>
+    <% end %>
+    <% if @subscription&.status.present? %>
+      · Status: <span class="pp-status"><%= @subscription.status.to_s.capitalize %></span>
+    <% else %>
+      · Status: <span class="pp-status">Lead</span>
+    <% end %>
+  </div>
+</section>
+
+<section class="pp-card pp-span-3" style="margin-bottom: 12px;">
+  <div class="pp-card-header">
+    <h3>Subscription</h3>
+    <div class="pp-muted">Latest subscription snapshot</div>
+  </div>
+
+  <% if @subscription.present? %>
+    <div class="pp-list">
+      <div class="pp-list-item" style="display:flex; justify-content:space-between;">
+        <div>
+          <div><span class="pp-label">Plan:</span> <%= @subscription.interval&.capitalize || "—" %></div>
+          <div><span class="pp-label">Amount:</span>
+            <% if @subscription.amount.present? %>
+              $<%= number_with_precision(@subscription.amount.to_i / 100.0, precision: 2) %>
+            <% else %>
+              —
+            <% end %>
+          </div>
+        </div>
+        <div class="pp-muted" style="text-align:right;">
+          <div><span class="pp-label">Updated:</span> <%= @subscription.updated_at&.in_time_zone&.strftime("%b %-d, %Y") || "—" %></div>
+          <div><span class="pp-label">Status:</span> <%= @subscription.status.to_s.capitalize %></div>
+        </div>
+      </div>
+    </div>
+  <% else %>
+    <div class="pp-muted">No subscription yet.</div>
+  <% end %>
+</section>
+
+<section class="pp-card pp-span-3">
+  <div class="pp-card-header">
+    <h3>Transactions</h3>
+    <div class="pp-muted">Most recent charges attributed to you for this lead</div>
+  </div>
+
+  <div class="pp-table-wrap">
+    <table class="pp-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Plan</th>
+          <th class="pp-num">Sale</th>
+          <th class="pp-num">Commission</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if @charges.any? %>
+          <% @charges.each do |c| %>
+            <tr>
+              <td><%= c.created_at.in_time_zone.strftime("%b %-d, %Y") %></td>
+              <td><%= c.subscription&.interval&.capitalize || "—" %></td>
+              <td class="pp-num">$<%= number_with_precision(c.amount.to_i / 100.0, precision: 2) %></td>
+              <td class="pp-num">$<%= number_with_precision(c.commission.to_i / 100.0, precision: 2) %></td>
+              <td>
+                <% if c.payout_id.present? %>
+                  <span class="pp-status">Paid</span>
+                <% else %>
+                  <span class="pp-status">Pending</span>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        <% else %>
+          <tr><td colspan="5" class="pp-muted">No transactions yet.</td></tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</section>

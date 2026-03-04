@@ -1,0 +1,249 @@
+<div id="nm-overlay" class="nm-overlay is-hidden" aria-hidden="true">
+  <div class="nm-modal" role="dialog" aria-modal="true" aria-labelledby="nm-title">
+    <button type="button" class="nm-close" aria-label="Close" onclick="NM.close()">×</button>
+    <h2 id="nm-title" class="nm-title">Create New Model</h2>
+
+    <%= form_with url: create_model_model_tests_path, method: :post, id: "nm-form", class: "nm-form", local: true, multipart: true do %>
+      <!-- Name -->
+      <label class="nm-label" for="nm-name">Name</label>
+      <%= text_field_tag "model[name]", nil, id: "nm-name", class: "nm-input", required: true, placeholder: "e.g., DeBERTa v3 Encoder" %>
+
+      <!-- Description -->
+      <label class="nm-label" for="nm-desc">Description</label>
+      <%= text_area_tag "model[description]", nil, id: "nm-desc", class: "nm-input nm-textarea", rows: 3, placeholder: "Short description…" %>
+
+      <!-- Deployment Type -->
+      <label class="nm-label" for="nm-deploy">Deployment Type</label>
+      <%= select_tag "model[deployment_type]",
+            options_for_select(["Hugging Face Hub", "Neuron Instance", "Custom API", "OpenAI Batch API"], "Hugging Face Hub"),
+            id: "nm-deploy", class: "nm-input", required: true %>
+
+      <!-- Inference Mode (Realtime vs Async) -->
+      <label class="nm-label" for="nm-mode">Inference Mode</label>
+      <%= select_tag "model[inference_mode]",
+            options_for_select([["Real-time","realtime"],["Asynchronous","async"]], "realtime"),
+            id: "nm-mode", class: "nm-input", required: true %>
+      <p class="nm-hint">Real-time = synchronous InvokeEndpoint; Asynchronous = S3 output with SNS notifications.</p>
+
+      <!-- Hugging Face fields -->
+      <div class="nm-fieldset hf-block" id="nm-hf-model-wrap">
+        <label class="nm-label" for="nm-hf-id">Hugging Face Model ID</label>
+        <%= text_field_tag "model[hf_model_id]", nil, id: "nm-hf-id", class: "nm-input",
+                           placeholder: "e.g., microsoft/deberta-v3-base" %>
+
+        <label class="nm-label" for="nm-hf-task">HF Task</label>
+        <%= select_tag "model[hf_task]",
+              options_for_select(["feature-extraction","text-classification","text-generation"], "feature-extraction"),
+              id: "nm-hf-task", class: "nm-input" %>
+      </div>
+
+      <!-- Container Image URI -->
+      <div class="nm-fieldset hf-block" id="nm-ciu-wrap">
+        <label class="nm-label" for="nm-ciu">Container Image URI (ECR)</label>
+        <%= text_field_tag "model[container_image_uri]", nil, id: "nm-ciu", class: "nm-input",
+                           placeholder: "388410206920.dkr.ecr.us-east-2.amazonaws.com/hf-pytorch-inference:tag" %>
+        <p class="nm-hint">Leave blank to auto-pick. Image must exist in the same region as your endpoint.</p>
+      </div>
+
+      <!-- Model Artifact Source -->
+      <label class="nm-label">Model Artifact (choose one)</label>
+      <div class="nm-fieldset">
+        <div class="nm-flex-row nm-gap">
+          <label><input type="radio" name="model[artifact_mode]" value="none" checked> None (download from HF at runtime)</label>
+        </div>
+        <div class="nm-flex-row nm-gap">
+          <label><input type="radio" name="model[artifact_mode]" value="upload"> Upload model.tar.gz now</label>
+          <input type="file" name="model[artifact_file]"
+                 accept=".tar,.gz,.tgz,application/gzip,application/x-gzip,application/x-tar"
+                 class="nm-input" />
+          <input type="text"  name="model[artifact_s3_prefix]" class="nm-input" placeholder="S3 prefix (optional, default: model-artifacts/)" />
+        </div>
+        <div class="nm-flex-row nm-gap">
+          <label><input type="radio" name="model[artifact_mode]" value="s3_url"> Use existing S3 URI</label>
+          <input type="text" name="model[model_data_url]" class="nm-input" placeholder="s3://bucket/path/model.tar.gz" />
+        </div>
+      </div>
+
+      <!-- Custom API fields -->
+      <div id="nm-custom-wrap" class="nm-fieldset is-hidden">
+        <div class="nm-flex-row">
+          <span class="nm-label">Custom API Params</span>
+          <button type="button" class="nm-mini-btn" id="nm-add-kv">+ Add Row</button>
+        </div>
+        <div id="nm-kv-list" class="nm-kv-list"></div>
+        <%= hidden_field_tag "model[custom_api_params_json]", "", id: "nm-custom-json" %>
+      </div>
+
+      <!-- OpenAI-only fields -->
+      <div id="nm-openai-wrap" class="nm-fieldset is-hidden">
+        <label class="nm-label" for="nm-openai-model">OpenAI Model</label>
+        <%= text_field_tag "model[openai_model]", nil, id: "nm-openai-model",
+              class: "nm-input", placeholder: "e.g., gpt-4o-mini, gpt-4.1" %>
+      </div>
+
+      <!-- AWS Instance + hourly -->
+      <div class="nm-grid-2">
+        <div>
+          <label class="nm-label" for="nm-aws">AWS Instance</label>
+          <select class="nm-input" id="nm-aws" name="model[aws_instance_id]" required>
+            <% aws_instances.each do |ai| %>
+              <% dollars = ai.hourly_price.present? ? ai.hourly_price.to_f : nil %>
+              <option value="<%= ai.id %>" data-hourly="<%= dollars ? ('%.2f' % (dollars/100)) : '' %>">
+                <%= ai.instance_type %> (<%= dollars ? "#{number_to_currency(dollars/100)}/hr" : "price N/A" %>)
+              </option>
+            <% end %>
+          </select>
+        </div>
+        <div>
+          <label class="nm-label">&nbsp;</label>
+          <div class="nm-hourly">Hourly Rate:
+            <span id="nm-hourly-val"><%= aws_instances.first&.hourly_price ? "#{number_to_currency(aws_instances.first.hourly_price/100)}/hr" : "—" %></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Capacity settings -->
+      <div class="nm-grid-2">
+        <div>
+          <label class="nm-label" for="nm-min">Min Server Instances</label>
+          <%= number_field_tag "model[min_server_instances]", 0, id: "nm-min", class: "nm-input", min: 0, step: 1, required: true %>
+        </div>
+        <div>
+          <label class="nm-label" for="nm-max">Max Server Instances</label>
+          <%= number_field_tag "model[max_server_instances]", 1, id: "nm-max", class: "nm-input", min: 1, step: 1, required: true %>
+        </div>
+        <div>
+          <label class="nm-label" for="nm-conc">Concurrent Requests per Instance</label>
+          <%= number_field_tag "model[concurrent_requests]", 1, id: "nm-conc", class: "nm-input", min: 1, step: 1, required: true %>
+        </div>
+      </div>
+
+      <!-- Environment variables JSON -->
+      <label class="nm-label" for="nm-env">Environment Variables (JSON)</label>
+      <%= text_area_tag "model[environment_variables]", nil, id: "nm-env",
+                        class: "nm-input nm-textarea mono", rows: 6,
+                        placeholder: '{"HF_TOKEN":"...", "TOKENIZERS_PARALLELISM":"false", "OMP_NUM_THREADS":"2"}' %>
+
+      <!-- Actions -->
+      <div class="nm-actions">
+        <button type="button" class="nm-btn nm-btn-ghost" onclick="NM.close()">Cancel</button>
+        <button type="submit" class="nm-btn">Create Model</button>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<script>
+  const NM = (() => {
+    const overlay = () => document.getElementById('nm-overlay');
+    const deploy  = () => document.getElementById('nm-deploy');
+    const hfBlocks = () => document.querySelectorAll('.hf-block');
+    const customWrap = () => document.getElementById('nm-custom-wrap');
+    const openaiWrap = () => document.getElementById('nm-openai-wrap');
+    const awsSel  = () => document.getElementById('nm-aws');
+    const hourly  = () => document.getElementById('nm-hourly-val');
+    const kvList  = () => document.getElementById('nm-kv-list');
+    const addBtn  = () => document.getElementById('nm-add-kv');
+    const form    = () => document.getElementById('nm-form');
+    const customJson = () => document.getElementById('nm-custom-json');
+
+    function updateVisibility() {
+      const v = deploy().value;
+      const isCustom = v === 'Custom API';
+      const isOpenAI = v === 'OpenAI Batch API';
+
+      customWrap().classList.toggle('is-hidden', !isCustom);
+      openaiWrap().classList.toggle('is-hidden', !isOpenAI);
+
+      // hide/show all HF-related blocks together
+      hfBlocks().forEach(el => el.classList.toggle('is-hidden', isCustom || isOpenAI));
+
+      // hide AWS picker for OpenAI path
+      document.getElementById('nm-aws').closest('.nm-grid-2').classList.toggle('is-hidden', isOpenAI);
+    }
+
+    function updateHourly() {
+      const opt = awsSel().selectedOptions[0];
+      const rate = opt ? (opt.getAttribute('data-hourly') || '') : '';
+      hourly().textContent = rate ? `$${parseFloat(rate).toFixed(2)}/hr` : '—';
+    }
+
+    function addKVRow(key = '', val = '') {
+      const row = document.createElement('div');
+      row.className = 'nm-kv-row';
+      row.innerHTML = `
+        <input class="nm-input" type="text" placeholder="Key" value="${key.replace(/"/g,'&quot;')}" />
+        <input class="nm-input" type="text" placeholder="Value" value="${val.replace(/"/g,'&quot;')}" />
+        <button type="button" class="nm-del-row" aria-label="Remove">−</button>
+      `;
+      row.querySelector('.nm-del-row').addEventListener('click', () => row.remove());
+      kvList().appendChild(row);
+    }
+
+    function serializeCustomKV() {
+      const rows = kvList().querySelectorAll('.nm-kv-row');
+      const obj = {};
+      rows.forEach(r => {
+        const k = r.children[0].value.trim();
+        const v = r.children[1].value.trim();
+        if (k.length) obj[k] = v;
+      });
+      customJson().value = JSON.stringify(obj);
+    }
+
+    function bindArtifactRadios() {
+      const radios = document.querySelectorAll('input[name="model[artifact_mode]"]');
+      const file   = document.querySelector('input[name="model[artifact_file]"]');
+      const pref   = document.querySelector('input[name="model[artifact_s3_prefix]"]');
+      const s3url  = document.querySelector('input[name="model[model_data_url]"]');
+
+      function sync() {
+        const v = document.querySelector('input[name="model[artifact_mode]"]:checked')?.value;
+        const isUpload = v === 'upload';
+        const isS3     = v === 's3_url';
+        if (file) { file.disabled = !isUpload; file.required = isUpload; }
+        if (pref) { pref.disabled = !isUpload; }
+        if (s3url){ s3url.disabled = !isS3; s3url.required = isS3; }
+      }
+      radios.forEach(r => r.addEventListener('change', sync));
+      sync();
+    }
+
+    function bind() {
+      overlay().addEventListener('click', (e) => { if (e.target === overlay()) NM.close(); });
+      document.addEventListener('keydown', (e) => {
+        if (!overlay().classList.contains('is-hidden') && e.key === 'Escape') NM.close();
+      });
+
+      deploy().addEventListener('change', updateVisibility);
+
+      awsSel().addEventListener('change', updateHourly);
+      updateHourly();
+
+      addBtn().addEventListener('click', () => addKVRow());
+      addKVRow(); // seed one
+
+      bindArtifactRadios();
+
+      form().addEventListener('submit', (e) => {
+        serializeCustomKV();
+        const env = document.getElementById('nm-env').value.trim();
+        if (env.length) {
+          try { JSON.parse(env); } catch(err) {
+            e.preventDefault();
+            alert('Environment Variables must be valid JSON.');
+          }
+        }
+      });
+
+      updateVisibility();
+    }
+
+    document.addEventListener('DOMContentLoaded', bind);
+
+    return {
+      open: () => { overlay().classList.remove('is-hidden'); overlay().setAttribute('aria-hidden','false'); document.body.style.overflow='hidden'; document.getElementById('nm-name')?.focus(); },
+      close: () => { overlay().classList.add('is-hidden'); overlay().setAttribute('aria-hidden','true'); document.body.style.overflow=''; }
+    };
+  })();
+</script>

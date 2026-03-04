@@ -1,0 +1,194 @@
+<h1>Analytics</h1>
+
+<div class="pp-container pp-2col">
+
+  <!-- Map card (full width) -->
+  <section class="pp-card pp-span-full">
+    <div class="pp-card-header compact">
+      <h3>Active clicks (last 24h)</h3>
+      <!--div class="pp-muted"><%= (@map_points || []).size %> clusters</div-->
+    </div>
+    <div id="pp-map" class="pp-map"></div>
+  </section>
+  
+  <!-- Row 1: Referrers (L) + Countries (R) -->
+  <section class="pp-card">
+    <div class="pp-card-header"><h3>Top referrers</h3></div>
+    <div class="pp-table-wrap">
+      <table class="pp-table pp-two">
+        <thead><tr><th>Domain</th><th class="pp-num">Clicks (all time)</th></tr></thead>
+        <tbody>
+          <% (@top_referrers || {}).each do |domain, cnt| %>
+            <tr><td><%= domain %></td><td class="pp-num"><%= cnt %></td></tr>
+          <% end %>
+          <% if (@top_referrers || {}).empty? %>
+            <tr><td colspan="2" class="pp-muted">No data.</td></tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="pp-card">
+    <div class="pp-card-header"><h3>Regions</h3></div>
+    <div class="pp-table-wrap">
+      <table class="pp-table pp-two">
+        <thead>
+          <tr><th>Region, Country</th><th class="pp-num">Clicks (all time)</th></tr>
+        </thead>
+        <tbody>
+          <% regions = (@top_regions || {}) %>
+          <% if regions.any? %>
+            <% regions.first(5).each do |(country, region), cnt| %>
+              <% c = country.to_s.strip %>
+              <% r = region.to_s.strip %>
+              <% label = (c.blank? && r.blank?) ? "Unknown" : "#{r.presence || 'Unknown'}, #{c.presence || 'Unknown'}" %>
+              <tr>
+                <td><%= label %></td>
+                <td class="pp-num"><%= cnt %></td>
+              </tr>
+            <% end %>
+          <% else %>
+            <tr><td colspan="2" class="pp-muted">No data.</td></tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+
+
+  <!-- Row 2: Devices (L) + Top links (R) -->
+  <section class="pp-card">
+    <div class="pp-card-header"><h3>Devices</h3></div>
+    <div class="pp-table-wrap">
+      <table class="pp-table pp-two">
+        <thead><tr><th>Device</th><th class="pp-num">Clicks (all time)</th></tr></thead>
+        <tbody>
+          <% (@top_devices || {}).each do |device, cnt| %>
+            <% label = (device.to_s.strip.presence || "Unknown").capitalize %>
+            <tr>
+              <td><%= label %></td>
+              <td class="pp-num"><%= cnt %></td>
+            </tr>
+          <% end %>
+          <% if (@top_devices || {}).empty? %>
+            <tr><td colspan="2" class="pp-muted">No data.</td></tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="pp-card">
+    <div class="pp-card-header"><h3>Top links</h3></div>
+    <div class="pp-table-wrap">
+      <table class="pp-table pp-two">
+        <thead><tr><th>Link</th><th class="pp-num">Clicks (all time)</th></tr></thead>
+        <tbody>
+          <% (@top_links || []).each do |url, cnt| %>
+            <tr>
+              <td class="pp-mono" style="max-width:640px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= url %></td>
+              <td class="pp-num"><%= cnt %></td>
+            </tr>
+          <% end %>
+          <% if (@top_links || []).empty? %>
+            <tr><td colspan="2" class="pp-muted">No data.</td></tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</div>
+
+
+
+<!-- MapLibre GL (no watermark) -->
+<link href="https://unpkg.com/maplibre-gl@4.1.2/dist/maplibre-gl.css" rel="stylesheet" />
+<script src="https://unpkg.com/maplibre-gl@4.1.2/dist/maplibre-gl.js"></script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Basic map init
+    const map = new maplibregl.Map({
+      container: "pp-map",
+      style: {
+        "version": 8,
+        "sources": {
+          "basemap": {
+            "type": "raster",
+            // CARTO Positron light — neutral look, no banner
+            "tiles": [
+              "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+              "https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+              "https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+              "https://d.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"
+            ],
+            "tileSize": 256,
+            "attribution": "© OpenStreetMap contributors © CARTO"
+          }
+        },
+        "layers": [
+          { "id": "basemap", "type": "raster", "source": "basemap" }
+        ]
+      },
+      center: [0, 20],
+      zoom: 1.7
+    });
+
+    // Build GeoJSON from @map_points [{lat,lng,count}]
+    const points = <%= raw((@map_points || []).to_json) %>;
+    const features = points.map(p => ({
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [p.lng, p.lat] },
+      "properties": { "count": p.count }
+    }));
+    const geo = { "type": "FeatureCollection", "features": features };
+
+    map.on("load", () => {
+      $('.maplibregl-control-container').hide();
+
+      // Source
+      map.addSource("clicks", { type: "geojson", data: geo });
+
+      // Circle layer (size by count; soft teal)
+      map.addLayer({
+        id: "clicks-circles",
+        type: "circle",
+        source: "clicks",
+        paint: {
+          "circle-radius": [
+            "interpolate", ["linear"], ["get", "count"],
+            1, 4,
+            5, 8,
+            20, 14,
+            100, 20
+          ],
+          "circle-color": "#22d3ee",
+          "circle-opacity": 0.35,
+          "circle-stroke-color": "#5eead4",
+          "circle-stroke-width": 1
+        }
+      });
+
+      // Optional: subtle “pulse” halo via second layer
+      map.addLayer({
+        id: "clicks-halo",
+        type: "circle",
+        source: "clicks",
+        paint: {
+          "circle-radius": [
+            "interpolate", ["linear"], ["get", "count"],
+            1, 6,
+            5, 12,
+            20, 18,
+            100, 26
+          ],
+          "circle-color": "#22d3ee",
+          "circle-opacity": 0.12
+        }
+      });
+    });
+  });
+</script>

@@ -1,0 +1,106 @@
+<%# app/views/trust_center/docs/dpa.html.erb %>
+
+<div class="trust-doc">
+  <div class="trust-doc-header">
+    <div class="trust-doc-breadcrumb">
+      <%= link_to "Trust Center", trust_home_url, class: "trust-doc-breadcrumb-link" %>
+      <span class="trust-doc-breadcrumb-sep">/</span>
+      <span class="trust-doc-breadcrumb-current">Data Processing Addendum</span>
+    </div>
+
+    <div class="trust-doc-title-row">
+      <%= image_tag "logo.png", class: "trust-doc-logo", alt: "Workplace.io" %>
+      <div class="trust-doc-title">Data Processing Addendum</div>
+    </div>
+
+    <div class="trust-doc-subtitle">
+      Our Data Processing Addendum (DPA) describes how Workplace.io processes customer data, security measures, and contractual privacy commitments.
+      This page summarizes what our DPA covers. The full DPA is provided during procurement.
+    </div>
+
+    <div class="trust-doc-updated">
+      Last updated: <%= @trust_center_stamp %>
+    </div>
+  </div>
+
+  <div class="trust-doc-body">
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">How to request the DPA</div>
+      <div class="trust-doc-text">
+        If your organization requires a DPA, contact us and we will provide it for review and signature.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Contact Trust & Security →", trust_doc_url_for("contact"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Typical roles</div>
+      <div class="trust-doc-text">
+        In most customer deployments, the customer is the controller of workplace collaboration data and Workplace.io acts as a processor,
+        processing data only under customer instructions and configuration. Some limited data (such as website account information) may be
+        processed where Workplace.io acts as a controller for its own business purposes.
+      </div>
+
+      <div class="trust-doc-callout trust-doc-callout--note">
+        <div class="trust-doc-callout-title">Plain-language summary</div>
+        <div class="trust-doc-callout-text">
+          Customers control what sources are connected and how the product is used. We process the data needed to provide the service and apply
+          controls to protect it.
+        </div>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">What our DPA covers</div>
+      <ul class="trust-doc-list">
+        <li><strong>Scope of processing:</strong> categories of data, categories of data subjects, and the nature/purpose of processing.</li>
+        <li><strong>Security measures:</strong> encryption, access control, monitoring, incident response, and operational safeguards.</li>
+        <li><strong>Subprocessors:</strong> vendor list, controls for onboarding subprocessors, and change notification approach.</li>
+        <li><strong>Assistance:</strong> support for data subject requests and customer compliance needs.</li>
+        <li><strong>Incident notification:</strong> breach/incident notification commitments aligned to applicable requirements.</li>
+        <li><strong>Deletion/return:</strong> how data is deleted or returned at end of service or upon request.</li>
+        <li><strong>International transfers:</strong> transfer mechanisms where required (e.g., SCCs).</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Subprocessors →", trust_doc_url_for("subprocessors"), class: "trust-doc-link" %>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <%= link_to "Data Handling & Retention →", trust_doc_url_for("data-handling"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Security measures referenced in the DPA</div>
+      <div class="trust-doc-text">
+        The DPA references security measures appropriate for a SaaS platform that processes workplace communications. Details are described in the
+        Trust Center.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Encryption:</strong> encryption in transit (TLS) and encryption at rest in hosting environments.</li>
+        <li><strong>Access controls:</strong> role-based access for customers; least privilege for internal access.</li>
+        <li><strong>Logging/monitoring:</strong> operational monitoring and security-relevant logging with minimized sensitive content.</li>
+        <li><strong>Short-lived content:</strong> message content processed briefly; derived metadata retained for reporting.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Encryption →", trust_doc_url_for("encryption"), class: "trust-doc-link" %>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <%= link_to "Access Controls →", trust_doc_url_for("access-controls"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-footer">
+      <div class="trust-doc-footer-title">Procurement request</div>
+      <div class="trust-doc-footer-text">
+        Contact us for the DPA and any supporting privacy or security materials your team requires.
+      </div>
+      <div class="trust-doc-footer-actions">
+        <%= link_to "Contact Trust & Security", trust_doc_url_for("contact"), class: "trust-doc-button" %>
+        <%= link_to "Back to Trust Center", trust_home_url, class: "trust-doc-button trust-doc-button--secondary" %>
+      </div>
+    </div>
+  </div>
+</div>

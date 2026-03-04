@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html data-theme="dark">
+  <%= render "layouts/header"%>
+  <body data-turbo="false">
+    <% if (@onboarding || devise_controller?) && !(controller_name == 'registrations' && action_name == 'edit') %>
+      <div class="<%= @onboarding ? 'onboarding' : 'devise' %>-container">
+        <%= yield %>
+      </div>
+    <% else %>
+      <div class="layout nav-full <%= @show_right_panel && !@show_integration_modal  ? 'chat-open' : 'chat-closed' %>">
+        <%= render "layouts/navigation" %>
+        <%= render "shared/masquerade_banner" %>
+
+        <%= render "layouts/main" %>
+
+        <%= render "layouts/right_panel"%>
+      </div>
+    <% end %>
+    <%= render "layouts/notifications"%>
+    <%= render "layouts/js" %>
+  </body>
+</html>

@@ -1,0 +1,60 @@
+<%# Group comparison table for a single metric
+  Expected locals:
+    metric_name - e.g. "Engagement"
+    groups      - Array of hashes:
+                   {
+                     name:  "Product",
+                     pos:   "78%",
+                     neg:   "12%",
+                     total: 120
+                   }
+%>
+<%
+  metric_name = (local_assigns[:metric_name] || local_assigns[:metric] || "Metric").to_s
+  groups      = Array(local_assigns[:groups] || local_assigns[:rows])
+%>
+
+<div class="ai-chat-widget ai-chat-widget--table ai-chat-widget--group-comparison">
+  <div class="ai-chat-widget__header">
+    <div>
+      <div class="ai-chat-widget__title"><%= metric_name %> by group</div>
+      <div class="ai-chat-widget__subtitle">Comparing sentiment across segments</div>
+    </div>
+  </div>
+
+  <div class="ai-chat-widget__body">
+    <table class="ai-table ai-table--compact">
+      <thead>
+        <tr>
+          <th>Group</th>
+          <th>Positive %</th>
+          <th>Negative %</th>
+          <th>Signals</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if groups.empty? %>
+          <tr>
+            <td colspan="4">No segment data available for this metric.</td>
+          </tr>
+        <% else %>
+          <% groups.each do |g| %>
+            <%
+              name  = g[:name]  || g["name"]
+              pos   = g[:pos]   || g["pos"]   || g[:pos_rate] || g["pos_rate"]
+              neg   = g[:neg]   || g["neg"]   || g[:neg_rate] || g["neg_rate"]
+              total = g[:total] || g["total"]
+            %>
+            <tr>
+              <td><%= name %></td>
+              <td><%= pos %></td>
+              <td><%= neg %></td>
+              <td><%= total %></td>
+            </tr>
+          <% end %>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
+

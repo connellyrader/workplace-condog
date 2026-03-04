@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workplace.io - Component Catalog</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f5f7;
+      color: #1d1d1f;
+      padding: 40px 24px;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      color: #86868b;
+      font-size: 14px;
+      margin-bottom: 32px;
+    }
+
+    .stats {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+    }
+
+    .stat {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px 24px;
+      min-width: 140px;
+    }
+
+    .stat-number {
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #86868b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .search-bar {
+      margin-bottom: 24px;
+    }
+
+    .search-bar input {
+      width: 100%;
+      max-width: 400px;
+      padding: 10px 16px;
+      border: 1px solid #d2d2d7;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-bar input:focus {
+      border-color: #0071e3;
+    }
+
+    .group {
+      margin-bottom: 32px;
+    }
+
+    .group-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .group-header h2 {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .group-count {
+      background: #e8e8ed;
+      color: #6e6e73;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+
+    .group-toggle {
+      font-size: 12px;
+      color: #86868b;
+      transition: transform 0.2s;
+    }
+
+    .group.collapsed .group-toggle {
+      transform: rotate(-90deg);
+    }
+
+    .group.collapsed .group-items {
+      display: none;
+    }
+
+    .group-items {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .component-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #fff;
+      border-radius: 8px;
+      padding: 10px 16px;
+      transition: box-shadow 0.15s;
+    }
+
+    .component-row:hover {
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    .component-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .component-name {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .component-path {
+      font-size: 12px;
+      color: #86868b;
+      font-family: "SF Mono", Menlo, monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .copy-btn {
+      background: #f5f5f7;
+      border: 1px solid #d2d2d7;
+      border-radius: 6px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+      color: #1d1d1f;
+      flex-shrink: 0;
+      margin-left: 12px;
+    }
+
+    .copy-btn:hover {
+      background: #e8e8ed;
+    }
+
+    .copy-btn.copied {
+      background: #30d158;
+      border-color: #30d158;
+      color: #fff;
+    }
+
+    .hidden { display: none !important; }
+
+    .no-results {
+      text-align: center;
+      padding: 40px;
+      color: #86868b;
+      font-size: 14px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Component Catalog</h1>
+  <p class="subtitle">workplace.io &mdash; All ERB partial components across the codebase</p>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-number" id="total-count">0</div>
+      <div class="stat-label">Total Components</div>
+    </div>
+    <div class="stat">
+      <div class="stat-number" id="group-count">0</div>
+      <div class="stat-label">Groups</div>
+    </div>
+  </div>
+
+  <div class="search-bar">
+    <input type="text" id="search" placeholder="Filter components..." autocomplete="off">
+  </div>
+
+  <div id="catalog"></div>
+  <div class="no-results" id="no-results">No components match your search.</div>
+
+<script>
+const COMPONENTS = [
+  // ── Admin Dashboard ──
+  { name: "financial",        render: "admin/components/financial",        path: "app/views/admin/components/_financial.html.erb" },
+  { name: "model_tests",      render: "admin/components/model_tests",      path: "app/views/admin/components/_model_tests.html.erb" },
+  { name: "recents",          render: "admin/components/recents",          path: "app/views/admin/components/_recents.html.erb" },
+  { name: "signal_metrics",   render: "admin/components/signal_metrics",   path: "app/views/admin/components/_signal_metrics.html.erb" },
+  { name: "workspaces",       render: "admin/components/workspaces",       path: "app/views/admin/components/_workspaces.html.erb" },
+
+  // ── Admin Models ──
+  { name: "breadcrumb",       render: "admin/models/components/breadcrumb",  path: "app/views/admin/models/components/_breadcrumb.html.erb" },
+  { name: "list",             render: "admin/models/components/list",        path: "app/views/admin/models/components/_list.html.erb" },
+  { name: "new_model",        render: "admin/models/components/new_model",   path: "app/views/admin/models/components/_new_model.html.erb" },
+  { name: "scale_modal",      render: "admin/models/components/scale_modal", path: "app/views/admin/models/components/_scale_modal.html.erb" },
+
+  // ── Admin (Top-level) ──
+  { name: "nav",              render: "admin/nav",                         path: "app/views/admin/_nav.html.erb" },
+
+  // ── Dashboard ──
+  { name: "analyze",          render: "dashboard/components/analyze",         path: "app/views/dashboard/components/_analyze.html.erb" },
+  { name: "gauge",            render: "dashboard/components/gauge",           path: "app/views/dashboard/components/_gauge.html.erb" },
+  { name: "metric_box",       render: "dashboard/components/metric_box",     path: "app/views/dashboard/components/_metric_box.html.erb" },
+  { name: "metric_sparkline", render: "dashboard/components/metric_sparkline",path: "app/views/dashboard/components/_metric_sparkline.html.erb" },
+  { name: "recent_insights",  render: "dashboard/components/recent_insights", path: "app/views/dashboard/components/_recent_insights.html.erb" },
+  { name: "recent_signals",   render: "dashboard/components/recent_signals",  path: "app/views/dashboard/components/_recent_signals.html.erb" },
+  { name: "signals",          render: "dashboard/components/signals",         path: "app/views/dashboard/components/_signals.html.erb" },
+  { name: "sparkline",        render: "dashboard/components/sparkline",       path: "app/views/dashboard/components/_sparkline.html.erb" },
+  { name: "submetric_breakdown",  render: "dashboard/components/submetric_breakdown",  path: "app/views/dashboard/components/_submetric_breakdown.html.erb" },
+  { name: "submetric_sparkline",  render: "dashboard/components/submetric_sparkline",  path: "app/views/dashboard/components/_submetric_sparkline.html.erb" },
+  { name: "topbar",           render: "dashboard/components/topbar",          path: "app/views/dashboard/components/_topbar.html.erb" },
+  { name: "categories",       render: "dashboard/categories",                path: "app/views/dashboard/_categories.html.erb" },
+  { name: "frameworks",       render: "dashboard/frameworks",                path: "app/views/dashboard/_frameworks.html.erb" },
+
+  // ── Model Tests ──
+  { name: "breadcrumb",       render: "model_tests/components/breadcrumb",     path: "app/views/model_tests/components/_breadcrumb.html.erb" },
+  { name: "charts",           render: "model_tests/components/charts",         path: "app/views/model_tests/components/_charts.html.erb" },
+  { name: "list",             render: "model_tests/components/list",           path: "app/views/model_tests/components/_list.html.erb" },
+  { name: "model_info",       render: "model_tests/components/model_info",     path: "app/views/model_tests/components/_model_info.html.erb" },
+  { name: "new_model_test",   render: "model_tests/components/new_model_test", path: "app/views/model_tests/components/_new_model_test.html.erb" },
+  { name: "summary",          render: "model_tests/components/summary",        path: "app/views/model_tests/components/_summary.html.erb" },
+  { name: "workspace_info",   render: "model_tests/components/workspace_info", path: "app/views/model_tests/components/_workspace_info.html.erb" },
+  { name: "list_models_modal",render: "model_tests/list_models_modal",        path: "app/views/model_tests/_list_models_modal.html.erb" },
+  { name: "new_model_modal",  render: "model_tests/new_model_modal",          path: "app/views/model_tests/_new_model_modal.html.erb" },
+  { name: "test_modal",       render: "model_tests/test_modal",               path: "app/views/model_tests/_test_modal.html.erb" },
+
+  // ── Onboarding ──
+  { name: "footer",           render: "onboarding/components/footer",  path: "app/views/onboarding/components/_footer.html.erb" },
+  { name: "channels",         render: "onboarding/channels",          path: "app/views/onboarding/_channels.html.erb" },
+  { name: "members",          render: "onboarding/members",           path: "app/views/onboarding/_members.html.erb" },
+
+  // ── AI Chat Widgets ──
+  { name: "aggregate_gauge",  render: "ai_chat/widgets/aggregate_gauge",  path: "app/views/ai_chat/widgets/_aggregate_gauge.html.erb" },
+  { name: "event_impact",     render: "ai_chat/widgets/event_impact",     path: "app/views/ai_chat/widgets/_event_impact.html.erb" },
+  { name: "group_comparison", render: "ai_chat/widgets/group_comparison", path: "app/views/ai_chat/widgets/_group_comparison.html.erb" },
+  { name: "metric_gauge",     render: "ai_chat/widgets/metric_gauge",     path: "app/views/ai_chat/widgets/_metric_gauge.html.erb" },
+  { name: "period_comparison",render: "ai_chat/widgets/period_comparison",path: "app/views/ai_chat/widgets/_period_comparison.html.erb" },
+  { name: "sparkline",        render: "ai_chat/widgets/sparkline",        path: "app/views/ai_chat/widgets/_sparkline.html.erb" },
+  { name: "sparkline_chart",  render: "ai_chat/widgets/sparkline_chart",  path: "app/views/ai_chat/widgets/_sparkline_chart.html.erb" },
+  { name: "top_signals",      render: "ai_chat/widgets/top_signals",      path: "app/views/ai_chat/widgets/_top_signals.html.erb" },
+  { name: "chatbox",          render: "ai_chat/chatbox",                  path: "app/views/ai_chat/_chatbox.html.erb" },
+  { name: "js_modules",       render: "ai_chat/js_modules",              path: "app/views/ai_chat/_js_modules.html.erb" },
+
+  // ── AI Chat Widget JS ──
+  { name: "blocks",           render: "ai_chat/widget_js/blocks",    path: "app/views/ai_chat/widget_js/_blocks.html.erb" },
+  { name: "cable_shim",       render: "ai_chat/widget_js/cable_shim",path: "app/views/ai_chat/widget_js/_cable_shim.html.erb" },
+  { name: "comms",            render: "ai_chat/widget_js/comms",     path: "app/views/ai_chat/widget_js/_comms.html.erb" },
+  { name: "confirm",          render: "ai_chat/widget_js/confirm",   path: "app/views/ai_chat/widget_js/_confirm.html.erb" },
+  { name: "core",             render: "ai_chat/widget_js/core",      path: "app/views/ai_chat/widget_js/_core.html.erb" },
+  { name: "markdown",         render: "ai_chat/widget_js/markdown",  path: "app/views/ai_chat/widget_js/_markdown.html.erb" },
+  { name: "modal",            render: "ai_chat/widget_js/modal",     path: "app/views/ai_chat/widget_js/_modal.html.erb" },
+  { name: "vendor",           render: "ai_chat/widget_js/vendor",    path: "app/views/ai_chat/widget_js/_vendor.html.erb" },
+
+  // ── Layout Modals ──
+  { name: "integrations",     render: "layouts/modals/integrations",  path: "app/views/layouts/modals/_integrations.html.erb" },
+  { name: "toast",            render: "layouts/modals/toast",         path: "app/views/layouts/modals/_toast.html.erb" },
+  { name: "warning",          render: "layouts/modals/warning",       path: "app/views/layouts/modals/_warning.html.erb" },
+
+  // ── Layouts ──
+  { name: "admin_main",       render: "layouts/admin_main",         path: "app/views/layouts/_admin_main.html.erb" },
+  { name: "admin_navigation", render: "layouts/admin_navigation",   path: "app/views/layouts/_admin_navigation.html.erb" },
+  { name: "header",           render: "layouts/header",             path: "app/views/layouts/_header.html.erb" },
+  { name: "js",               render: "layouts/js",                 path: "app/views/layouts/_js.html.erb" },
+  { name: "main",             render: "layouts/main",               path: "app/views/layouts/_main.html.erb" },
+  { name: "navigation",       render: "layouts/navigation",         path: "app/views/layouts/_navigation.html.erb" },
+  { name: "notifications",    render: "layouts/notifications",      path: "app/views/layouts/_notifications.html.erb" },
+  { name: "partner_main",     render: "layouts/partner_main",       path: "app/views/layouts/_partner_main.html.erb" },
+  { name: "partner_navigation", render: "layouts/partner_navigation", path: "app/views/layouts/_partner_navigation.html.erb" },
+  { name: "right_panel",      render: "layouts/right_panel",        path: "app/views/layouts/_right_panel.html.erb" },
+
+  // ── Settings ──
+  { name: "card_modal",       render: "settings/card_modal",             path: "app/views/settings/_card_modal.html.erb" },
+  { name: "group_edit_modal", render: "settings/group_edit_modal",       path: "app/views/settings/_group_edit_modal.html.erb" },
+  { name: "group_modal",      render: "settings/group_modal",           path: "app/views/settings/_group_modal.html.erb" },
+  { name: "group_users",      render: "settings/group_users",           path: "app/views/settings/_group_users.html.erb" },
+  { name: "invite_modal",     render: "settings/invite_modal",          path: "app/views/settings/_invite_modal.html.erb" },
+  { name: "invite_users",     render: "settings/invite_users",          path: "app/views/settings/_invite_users.html.erb" },
+  { name: "navigation",       render: "settings/navigation",            path: "app/views/settings/_navigation.html.erb" },
+  { name: "notifications_dropdown", render: "settings/notifications_dropdown", path: "app/views/settings/_notifications_dropdown.html.erb" },
+  { name: "topbar",           render: "settings/topbar",                path: "app/views/settings/_topbar.html.erb" },
+  { name: "users_dropdown",   render: "settings/users_dropdown",        path: "app/views/settings/_users_dropdown.html.erb" },
+
+  // ── Shared ──
+  { name: "cookie_consent_js",render: "shared/cookie_consent_js",       path: "app/views/shared/_cookie_consent_js.html.erb" },
+  { name: "masquerade_banner",render: "shared/masquerade_banner",       path: "app/views/shared/_masquerade_banner.html.erb" },
+
+  // ── Devise (Auth) ──
+  { name: "error_messages",   render: "devise/shared/error_messages",   path: "app/views/devise/shared/_error_messages.html.erb" },
+  { name: "links",            render: "devise/shared/links",            path: "app/views/devise/shared/_links.html.erb" },
+];
+
+// ── Derive groups from file path ──
+function getGroup(c) {
+  const parts = c.path.replace("app/views/", "").split("/");
+  if (parts.includes("components"))  return parts.slice(0, parts.indexOf("components")).join("/");
+  if (parts.includes("widgets"))     return parts.slice(0, parts.indexOf("widgets")).join("/") + "/widgets";
+  if (parts.includes("widget_js"))   return parts.slice(0, parts.indexOf("widget_js")).join("/") + "/widget_js";
+  if (parts.includes("modals"))      return parts.slice(0, parts.indexOf("modals")).join("/") + "/modals";
+  if (parts.includes("shared"))      return parts.slice(0, parts.indexOf("shared") + 1).join("/");
+  return parts.slice(0, -1).join("/");
+}
+
+const GROUP_LABELS = {
+  "admin":                 "Admin Dashboard",
+  "admin/models":          "Admin Models",
+  "dashboard":             "Dashboard",
+  "model_tests":           "Model Tests",
+  "onboarding":            "Onboarding",
+  "ai_chat/widgets":       "AI Chat Widgets",
+  "ai_chat":               "AI Chat",
+  "ai_chat/widget_js":     "AI Chat Widget JS",
+  "layouts/modals":        "Layout Modals",
+  "layouts":               "Layouts",
+  "settings":              "Settings",
+  "shared":                "Shared",
+  "devise/shared":         "Devise (Auth)",
+};
+
+function buildCatalog(filter = "") {
+  const catalog = document.getElementById("catalog");
+  const noResults = document.getElementById("no-results");
+  catalog.innerHTML = "";
+
+  const lowerFilter = filter.toLowerCase();
+  const filtered = COMPONENTS.filter(c =>
+    !lowerFilter ||
+    c.name.toLowerCase().includes(lowerFilter) ||
+    c.render.toLowerCase().includes(lowerFilter) ||
+    c.path.toLowerCase().includes(lowerFilter)
+  );
+
+  // Group components
+  const groups = new Map();
+  filtered.forEach(c => {
+    const key = getGroup(c);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(c);
+  });
+
+  if (groups.size === 0) {
+    noResults.style.display = "block";
+    return;
+  }
+  noResults.style.display = "none";
+
+  document.getElementById("total-count").textContent = COMPONENTS.length;
+  document.getElementById("group-count").textContent = new Set(COMPONENTS.map(getGroup)).size;
+
+  groups.forEach((items, key) => {
+    const label = GROUP_LABELS[key] || key;
+
+    const group = document.createElement("div");
+    group.className = "group";
+
+    const header = document.createElement("div");
+    header.className = "group-header";
+    header.innerHTML = `<span class="group-toggle">&#9660;</span><h2>${label}</h2><span class="group-count">${items.length}</span>`;
+    header.addEventListener("click", () => group.classList.toggle("collapsed"));
+
+    const list = document.createElement("div");
+    list.className = "group-items";
+
+    items.forEach(c => {
+      const row = document.createElement("div");
+      row.className = "component-row";
+
+      const renderCall = `<%= render '${c.render}' %>`;
+
+      row.innerHTML = `
+        <div class="component-info">
+          <span class="component-name">${c.name}</span>
+          <span class="component-path">${c.path}</span>
+        </div>
+        <button class="copy-btn" data-copy="${renderCall.replace(/"/g, '&quot;')}">Copy component</button>
+      `;
+      list.appendChild(row);
+    });
+
+    group.appendChild(header);
+    group.appendChild(list);
+    catalog.appendChild(group);
+  });
+
+  // Attach copy handlers
+  catalog.querySelectorAll(".copy-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      navigator.clipboard.writeText(btn.dataset.copy).then(() => {
+        btn.textContent = "Copied!";
+        btn.classList.add("copied");
+        setTimeout(() => {
+          btn.textContent = "Copy component";
+          btn.classList.remove("copied");
+        }, 1500);
+      });
+    });
+  });
+}
+
+document.getElementById("search").addEventListener("input", e => buildCatalog(e.target.value));
+
+buildCatalog();
+</script>
+
+</body>
+</html>

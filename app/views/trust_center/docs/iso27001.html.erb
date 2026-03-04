@@ -1,0 +1,179 @@
+<%# app/views/trust_center/docs/iso27001.html.erb %>
+
+<div class="trust-doc">
+  <div class="trust-doc-header">
+    <div class="trust-doc-breadcrumb">
+      <%= link_to "Trust Center", trust_home_url, class: "trust-doc-breadcrumb-link" %>
+      <span class="trust-doc-breadcrumb-sep">/</span>
+      <span class="trust-doc-breadcrumb-current">ISO 27001</span>
+    </div>
+
+    <div class="trust-doc-title-row">
+      <%= image_tag "logo.png", class: "trust-doc-logo", alt: "Workplace.io" %>
+      <div class="trust-doc-title">ISO 27001</div>
+    </div>
+
+    <div class="trust-doc-subtitle">
+      Workplace.io is working toward security program maturity aligned with ISO/IEC 27001. We are not currently ISO 27001
+      certified. This page describes our approach and roadmap for an information security management system (ISMS).
+    </div>
+
+    <div class="trust-doc-updated">
+      Last updated: <%= @trust_center_stamp %>
+    </div>
+  </div>
+
+  <div class="trust-doc-body">
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Status</div>
+      <div class="trust-doc-text">
+        We are building an ISMS-aligned security program and documenting controls consistent with enterprise expectations.
+        We do not claim ISO/IEC 27001 certification at this time. If we pursue certification, the scope and certification
+        timeline will be communicated through this Trust Center.
+      </div>
+
+      <div class="trust-doc-callout trust-doc-callout--note">
+        <div class="trust-doc-callout-title">What “ISO 27001” means</div>
+        <div class="trust-doc-callout-text">
+          ISO/IEC 27001 is a standard for establishing, implementing, maintaining, and continually improving an Information
+          Security Management System (ISMS). Certification is performed by an accredited certification body and applies to a
+          defined scope.
+        </div>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">ISMS approach</div>
+      <div class="trust-doc-text">
+        Our approach focuses on building repeatable processes for risk management, policy governance, operational security,
+        and continuous improvement. We prioritize the controls most relevant to Workplace.io, including secure integration
+        handling, access control, monitoring, and incident response.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Risk management:</strong> identify risks, implement mitigating controls, and review changes over time.</li>
+        <li><strong>Policies and procedures:</strong> documented security policies and operational procedures.</li>
+        <li><strong>Operational controls:</strong> access control, encryption, logging/monitoring, and change management.</li>
+        <li><strong>Continuous improvement:</strong> review incidents and findings to strengthen controls.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Control areas most relevant to Workplace.io</div>
+      <div class="trust-doc-text">
+        While ISO/IEC 27001 includes a broad set of control domains, we focus first on the areas most commonly reviewed by
+        enterprise customers and most relevant to our service architecture.
+      </div>
+
+      <div class="trust-doc-grid">
+        <div class="trust-doc-mini">
+          <div class="trust-doc-mini-title">Access control</div>
+          <div class="trust-doc-mini-text">
+            Workspace membership and roles restrict administrative functions and sensitive actions.
+          </div>
+          <div class="trust-doc-mini-link">
+            <%= link_to "Access Controls →", trust_doc_url_for("access-controls"), class: "trust-doc-link" %>
+          </div>
+        </div>
+
+        <div class="trust-doc-mini">
+          <div class="trust-doc-mini-title">Cryptography</div>
+          <div class="trust-doc-mini-text">
+            TLS for data in transit and encryption at rest for stored data; message content is short-lived by design.
+          </div>
+          <div class="trust-doc-mini-link">
+            <%= link_to "Encryption →", trust_doc_url_for("encryption"), class: "trust-doc-link" %>
+          </div>
+        </div>
+
+        <div class="trust-doc-mini">
+          <div class="trust-doc-mini-title">Operations security</div>
+          <div class="trust-doc-mini-text">
+            Operational monitoring and security-relevant logging support reliability and investigation.
+          </div>
+          <div class="trust-doc-mini-link">
+            <%= link_to "Logging & Monitoring →", trust_doc_url_for("logging-monitoring"), class: "trust-doc-link" %>
+          </div>
+        </div>
+      </div>
+
+      <div class="trust-doc-grid" style="margin-top:14px;">
+        <div class="trust-doc-mini">
+          <div class="trust-doc-mini-title">Supplier relationships</div>
+          <div class="trust-doc-mini-text">
+            Vendor inventory and subprocessor documentation support supplier risk management.
+          </div>
+          <div class="trust-doc-mini-link">
+            <%= link_to "Subprocessors →", trust_doc_url_for("subprocessors"), class: "trust-doc-link" %>
+          </div>
+        </div>
+
+        <div class="trust-doc-mini">
+          <div class="trust-doc-mini-title">Secure development</div>
+          <div class="trust-doc-mini-text">
+            Secure SDLC practices reduce the likelihood of introducing vulnerabilities.
+          </div>
+          <div class="trust-doc-mini-link">
+            <%= link_to "Secure Development →", trust_doc_url_for("secure-development"), class: "trust-doc-link" %>
+          </div>
+        </div>
+
+        <div class="trust-doc-mini">
+          <div class="trust-doc-mini-title">Incident management</div>
+          <div class="trust-doc-mini-text">
+            Incident response procedures support triage, containment, remediation, and customer communication.
+          </div>
+          <div class="trust-doc-mini-link">
+            <%= link_to "Incident Response →", trust_doc_url_for("incident-response"), class: "trust-doc-link" %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Roadmap</div>
+      <div class="trust-doc-text">
+        Our roadmap focuses on strengthening documentation, operational evidence, and repeatable processes that align with an ISMS.
+        Where formal certification is required by a customer, we can provide Trust Center documentation and due diligence support in the
+        interim.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Policy set:</strong> maintain and periodically review security policies and procedures.</li>
+        <li><strong>Evidence readiness:</strong> operational logs and records to support customer and auditor review.</li>
+        <li><strong>Vendor management:</strong> subprocessor documentation and supplier risk practices.</li>
+        <li><strong>Testing and improvement:</strong> remediation tracking and continuous improvement practices.</li>
+      </ul>
+
+      <div class="trust-doc-callout trust-doc-callout--note">
+        <div class="trust-doc-callout-title">No overstatement</div>
+        <div class="trust-doc-callout-text">
+          We will only claim ISO/IEC 27001 certification after an accredited certification body issues a certificate for a defined scope.
+        </div>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Customer due diligence support</div>
+      <div class="trust-doc-text">
+        We support customer security reviews and can provide additional materials during procurement, including CAIQ-aligned responses,
+        architecture summaries, and subprocessor documentation.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "CSA CAIQ →", trust_doc_url_for("caiq"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-footer">
+      <div class="trust-doc-footer-title">Need ISO-related materials?</div>
+      <div class="trust-doc-footer-text">
+        If your procurement team needs an update or supporting documentation, contact us and we’ll respond.
+      </div>
+      <div class="trust-doc-footer-actions">
+        <%= link_to "Contact Trust & Security", trust_doc_url_for("contact"), class: "trust-doc-button" %>
+        <%= link_to "Back to Trust Center", trust_home_url, class: "trust-doc-button trust-doc-button--secondary" %>
+      </div>
+    </div>
+  </div>
+</div>

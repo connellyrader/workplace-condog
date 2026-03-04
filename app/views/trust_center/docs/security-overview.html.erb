@@ -1,0 +1,244 @@
+<%# app/views/trust_center/docs/security-overview.html.erb %>
+
+<div class="trust-doc">
+  <div class="trust-doc-header">
+    <div class="trust-doc-breadcrumb">
+      <%= link_to "Trust Center", trust_home_url, class: "trust-doc-breadcrumb-link" %>
+      <span class="trust-doc-breadcrumb-sep">/</span>
+      <span class="trust-doc-breadcrumb-current">Security Overview</span>
+    </div>
+
+    <div class="trust-doc-title-row">
+      <%= image_tag "logo.png", class: "trust-doc-logo", alt: "Workplace.io" %>
+      <div class="trust-doc-title">Security Overview</div>
+    </div>
+
+    <div class="trust-doc-subtitle">
+      Workplace.io is designed to help organizations understand culture and performance trends while protecting customer data
+      through encryption, access controls, monitoring, and secure development practices.
+    </div>
+
+    <div class="trust-doc-updated">
+      Last updated: <%= @trust_center_stamp %>
+    </div>
+  </div>
+
+  <div class="trust-doc-body">
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">At a glance</div>
+
+      <div class="trust-doc-bullets">
+        <ul class="trust-doc-bullet-list">
+          <li><strong>Encryption:</strong> data is protected in transit (TLS) and protected at rest using encryption.</li>
+          <li><strong>Access controls:</strong> access is scoped by workspace membership and role-based permissions.</li>
+          <li><strong>Token security:</strong> OAuth tokens are protected and access-restricted to support integration sync.</li>
+          <li><strong>Monitoring & response:</strong> we monitor service health and security-relevant events and follow an incident response process.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Program summary</div>
+      <div class="trust-doc-text">
+        We operate a security program focused on confidentiality, integrity, and availability. We design controls to protect
+        customer data throughout its lifecycle—from ingestion through processing and storage—and we continuously improve our
+        practices as the product and customer needs evolve.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Defense-in-depth:</strong> layered controls across identity, network, application, and data layers.</li>
+        <li><strong>Least privilege:</strong> access is scoped to role and business need.</li>
+        <li><strong>Secure by default:</strong> security controls are built into our workflows and deployments.</li>
+        <li><strong>Operational readiness:</strong> monitoring, alerting, and incident response processes support rapid remediation.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">What data we handle</div>
+      <div class="trust-doc-text">
+        Workplace.io connects to collaboration platforms (currently Slack and Microsoft Teams) to generate culture and performance
+        insights. During processing, we may handle message content and related metadata. Message content is used only for analysis
+        and is retained for a short period; after processing, we retain primarily derived metadata and aggregated results needed to
+        operate reporting and trends.
+      </div>
+
+      <div class="trust-doc-callout trust-doc-callout--note">
+        <div class="trust-doc-callout-title">Designed for organizational insight</div>
+        <div class="trust-doc-callout-text">
+          Workplace.io is designed for team and organization-level insights. We support access controls and reporting structures that
+          reduce the risk of individual-level monitoring.
+        </div>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Infrastructure</div>
+      <div class="trust-doc-text">
+        Workplace.io runs on DigitalOcean infrastructure for application hosting and managed databases, with network and service
+        configuration designed for reliability and controlled access. Classification and culture inference workloads run on Amazon
+        Web Services (AWS) using Amazon SageMaker in secured, logically separated processing environments.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Encryption</div>
+      <div class="trust-doc-text">
+        We protect data in transit using TLS and protect stored data using encryption at rest. We also apply additional safeguards
+        for sensitive data, including limiting retention of message content and restricting access to secrets used for integrations.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>In transit:</strong> TLS for communication between clients, providers, and Workplace.io services.</li>
+        <li><strong>At rest:</strong> encrypted storage at the infrastructure layer.</li>
+        <li><strong>Secrets protection:</strong> credentials and tokens used for integrations are access-restricted.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Authentication</div>
+      <div class="trust-doc-text">
+        Users authenticate to Workplace.io using supported sign-in methods including single sign-on (SSO) and email/password.
+        Authentication is separate from data-source integrations: sign-in identifies the person, while integrations are managed
+        at the workspace level.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>SSO:</strong> Slack, Microsoft, and Google sign-in options.</li>
+        <li><strong>Password:</strong> optional email/password accounts for direct login.</li>
+        <li><strong>Session security:</strong> sessions use secure, HTTP-only cookies with CSRF protection on state-changing requests.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Access controls</div>
+      <div class="trust-doc-text">
+        Workplace.io uses workspace membership and role-based access control (RBAC) to determine who can view insights,
+        manage integrations, and administer workspace settings. Administrative actions are scoped to authorized roles.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Access Controls →", trust_doc_url_for("access-controls"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Integrations and token handling</div>
+      <div class="trust-doc-text">
+        When a workspace connects Slack or Microsoft Teams, we store OAuth credentials needed to synchronize configured data.
+        Access is restricted and tokens are managed to support secure synchronization.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Scope minimization:</strong> we request only permissions required for configured integration features.</li>
+        <li><strong>Access restriction:</strong> integration credentials are restricted to the services that require them.</li>
+        <li><strong>Revocation:</strong> disconnecting an integration stops future synchronization.</li>
+      </ul>
+
+      <div class="trust-doc-callout trust-doc-callout--note">
+        <div class="trust-doc-callout-title">Webhooks</div>
+        <div class="trust-doc-callout-text">
+          Where webhooks are used, requests are authenticated (signature verification and replay protection) and payload logging
+          is minimized to avoid exposing message content in logs.
+        </div>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Logging and monitoring</div>
+      <div class="trust-doc-text">
+        We collect operational telemetry and security-relevant logs to support reliability and incident investigation.
+        We minimize sensitive data in logs and avoid logging message content or credentials.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Operational monitoring:</strong> service health, job processing, error rates, and performance signals.</li>
+        <li><strong>Auditability:</strong> administrative actions and key integration events support troubleshooting and review.</li>
+        <li><strong>Log hygiene:</strong> sensitive payload logging is minimized and redacted where appropriate.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Secure development</div>
+      <div class="trust-doc-text">
+        We apply secure development practices to reduce vulnerabilities and ensure changes are reviewed and deployed safely.
+        This includes peer review, dependency management, and controlled deployments.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Analytics and AI</div>
+      <div class="trust-doc-text">
+        Workplace.io uses a combination of deterministic rules and proprietary classification models to convert collaboration signals
+        into structured, research-informed metrics. We do not publicly disclose details of our model architecture, training data, or
+        internal signal taxonomy, but we design the system to be consistent, testable, and suitable for enterprise review.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "AI Use Policy →", trust_doc_url_for("ai-use"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Incident response</div>
+      <div class="trust-doc-text">
+        We maintain an incident response process to triage, contain, remediate, and communicate about security incidents.
+        When customer notification is required, we aim to provide timely, actionable information.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Incident Response →", trust_doc_url_for("incident-response"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Compliance roadmap</div>
+      <div class="trust-doc-text">
+        We maintain a compliance roadmap aligned to customer expectations. Where third-party attestations are in progress,
+        we provide clear status updates and supporting security materials during reviews.
+      </div>
+
+      <div class="trust-doc-grid">
+        <div class="trust-doc-mini">
+          <div class="trust-doc-mini-title">SOC 2</div>
+          <div class="trust-doc-mini-text">
+            Roadmap, scope, and progress toward independent attestation.
+          </div>
+          <div class="trust-doc-mini-link">
+            <%= link_to "SOC 2 →", trust_doc_url_for("soc2"), class: "trust-doc-link" %>
+          </div>
+        </div>
+
+        <div class="trust-doc-mini">
+          <div class="trust-doc-mini-title">Subprocessors</div>
+          <div class="trust-doc-mini-text">
+            Vendor list and risk management practices.
+          </div>
+          <div class="trust-doc-mini-link">
+            <%= link_to "Subprocessors →", trust_doc_url_for("subprocessors"), class: "trust-doc-link" %>
+          </div>
+        </div>
+
+        <div class="trust-doc-mini">
+          <div class="trust-doc-mini-title">Contact</div>
+          <div class="trust-doc-mini-text">
+            Procurement reviews, questionnaires, and security inquiries.
+          </div>
+          <div class="trust-doc-mini-link">
+            <%= link_to "Contact →", trust_doc_url_for("contact"), class: "trust-doc-link" %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="trust-doc-footer">
+      <div class="trust-doc-footer-title">Need additional materials?</div>
+      <div class="trust-doc-footer-text">
+        If your organization needs a questionnaire, security review, or supporting documentation, contact us and we’ll help.
+      </div>
+      <div class="trust-doc-footer-actions">
+        <%= link_to "Contact Trust & Security", trust_doc_url_for("contact"), class: "trust-doc-button" %>
+        <%= link_to "Back to Trust Center", trust_home_url, class: "trust-doc-button trust-doc-button--secondary" %>
+      </div>
+    </div>
+  </div>
+</div>

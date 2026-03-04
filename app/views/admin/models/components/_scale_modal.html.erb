@@ -1,0 +1,102 @@
+<!-- app/views/admin/models/components/_scale_modal.html.erb -->
+<div id="sm-overlay" class="nm-overlay is-hidden" aria-hidden="true">
+  <div class="nm-modal" role="dialog" aria-modal="true" aria-labelledby="sm-title">
+    <button type="button" class="nm-close" aria-label="Close" onclick="SM.close()">×</button>
+    <h2 id="sm-title" class="nm-title">Edit autoscaling</h2>
+    <p id="sm-sub" class="nm-subtitle"></p>
+
+    <%= form_with url: update_model_scaling_path, method: :patch, id: "sm-form", class: "nm-form", local: true do %>
+
+      <input type="hidden" name="id" id="sm-id">
+      <div class="nm-grid-2">
+        <div>
+          <label class="nm-label" for="sm-min">Min instances</label>
+          <input id="sm-min" name="model[min_server_instances]" class="nm-input"
+                 type="number" min="0" step="1" required>
+        </div>
+        <div>
+          <label class="nm-label" for="sm-max">Max instances</label>
+          <input id="sm-max" name="model[max_server_instances]" class="nm-input"
+                 type="number" min="1" step="1" required>
+        </div>
+      </div>
+
+      <label class="nm-checkbox" style="margin-top:.75rem">
+        <input id="sm-apply" type="checkbox" name="model[apply_now]" value="1">
+        <span>Apply now</span>
+      </label>
+
+      <div class="nm-actions">
+        <button type="button" class="nm-btn nm-btn-ghost" onclick="SM.close()">Cancel</button>
+        <button id="sm-save" type="submit" class="nm-btn">Save</button>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<script>
+  const SM = (() => {
+    const overlay = () => document.getElementById('sm-overlay');
+    const form    = () => document.getElementById('sm-form');
+    const minI    = () => document.getElementById('sm-min');
+    const maxI    = () => document.getElementById('sm-max');
+    const applyI  = () => document.getElementById('sm-apply');
+    const title   = () => document.getElementById('sm-title');
+    const sub     = () => document.getElementById('sm-sub');
+    const saveBtn = () => document.getElementById('sm-save');
+
+    function open(btn) {
+      const name = btn.dataset.name || 'Model';
+      const min  = parseInt(btn.dataset.min || '0', 10);
+      const max  = parseInt(btn.dataset.max || '1', 10);
+      const dep  = (btn.dataset.deployment || '').toLowerCase();
+      const stat = (btn.dataset.status || '').toLowerCase();
+
+      // Static action (CSRF-safe): set only the hidden id
+      document.getElementById('sm-id').value = btn.dataset.id;
+
+      minI().value = isNaN(min) ? 0 : min;
+      maxI().value = isNaN(max) ? 1 : max;
+      applyI().checked = false;
+
+      title().textContent = 'Edit autoscaling';
+      sub().textContent   = name;
+
+      const isOpenAI = dep.includes('openai batch');
+      const canEdit  = !isOpenAI && stat === 'deployed';
+
+      [minI(), maxI(), applyI(), saveBtn()].forEach(el => el.disabled = !canEdit);
+      if (!canEdit) {
+        sub().textContent = `${name} — ${isOpenAI ? 'OpenAI model (no SageMaker autoscaling)' : `status: ${stat}`}`;
+      }
+
+      overlay().classList.remove('is-hidden');
+      overlay().setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      if (canEdit) minI().focus();
+    }
+
+    function close() {
+      overlay().classList.add('is-hidden');
+      overlay().setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      form()?.addEventListener('submit', (e) => {
+        const min = parseInt(minI().value || '0', 10);
+        const max = parseInt(maxI().value || '0', 10);
+        if (isNaN(min) || isNaN(max) || min < 0 || max < 1 || min > max) {
+          e.preventDefault();
+          alert('Invalid values: ensure 0 ≤ min ≤ max and max ≥ 1.');
+        }
+      });
+
+      overlay()?.addEventListener('click', (e) => { if (e.target === overlay()) close(); });
+      document.addEventListener('keydown', (e) => { if (!overlay().classList.contains('is-hidden') && e.key === 'Escape') close(); });
+    });
+
+    return { open, close };
+  })();
+</script>
+

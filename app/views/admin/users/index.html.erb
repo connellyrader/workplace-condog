@@ -1,0 +1,86 @@
+<% content_for :page_title do %>
+  Users
+<% end %>
+
+<% content_for :page_subtitle do %>
+  Search users and masquerade for debugging support issues.
+<% end %>
+
+<% content_for :page_actions do %>
+  <% if masquerading? %>
+    <%= button_to "Stop masquerading", admin_stop_masquerade_path, method: :delete, class: "admin-btn", form_class: "admin-inline-form" %>
+  <% end %>
+<% end %>
+
+<style>
+  .admin-inline-form { display: inline; margin: 0; }
+</style>
+
+<section class="admin-section">
+  <div class="admin-card" style="display:flex; flex-direction:column; gap:14px;">
+    <form method="get" action="<%= admin_users_path %>" class="admin-form" style="display:flex; gap:10px; flex-wrap:wrap;">
+      <input type="text" name="q" value="<%= @query %>" placeholder="Search by name or email" class="admin-input" style="min-width:260px;">
+
+      <select name="sort" class="admin-select">
+        <option value="created_at" <%= "selected" if @sort == "created_at" %>>Newest</option>
+        <option value="email" <%= "selected" if @sort == "email" %>>Email</option>
+        <option value="first_name" <%= "selected" if @sort == "first_name" %>>First name</option>
+        <option value="last_name" <%= "selected" if @sort == "last_name" %>>Last name</option>
+        <option value="sign_in" <%= "selected" if @sort == "sign_in" %>>Last sign in</option>
+      </select>
+
+      <select name="dir" class="admin-select">
+        <option value="desc" <%= "selected" if @dir == "desc" %>>Desc</option>
+        <option value="asc" <%= "selected" if @dir == "asc" %>>Asc</option>
+      </select>
+
+      <button type="submit" class="admin-btn">Search</button>
+      <%= link_to "Reset", admin_users_path, class: "admin-btn" %>
+    </form>
+
+    <div class="admin-table-wrapper">
+      <table class="pp-table" style="width:100%;">
+        <thead>
+          <tr>
+            <th style="text-align:left;">Name</th>
+            <th style="text-align:left;">Email</th>
+            <th style="text-align:left;">Role</th>
+            <th style="text-align:left;">Last sign in</th>
+            <th style="text-align:left;">Created</th>
+            <th style="text-align:right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @users.each do |user| %>
+            <tr>
+              <td><%= user.try(:full_name).presence || "#{user.try(:first_name)} #{user.try(:last_name)}".strip.presence || "—" %></td>
+              <td><%= user.email %></td>
+              <td>
+                <% if user.try(:admin?) %>
+                  Admin
+                <% elsif user.try(:partner?) %>
+                  Partner
+                <% else %>
+                  User
+                <% end %>
+              </td>
+              <td><%= user.last_sign_in_at ? user.last_sign_in_at.strftime("%b %d, %Y") : "—" %></td>
+              <td><%= user.created_at.strftime("%b %d, %Y") %></td>
+              <td style="text-align:right;">
+                <% if user.id != current_user.id %>
+                  <%= button_to "Become user", admin_masquerade_user_path(user), method: :post, class: "admin-btn", form_class: "admin-inline-form" %>
+                <% else %>
+                  <span class="admin-muted">Current user</span>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="margin-top:8px;">
+      <%= paginate @users %>
+    </div>
+  </div>
+</section>

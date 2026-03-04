@@ -1,0 +1,311 @@
+<script>
+/* ============================== Chat Widget — Blocks Renderer (per-block wrappers) ============================== */
+(function (global){
+  var W = global.AiChatWidget; if (!W) return;
+
+  W.prototype.renderBlocksInto = function(container, blocks){
+    var self = this;
+    (blocks || []).forEach(function(b){
+      if (!b || !b.type) return;
+      switch (b.type) {
+        case "widget":  renderWidget(b);  break;   // server-rendered HTML
+        case "kpis":    renderKpis(b);    break;
+        case "table":   renderTable(b);   break;
+        case "chart":   renderChart(b);   break;   // legacy image chart
+        case "bullets": renderBullets(b); break;
+        case "callout": renderCallout(b); break;
+      }
+    });
+
+    /* ----- helpers ----- */
+
+    function makeBlock(type, keyAttr, keyVal){
+      var wrap = document.createElement("div");
+      wrap.className = "ai-block ai-block--" + type;
+      if (keyAttr && keyVal) wrap.setAttribute(keyAttr, keyVal);
+      container.appendChild(wrap);
+      return wrap;
+    }
+
+    function addTitle(wrap, title){
+      if (!title) return;
+      var t = document.createElement("div");
+      t.className = "ai-block__title";
+      t.textContent = title;
+      wrap.appendChild(t);
+    }
+
+    function makeBody(wrap){
+      var body = document.createElement("div");
+      body.className = "ai-block__body";
+      wrap.appendChild(body);
+      return body;
+    }
+
+    /* ----- renderers ----- */
+
+    function renderWidget(block){
+      if (!block || !block.html) return;
+      if (block.key && container.querySelector('[data-widget-key="'+block.key+'"]')) return;
+
+      var wrap = makeBlock("widget", "data-widget-key", block.key || "");
+      addTitle(wrap, block.title);
+
+      // Trusted server-rendered widget HTML goes inside the figure
+      var fig = document.createElement("figure");
+      fig.className = "ai-chart ai-widget";
+      fig.setAttribute("tabindex","0");
+      fig.setAttribute("role","button");
+      if (block.title) {
+        fig.setAttribute("aria-label", "Open " + block.title);
+        fig.dataset.widgetTitle = block.title;
+      }
+      fig.innerHTML = block.html;   // server partial
+      makeBody(wrap).appendChild(fig);
+    }
+
+    function renderKpis(block){
+      var wrap = makeBlock("kpis");
+      addTitle(wrap, block.title);
+
+      var body = makeBody(wrap);
+      var grid = document.createElement("div");
+      grid.className = "ai-kpis";
+      (block.items || []).forEach(function(it){
+        var card = document.createElement("div"); card.className = "ai-kpi";
+        var lb   = document.createElement("div"); lb.className   = "ai-kpi__label"; lb.textContent = it.label || "";
+        var v    = document.createElement("div"); v.className    = "ai-kpi__value"; v.textContent  = (it.value != null ? it.value : "—");
+        var sub  = document.createElement("div"); sub.className  = "ai-kpi__sub";
+        if (typeof it.pos_rate === "number") sub.textContent = "pos_rate " + (it.pos_rate*100).toFixed(1) + "%";
+        card.appendChild(lb); card.appendChild(v); card.appendChild(sub);
+        grid.appendChild(card);
+      });
+      body.appendChild(grid);
+    }
+
+    function renderTable(block){
+      if (!Array.isArray(block.columns) || !Array.isArray(block.rows)) return;
+
+      var wrap = makeBlock("table");
+      addTitle(wrap, block.title);
+
+      var body  = makeBody(wrap);
+      var table = document.createElement("table"); table.className = "ai-table";
+
+      var thead = document.createElement("thead");
+      var trh   = document.createElement("tr");
+      (block.columns || []).forEach(function(c){
+        var th = document.createElement("th"); th.textContent = String(c); trh.appendChild(th);
+      });
+      thead.appendChild(trh);
+
+      var tbody = document.createElement("tbody");
+      (block.rows || []).forEach(function(r){
+        var tr = document.createElement("tr");
+        (r || []).forEach(function(cell){
+          var td = document.createElement("td");
+          td.textContent = (cell == null ? "" : String(cell));
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+
+      table.appendChild(thead); table.appendChild(tbody);
+      body.appendChild(table);
+    }
+
+    function renderChart(block){
+      var chart = block.chart || {};
+      var key   = self.chartKeyFromParams && self.chartKeyFromParams(chart.params);
+      if (key && container.querySelector('[data-chart-key="'+key+'"]')) return;
+
+      var wrap = makeBlock("chart", "data-chart-key", key || "");
+      addTitle(wrap, block.title);
+
+      var fig = document.createElement("figure"); fig.className = "ai-chart ai-widget";
+      fig.setAttribute("tabindex","0");
+      fig.setAttribute("role","button");
+      if (block.title) {
+        fig.setAttribute("aria-label", "Open " + block.title);
+        fig.dataset.widgetTitle = block.title;
+      }
+
+      var img = document.createElement("img");
+      if (chart.url) img.src = chart.url;
+      img.alt = block.title || "Chart";
+      img.className = "ai-chat__sparkline";
+      img.loading   = "lazy";
+      fig.appendChild(img);
+
+      makeBody(wrap).appendChild(fig);
+    }
+
+    function renderBullets(block){
+      if (!Array.isArray(block.items)) return;
+
+      var wrap = makeBlock("bullets");
+      addTitle(wrap, block.title);
+
+      var body = makeBody(wrap);
+      var ul   = document.createElement("ul"); ul.className = "ai-bullets";
+      (block.items || []).forEach(function(t){
+        var li = document.createElement("li");
+        li.innerHTML = global.__renderMarkdown ? global.__renderMarkdown(t) : String(t);
+        ul.appendChild(li);
+      });
+      body.appendChild(ul);
+    }
+
+    function renderCallout(block){
+      var wrap = makeBlock("callout");
+      addTitle(wrap, block.title);
+
+      var body = makeBody(wrap);
+      var div  = document.createElement("div");
+      div.className = "ai-callout";
+      div.innerHTML = global.__renderMarkdown ? global.__renderMarkdown(block.text || "") : (block.text || "");
+      body.appendChild(div);
+    }
+  };
+
+  /* ---------- Inline widgets ---------- */
+
+  // Legacy inline anchors: {{block:ANCHOR}} → span + dynamic widget
+  W.prototype.processInlineMarkers = function(bubble){
+    if (!bubble) return;
+    var msg = this.ensureMsgContainer(bubble); if (!msg) return;
+
+    var html = msg.innerHTML;
+    if (!html || !html.length) return;
+
+    // Replace {{block:ANCHOR}} with a slot
+    var replaced = html.replace(/\{\{block:([A-Za-z0-9_-]+)\}\}/g, function(_, anchor){
+      return '<span class="ai-inline-slot" data-inline-anchor="'+anchor+'"></span>';
+    });
+
+    if (replaced !== html) {
+      msg.innerHTML = replaced;
+    }
+
+    // Insert any queued inline blocks now that slots exist
+    if (this._pendingInlineBlocks) {
+      var anchors = Object.keys(this._pendingInlineBlocks);
+      for (var i=0; i<anchors.length; i++){
+        var a = anchors[i];
+        if (this.insertInlineBlock) {
+          this.insertInlineBlock(a, this._pendingInlineBlocks[a]);
+        }
+      }
+    }
+
+    // New widget placeholders: {{widget:NAME key="value" ...}}
+    this.processWidgetPlaceholders && this.processWidgetPlaceholders(bubble);
+  };
+
+  W.prototype.insertInlineBlock = function(anchor, block){
+    var root = this.root || document;
+    var slot = root.querySelector('[data-inline-anchor="'+anchor+'"]');
+
+    if (!slot) {
+      // slot not in DOM yet → queue
+      if (!this._pendingInlineBlocks) this._pendingInlineBlocks = {};
+      this._pendingInlineBlocks[anchor] = block;
+      return;
+    }
+
+    var wrapper = document.createElement("div");
+    wrapper.className = "ai-inline-block";
+    this.renderBlocksInto && this.renderBlocksInto(wrapper, [block]);
+
+    slot.parentNode.insertBefore(wrapper, slot.nextSibling);
+    if (this._pendingInlineBlocks) delete this._pendingInlineBlocks[anchor];
+  };
+
+  // Parse simple widget placeholders and hydrate them via widget endpoints.
+  W.prototype.processWidgetPlaceholders = function(bubble){
+    if (!bubble) return;
+    var msg = this.ensureMsgContainer(bubble); if (!msg) return;
+
+    var html = msg.innerHTML;
+    if (!html || !html.length) return;
+
+    var self = this;
+
+    // Replace {{widget:NAME ...}} with a slot <span> that we can hydrate later.
+    var replaced = html.replace(/\{\{widget:([a-z_]+)\s*([^}]*)\}\}/gi, function(_, name, argStr){
+      var id = "w_" + Math.random().toString(16).slice(2);
+      var args = self.parseWidgetArgs ? self.parseWidgetArgs(argStr || "") : {};
+      var encoded = encodeURIComponent(JSON.stringify(args || {}));
+      return '<span class="ai-widget-slot" data-widget-id="'+id+'" data-widget-name="'+name+'" data-widget-args="'+encoded+'"></span>';
+    });
+
+    if (replaced !== html) {
+      msg.innerHTML = replaced;
+    }
+
+    var slots = msg.querySelectorAll(".ai-widget-slot");
+    if (!slots || !slots.length) return;
+
+    slots.forEach = Array.prototype.forEach; // for older browsers
+    slots.forEach(function(slot){
+      var name = slot.getAttribute("data-widget-name");
+      var argsEncoded = slot.getAttribute("data-widget-args") || "";
+      var args = {};
+      try { args = JSON.parse(decodeURIComponent(argsEncoded)); } catch(_){}
+      self.hydrateWidgetSlot && self.hydrateWidgetSlot(slot, name, args);
+    });
+  };
+
+  // Very simple arg parser: key="value" pairs, space-separated.
+  W.prototype.parseWidgetArgs = function(argStr){
+    var args = {};
+    if (!argStr) return args;
+    var re = /([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*"([^"]*)"/g;
+    var m;
+    while ((m = re.exec(argStr)) !== null) {
+      var key = m[1];
+      var val = m[2];
+      args[key] = val;
+    }
+    return args;
+  };
+
+  W.prototype.hydrateWidgetSlot = function(slot, name, args){
+    if (!slot || !name) return;
+    var base = "/ai_chat/widgets/" + name;
+    var params = [];
+    for (var k in args) {
+      if (!Object.prototype.hasOwnProperty.call(args, k)) continue;
+      params.push(encodeURIComponent(k) + "=" + encodeURIComponent(args[k]));
+    }
+    var url = base + (params.length ? ("?" + params.join("&")) : "");
+    // Use an encoded signature so attribute selectors remain valid (no quotes/braces).
+    var rawSig = name + "|" + JSON.stringify(args || {});
+    var sig = encodeURIComponent(rawSig);
+    slot.setAttribute("data-widget-sig", sig);
+
+    // If we've already hydrated an identical widget in this message, skip.
+    var existing = slot.parentNode && slot.parentNode.querySelector('.ai-inline-block[data-widget-sig="'+sig+'"]');
+    if (existing) {
+      if (slot.parentNode) slot.parentNode.removeChild(slot);
+      return;
+    }
+
+    fetch(url, { credentials: "same-origin" })
+      .then(function(res){ return res.text(); })
+      .then(function(html){
+        var wrap = document.createElement("div");
+        wrap.className = "ai-inline-block";
+        wrap.setAttribute("data-widget-sig", sig);
+        wrap.innerHTML = html;
+        slot.parentNode.insertBefore(wrap, slot.nextSibling);
+        if (slot.parentNode) slot.parentNode.removeChild(slot);
+      })
+      .catch(function(e){
+        console.error("[AiChatWidget] widget fetch failed:", e);
+      });
+  };
+
+
+})(window);
+</script>

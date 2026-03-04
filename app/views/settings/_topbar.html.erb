@@ -1,0 +1,13 @@
+<div class="topbar">
+  <% if @back_path %>
+    <%= link_to @back_path do %>
+      <%= icon "left-arrow", class_name: "topbar-back" %>
+    <% end %>
+    <div class="topbar-back-line"></div>
+  <% end %>
+
+  <span class="topbar-title" style="<%= @back_path.present? ? "font-size:14px;" : "" %>">
+    Settings
+  </span>
+
+</div>

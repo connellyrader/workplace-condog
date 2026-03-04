@@ -1,0 +1,33 @@
+<% if defined?(search_query) && search_query.present? %>
+  <div class="invite-modal-search-results-label">
+    Showing results for "<%= h(search_query) %>"
+  </div>
+<% end %>
+
+<% ungrouped_users.each do |ungrouped_user| %>
+  <div class="invite-modal-person"
+       data-user-id="<%= ungrouped_user.id %>">
+    <% avatar_url = ungrouped_user.avatar_url.presence %>
+
+    <div class="invite-modal-person-avatar"
+         style="<%= "background-image: url('#{avatar_url}');" if avatar_url %>">
+      <% unless avatar_url %>
+        <%= icon "user" %>
+      <% end %>
+    </div>
+
+    <div class="invite-modal-person-middle">
+      <div class="invite-modal-person-middle-name"><%= ungrouped_user.real_name %></div>
+      <div class="invite-modal-person-middle-email"><%= ungrouped_user.email %></div>
+    </div>
+
+    <div class="invite-modal-person-add">
+      <span class="invite-modal-person-add-plus">
+        <%= icon "plus" %>
+      </span>
+      <span class="invite-modal-person-add-check">
+        <%= icon "check" %>  <%# or whatever your check icon name is %>
+      </span>
+    </div>
+  </div>
+<% end %>

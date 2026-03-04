@@ -1,0 +1,26 @@
+<script>
+  (function() {
+    function apply() {
+      var sel = document.querySelector('.js-resource-type');
+      if (!sel) return;
+      var t = (sel.value || 'file');
+
+      document.querySelectorAll('.js-file-fields').forEach(function(el) {
+        el.style.display = (t === 'file') ? '' : 'none';
+      });
+
+      document.querySelectorAll('.js-color-fields').forEach(function(el) {
+        el.style.display = (t === 'color') ? '' : 'none';
+      });
+    }
+
+    document.addEventListener('change', function(e) {
+      if (e.target && e.target.classList && e.target.classList.contains('js-resource-type')) {
+        apply();
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', apply);
+    document.addEventListener('turbo:load', apply);
+  })();
+</script>

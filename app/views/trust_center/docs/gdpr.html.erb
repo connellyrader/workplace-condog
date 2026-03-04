@@ -1,0 +1,111 @@
+<%# app/views/trust_center/docs/gdpr.html.erb %>
+
+<div class="trust-doc">
+  <div class="trust-doc-header">
+    <div class="trust-doc-breadcrumb">
+      <%= link_to "Trust Center", trust_home_url, class: "trust-doc-breadcrumb-link" %>
+      <span class="trust-doc-breadcrumb-sep">/</span>
+      <span class="trust-doc-breadcrumb-current">GDPR & Data Rights</span>
+    </div>
+
+    <div class="trust-doc-title-row">
+      <%= image_tag "logo.png", class: "trust-doc-logo", alt: "Workplace.io" %>
+      <div class="trust-doc-title">GDPR & Data Rights</div>
+    </div>
+
+    <div class="trust-doc-subtitle">
+      How we support GDPR-aligned rights requests, customer responsibilities, and privacy-by-design practices. This page is a practical
+      overview for customers and procurement teams.
+    </div>
+
+    <div class="trust-doc-updated">
+      Last updated: <%= @trust_center_stamp %>
+    </div>
+  </div>
+
+  <div class="trust-doc-body">
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Roles: customer and Workplace.io</div>
+      <div class="trust-doc-text">
+        In typical enterprise use, the customer controls what collaboration data is connected and how Workplace.io is used. In that context,
+        the customer is generally the controller of workplace collaboration data and Workplace.io acts as a processor. For certain account-level
+        data (e.g., website accounts), Workplace.io may act as a controller for its own business purposes.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Data Processing Addendum →", trust_doc_url_for("dpa"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Rights requests (DSARs)</div>
+      <div class="trust-doc-text">
+        We support GDPR-aligned requests such as access, deletion, and correction. Because workplace collaboration data is typically controlled by
+        the customer, requests may require coordination with the customer administrator to confirm scope and authorization.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Access:</strong> provide information about personal data processed, where appropriate and authorized.</li>
+        <li><strong>Correction:</strong> correct account-level information; collaboration platform data is generally corrected at the source provider.</li>
+        <li><strong>Deletion:</strong> support deletion requests where applicable; customer admins can also disconnect integrations and archive workspaces.</li>
+        <li><strong>Restriction/objection:</strong> coordinate appropriate handling based on the customer’s controller obligations.</li>
+      </ul>
+
+      <div class="trust-doc-callout trust-doc-callout--note">
+        <div class="trust-doc-callout-title">Short-lived message content</div>
+        <div class="trust-doc-callout-text">
+          Message content is processed for a short period during analysis and then removed; derived metadata and aggregated results are retained
+          to power dashboards and trends.
+        </div>
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Contact Trust & Security →", trust_doc_url_for("contact"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Privacy by design</div>
+      <div class="trust-doc-text">
+        Workplace.io is designed to minimize exposure of sensitive content and to support organizational insights. We apply controls that support
+        data minimization, access restriction, and auditability.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Minimization:</strong> process message content briefly; retain derived metadata needed for reporting.</li>
+        <li><strong>Access controls:</strong> workspace roles restrict administrative actions and sensitive settings.</li>
+        <li><strong>Security safeguards:</strong> encryption in transit and at rest; monitoring and incident response processes.</li>
+        <li><strong>Vendor transparency:</strong> documented subprocessors and processing environments.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Access Controls →", trust_doc_url_for("access-controls"), class: "trust-doc-link" %>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <%= link_to "Encryption →", trust_doc_url_for("encryption"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">International transfers</div>
+      <div class="trust-doc-text">
+        If personal data is transferred across borders, we support appropriate transfer mechanisms where required, including Standard Contractual
+        Clauses (SCCs) when applicable.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "International Transfers (SCCs) →", trust_doc_url_for("scc"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-footer">
+      <div class="trust-doc-footer-title">Need GDPR materials?</div>
+      <div class="trust-doc-footer-text">
+        Contact us for a DPA, subprocessor details, or support with privacy and rights requests.
+      </div>
+      <div class="trust-doc-footer-actions">
+        <%= link_to "Contact Trust & Security", trust_doc_url_for("contact"), class: "trust-doc-button" %>
+        <%= link_to "Back to Trust Center", trust_home_url, class: "trust-doc-button trust-doc-button--secondary" %>
+      </div>
+    </div>
+  </div>
+</div>

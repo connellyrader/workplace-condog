@@ -1,0 +1,53 @@
+<div class="settings-navigation">
+
+  <% partner_mode = (session[:partner_mode] && current_user&.respond_to?(:partner?) && current_user.partner?) %>
+
+  <% if workspace_admin? && !partner_mode %>
+    <%= link_to settings_path, class: "settings-navigation-link #{'active' if current_page?(settings_path)}" do %>
+      <%= icon "cog-6", class_name: "settings-navigation-icon" %>
+      <span>General</span>
+    <% end %>
+
+    <%= link_to manage_users_path, class: "settings-navigation-link #{'active' if current_page?(manage_users_path)}" do %>
+      <%= icon "user-plus", class_name: "settings-navigation-icon" %>
+      <span>Manage Users</span>
+    <% end %>
+
+    <%= link_to groups_path, class: "settings-navigation-link #{'active' if current_page?(groups_path)}" do %>
+      <%= icon "user-group", class_name: "settings-navigation-icon" %>
+      <span>Groups</span>
+    <% end %>
+
+    <%= link_to billing_path, class: "settings-navigation-link #{'active' if current_page?(billing_path)}" do %>
+      <%= icon "card", class_name: "settings-navigation-icon" %>
+      <span>Billing</span>
+    <% end %>
+  <% end %>
+
+  <% if workspace_admin? && !partner_mode %>
+    <%= link_to integrations_path, class: "settings-navigation-link #{'active' if current_page?(integrations_path)}" do %>
+      <%= icon "code", class_name: "settings-navigation-icon" %>
+      <span>Integrations</span>
+    <% end %>
+  <% end %>
+
+  <%= link_to settings_profile_path, class: "settings-navigation-link #{'active' if current_page?(settings_profile_path)}" do %>
+    <%= icon "user-circle", class_name: "settings-navigation-icon" %>
+    <span>Profile</span>
+  <% end %>
+
+  <% unless partner_mode %>
+    <%= link_to cookie_settings_path, class: "settings-navigation-link #{'active' if current_page?(cookie_settings_path)}" do %>
+      <%= icon "shield2", class_name: "settings-navigation-icon" %>
+      <span>Privacy</span>
+    <% end %>
+  <% end %>
+
+  <%= link_to destroy_user_session_path,
+              method: :delete,
+              class: "settings-navigation-link" do %>
+    <%= icon "logout", class_name: "settings-navigation-icon" %>
+    <span>Logout</span>
+  <% end %>
+
+</div>

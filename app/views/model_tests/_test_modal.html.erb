@@ -1,0 +1,42 @@
+<div id="test-modal" class="modal hidden">
+  <div class="modal-content">
+    <span class="close-btn">&times;</span>
+    <h2 id="modal-title">New Model Test</h2>
+
+    <%= form_with(url: model_tests_path, method: :post, id: 'test-form') do |f| %>
+      <%= hidden_field_tag :id, '', id: 'test-id' %>
+
+      <label for="test-name">Test Name</label>
+      <%= f.text_field :name, id: 'test-name', required: true %>
+
+      <br><br>
+      <label for="model-id">Select Model</label>
+      <%= f.select :model_id, options_from_collection_for_select(Model.all, :id, :name), {}, id: 'model-id', style: 'min-width:200px;' %>
+
+      <br><br>
+      <label for="test-type">Test Type</label>
+      <%= f.select :test_type, [['Signal Detection', 'signal_detection']], {}, id: 'test-type', style: 'min-width:200px;' %>
+
+      <label for="prev-message-count">Previous Message Count</label>
+      <%= f.text_field :prev_message_count, id: 'prev-message-count', required: true %>
+
+      <br><br>
+      <label for="scoring-instructions">Scoring Instructions</label>
+      <%= f.text_area :scoring_instructions, id: 'scoring-instructions', placeholder: 'Identify each indicator and assign a score from -5 to +5...' %>
+
+      <br><br>
+      <label for="output-instructions">Output Instructions</label>
+      <%= f.text_area :output_instructions, id: 'output-instructions', placeholder: 'Ouput JSON like this: {[]}...' %>
+
+      <br><br>
+      <label for="workspace-id">Workspace</label>
+      <%= f.select :workspace_id, options_from_collection_for_select(Workspace.all, :id, :name), {}, id: 'workspace-id', style: 'min-width:200px;' %>
+
+      <br><br>
+      <label for="signal-category-id">Signal Category</label>
+      <%= f.select :signal_category, options_from_collection_for_select(SignalCategory.all.order(submetric_id: :asc, name: :asc), :id, :name), {}, id: 'signal-category-id', style: 'min-width:200px;' %>
+
+      <%= f.submit 'Save Test', class: 'btn-primary', id: 'submit-btn' %>
+    <% end %>
+  </div>
+</div>

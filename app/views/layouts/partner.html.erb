@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html data-theme="dark">
+  <%= render "layouts/header" %>
+  <body>
+    <% if devise_controller? || @onboarding %>
+      <div class="<%= @onboarding ? 'onboarding' : 'devise' %>-container">
+        <%= yield %>
+      </div>
+    <% else %>
+      <div class="layout nav-full chat-closed">
+        <%= render "layouts/notifications" %>
+
+        <%= render "layouts/partner_navigation" %>
+
+        <%= render "layouts/partner_main" %>
+      </div>
+    <% end %>
+
+    <%= render "layouts/js" %>
+  </body>
+</html>

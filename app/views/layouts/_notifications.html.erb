@@ -1,0 +1,15 @@
+<%# app/views/layouts/_notifications.html.erb %>
+
+<% if @show_integration_modal %>
+  <%= render "layouts/modals/integrations" %>
+<% end %>
+
+<div
+  id="flash-toasts"
+  data-notice="<%= flash[:notice].to_s %>"
+  data-alert="<%= flash[:alert].to_s %>"
+  data-error="<%= flash[:error].to_s %>">
+</div>
+
+<%= render "layouts/modals/toast" %>
+<%= render "layouts/modals/warning" %>

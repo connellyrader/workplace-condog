@@ -1,0 +1,26 @@
+<head>
+  <title>Workplace.io</title>
+
+  <link rel="icon" type="image/x-icon" href="<%= image_path "favicon.ico" %>">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <% if @turbo_cache_control.present? %>
+    <meta name="turbo-cache-control" content="<%= @turbo_cache_control %>">
+  <% end %>
+
+  <%= csrf_meta_tags %>
+  <%= csp_meta_tag %>
+  <%= stylesheet_link_tag "application" %>
+  <%= yield(:stylesheets) if content_for?(:stylesheets) %>
+
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+
+  <!-- Load jQuery explicitly from CDN -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+  <!-- Load Google Charts explicitly from CDN -->
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+  <!-- Rails JavaScript entrypoint -->
+  <%= javascript_importmap_tags %>
+</head>

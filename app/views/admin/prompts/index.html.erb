@@ -1,0 +1,41 @@
+<% content_for :page_title do %>
+  Prompt Lab
+<% end %>
+<% content_for :page_subtitle do %>
+  Browse prompts and open a prompt to edit, version, and test.
+<% end %>
+
+<div class="admin-section">
+  <div class="admin-card">
+    <div class="admin-table-wrapper">
+      <table class="pp-table admin-templates-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Key</th>
+            <th>Type</th>
+            <th>Active version</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @prompt_rows.each do |row| %>
+            <tr>
+              <td><%= row[:name] %></td>
+              <td><code><%= row[:key] %></code></td>
+              <td><%= row[:type] %></td>
+              <td>
+                <% if row[:active] %>
+                  v<%= row[:active].version %> (<%= row[:active].label.presence || "no label" %>)
+                <% else %>
+                  default
+                <% end %>
+              </td>
+              <td><%= link_to "Open", admin_prompt_path(row[:key]), class: "mtt-link" %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,37 @@
+<% content_for :page_title do %>
+  Admin Dashboard (Old)
+<% end %>
+<% content_for :page_subtitle do %>
+  Legacy admin landing page (kept temporarily).
+<% end %>
+
+<!-- Workspaces overview -->
+<section class="admin-section">
+  <div class="admin-two-col">
+    <%= render "admin/components/workspaces" %>
+  </div>
+</section>
+
+<!-- Model tests overview -->
+<section class="admin-section">
+  <%= render "admin/components/model_tests" %>
+</section>
+
+<!-- Signal metrics overview -->
+<section class="admin-section">
+  <div class="admin-two-col">
+    <%= render "admin/components/signal_metrics" %>
+  </div>
+</section>
+
+<!-- Financial overview -->
+<section class="admin-section">
+  <%= render "admin/components/financial" %>
+</section>
+
+<!-- Recent tables (signups, tests, flagged messages, subscription events) -->
+<section class="admin-section">
+  <div class="admin-two-col">
+    <%= render "admin/components/recents" %>
+  </div>
+</section>

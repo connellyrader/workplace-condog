@@ -1,0 +1,844 @@
+<div class="onboarding-bg"></div>
+<a href="<%= settings_path %>"><div class="onboarding-logo"><%= image_tag "logo.png" %></div></a>
+<a href="<%= settings_path %>"><%= icon "x-mark", class_name: "onboarding-close" %></a>
+
+<div class="onboarding-content" data-selected="<%= @selected_ids.join(',') %>">
+  <div class="onboarding-title">Who would you like to measure?</div>
+
+  <div class="onboarding-subtitle">
+    We recommend adding everyone for a more complete culture score. Note: They will <span>not</span> be notified or receive an invite to create a Workplace account.
+  </div>
+
+  <!-- MEMBER SELECTION HEADER -->
+  <div class="onboarding-section">
+    <div class="onboarding-section-title js-member-count">0 people selected</div>
+    <div class="onboarding-section-right js-select-all" role="button" tabindex="0" data-mode="select">
+      Select all
+    </div>
+  </div>
+
+  <!-- MEMBER SELECTION LIST -->
+  <div class="onboarding-section-box-tall">
+    <input class="onboarding-member-search" type="text" placeholder="Search by name..." />
+
+    <div class="onboarding-member-channels js-onboarding-channels">
+      <%= render partial: "onboarding/channels", locals: { slack_channels: @slack_channels, teams_channels: @teams_channels, teams: @teams } %>
+    </div>
+
+    <div class="onboarding-members"></div>
+
+    <%= form_with url: (@group ? onboarding_group_path(@group) : onboarding_groups_path),
+                  method: (@group ? :patch : :post),
+                  local: true,
+                  html: { id: 'create-group-form' } do %>
+      <div id="selected-users-hidden"></div>
+    <% end %>
+  </div>
+
+  <div id="onboarding-error"
+       class="onboarding-error"
+       aria-live="polite"
+       style="display:none; color:#b00020; font-size:14px; margin:12px 0 0 0;"></div>
+</div>
+
+<%= render 'onboarding/components/footer' %>
+
+<!-- ========================= -->
+<!-- Setup modal + polling UI   -->
+<!-- ========================= -->
+<div class="setup-modal-backdrop js-setup-backdrop" style="display:none;"></div>
+
+<div class="setup-modal js-setup-modal" style="display:none;" role="dialog" aria-modal="true" aria-label="Fetching Directory">
+  <div class="setup-modal-inner">
+    <div class="setup-spinner" aria-hidden="true"></div>
+    <div class="setup-title">Fetching Directory</div>
+    <div class="setup-subtitle js-setup-subtitle">
+      Importing people and channels. This usually takes a few seconds.
+    </div>
+  </div>
+</div>
+
+<!-- ========================= -->
+<!-- Email-first auth modals    -->
+<!-- Uses existing routes:
+     POST /auth/email/lookup
+     POST /auth/email/password_sign_in
+     POST /auth/email/sign_up
+-->
+<!-- ========================= -->
+
+<div class="auth-modal js-login-modal" style="display:none;" role="dialog" aria-modal="true" aria-label="Sign in">
+  <div class="auth-modal-inner">
+    <div class="auth-modal-title">Sign in</div>
+
+    <div class="auth-modal-error js-login-error" style="display:none;"></div>
+
+    <!-- STEP: EMAIL -->
+    <div class="js-login-step" data-step="email">
+      <label class="auth-label">Email</label>
+      <input class="auth-input js-login-email" type="email" autocomplete="email" placeholder="you@company.com" />
+      <button class="auth-button js-login-continue" type="button">Continue</button>
+    </div>
+
+    <!-- STEP: PASSWORD -->
+    <div class="js-login-step" data-step="password" style="display:none;">
+      <div class="auth-email-label js-login-email-label"></div>
+      <input type="hidden" class="js-login-email-hidden" />
+
+      <label class="auth-label">Password</label>
+      <input class="auth-input js-login-password" type="password" autocomplete="current-password" placeholder="Password" />
+      <button class="auth-button js-password-signin" type="button">Sign in</button>
+
+      <div class="auth-actions">
+        <button class="auth-link js-login-back" type="button">Back</button>
+      </div>
+    </div>
+
+    <!-- STEP: SSO -->
+    <div class="js-login-step" data-step="sso" style="display:none;">
+      <div class="auth-email-label js-login-email-label"></div>
+
+      <div class="auth-sso-note js-login-sso-note">
+        This account uses SSO. Continue with your provider.
+      </div>
+
+      <a class="auth-button js-login-sso-link" href="#">Continue with SSO</a>
+
+      <div class="auth-actions">
+        <button class="auth-link js-login-back" type="button">Back</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="auth-modal js-signup-modal" style="display:none;" role="dialog" aria-modal="true" aria-label="Create account">
+  <div class="auth-modal-inner">
+    <div class="auth-modal-title">Create account</div>
+
+    <div class="auth-modal-error js-signup-error" style="display:none;"></div>
+
+    <label class="auth-label">Email</label>
+    <input class="auth-input js-signup-email" type="email" autocomplete="email" placeholder="you@company.com" />
+
+    <label class="auth-label">First name</label>
+    <input class="auth-input js-signup-first" type="text" autocomplete="given-name" placeholder="First name" />
+
+    <label class="auth-label">Last name</label>
+    <input class="auth-input js-signup-last" type="text" autocomplete="family-name" placeholder="Last name" />
+
+    <label class="auth-label">Password</label>
+    <input class="auth-input js-signup-pass" type="password" autocomplete="new-password" placeholder="Password" />
+
+    <label class="auth-label">Confirm password</label>
+    <input class="auth-input js-signup-pass2" type="password" autocomplete="new-password" placeholder="Confirm password" />
+
+    <button class="auth-button js-signup-submit" type="button">Create account</button>
+
+    <div class="auth-actions">
+      <button class="auth-link js-signup-back" type="button">Back</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ========== Onboarding selection + setup polling + Email-first auth wiring ==========
+  (function($){
+    // ---------------------------
+    // Helpers (shared)
+    // ---------------------------
+    function csrfToken() {
+      var el = document.querySelector('meta[name="csrf-token"]');
+      return el ? el.getAttribute('content') : '<%= form_authenticity_token %>';
+    }
+
+    function normEmail(v){ return (v || "").toString().trim().toLowerCase(); }
+
+    function showModal($el) { $el.show(); }
+    function hideModal($el) { $el.hide(); }
+
+    // ---------------------------
+    // Email-first login flow
+    // ---------------------------
+    function showLoginStep(step){
+      $('.js-login-step').hide();
+      $('.js-login-step[data-step="' + step + '"]').show();
+      $('.js-login-error').hide().text('');
+      $('.js-login-email').removeClass('is-error');
+    }
+
+    function loginError(msg){
+      $('.js-login-error').text(msg).show();
+      $('.js-login-email').addClass('is-error');
+    }
+
+    function signupError(msg){
+      $('.js-signup-error').text(msg).show();
+    }
+
+    function clearSignupError(){
+      $('.js-signup-error').hide().text('');
+    }
+
+    function setAuthEmail(email){
+      $('.js-login-email-label').text(email);
+      $('.js-login-email-hidden').val(email);
+      $('.js-signup-email').val(email);
+    }
+
+    function ssoUrlFor(provider){
+      switch((provider || "").toString()){
+        case "google_oauth2": return "/users/auth/google_oauth2";
+        case "entra_id":      return "/users/auth/entra_id";
+        case "slack_sso":     return "/users/auth/slack_sso";
+        default:              return "/users/auth/google_oauth2";
+      }
+    }
+
+    // If you use a trigger element elsewhere, keep this.
+    $(document).off('click', '.js-open-login').on('click', '.js-open-login', function(e){
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      hideModal($('.js-signup-modal'));
+      showModal($('.js-login-modal'));
+      showLoginStep('email');
+      $('.js-login-email').focus();
+    });
+
+    $(document).off('click', '.js-login-back').on('click', '.js-login-back', function(e){
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      showLoginStep('email');
+      $('.js-login-email').focus();
+    });
+
+    $(document).off('click', '.js-signup-back').on('click', '.js-signup-back', function(e){
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      hideModal($('.js-signup-modal'));
+      showModal($('.js-login-modal'));
+      showLoginStep('email');
+      $('.js-login-email').focus();
+    });
+
+    // --- Email -> lookup (force single handler; prevent legacy handlers firing) ---
+    $(document).off('click', '.js-login-continue').on('click', '.js-login-continue', function(e){
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      var email = normEmail($('.js-login-email').val());
+      if (!email) return loginError("Please enter your email.");
+
+      setAuthEmail(email);
+
+      $.ajax({
+        method: "POST",
+        url: "/auth/email/lookup",
+        headers: { "X-CSRF-Token": csrfToken() },
+        data: { email: email }
+      })
+      .done(function(resp){
+        // Backend may return ok:false with 200 in some flows; handle explicitly.
+        if (resp && resp.ok === false) {
+          loginError(resp.error || "Unable to continue.");
+          return;
+        }
+
+        var status = resp && resp.status ? resp.status.toString() : null;
+
+        if (!status) {
+          loginError("Unable to continue.");
+          return;
+        }
+
+        if (status === "unknown" || status === "signup" || status === "sign_up") {
+          hideModal($('.js-login-modal'));
+          showModal($('.js-signup-modal'));
+          clearSignupError();
+          $('.js-signup-first').focus();
+          return;
+        }
+
+        if (status === "password" || status === "needs_password") {
+          showLoginStep("password");
+          $('.js-login-password').focus();
+          return;
+        }
+
+        if (status === "sso" || status === "use_sso") {
+          var provider = resp.provider || resp.auth_provider || resp.sso_provider || "google_oauth2";
+          var url = resp.sso_url || resp.url || ssoUrlFor(provider);
+          $('.js-login-sso-link').attr("href", url);
+          $('.js-login-sso-note').text(resp.message || "This account uses SSO. Continue with your provider.");
+          showLoginStep("sso");
+          return;
+        }
+
+        if (status === "invalid") {
+          loginError(resp.error || "Please enter a valid email address.");
+          return;
+        }
+
+        loginError("Unable to continue.");
+      })
+      .fail(function(xhr){
+        var msg =
+          (xhr.responseJSON && (xhr.responseJSON.error || xhr.responseJSON.message))
+            ? (xhr.responseJSON.error || xhr.responseJSON.message)
+            : "Unable to continue.";
+        loginError(msg);
+      });
+    });
+
+    // Optional: allow Enter key on email field to trigger lookup
+    $(document).off('keypress', '.js-login-email').on('keypress', '.js-login-email', function(e){
+      if (e.which === 13) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        $('.js-login-continue').click();
+      }
+    });
+
+    // --- Password sign-in (AJAX) ---
+    $(document).off('click', '.js-password-signin').on('click', '.js-password-signin', function(e){
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      var email = normEmail($('.js-login-email-hidden').val());
+      var password = $('.js-login-password').val();
+
+      if (!email) return loginError("Please enter your email.");
+      if (!password) return loginError("Please enter your password.");
+
+      $.ajax({
+        method: "POST",
+        url: "/auth/email/password_sign_in",
+        headers: { "X-CSRF-Token": csrfToken() },
+        data: { email: email, password: password }
+      })
+      .done(function(resp){
+        if (resp && resp.ok && resp.redirect_url) {
+          window.location.href = resp.redirect_url;
+          return;
+        }
+        if (resp && resp.ok) {
+          window.location.href = "<%= start_path %>";
+          return;
+        }
+        loginError((resp && resp.error) ? resp.error : "Invalid email or password.");
+      })
+      .fail(function(xhr){
+        var msg = (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : "Invalid email or password.";
+        loginError(msg);
+      });
+    });
+
+    // Optional: allow Enter key on password field
+    $(document).off('keypress', '.js-login-password').on('keypress', '.js-login-password', function(e){
+      if (e.which === 13) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        $('.js-password-signin').click();
+      }
+    });
+
+    // --- Sign up (AJAX) ---
+    $(document).off('click', '.js-signup-submit').on('click', '.js-signup-submit', function(e){
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      clearSignupError();
+
+      var payload = {
+        email: normEmail($('.js-signup-email').val()),
+        first_name: ($('.js-signup-first').val() || "").trim(),
+        last_name:  ($('.js-signup-last').val() || "").trim(),
+        password:   $('.js-signup-pass').val(),
+        password_confirmation: $('.js-signup-pass2').val()
+      };
+
+      if (!payload.email) return signupError("Please enter your email.");
+      if (!payload.first_name) return signupError("Please enter your first name.");
+      if (!payload.last_name) return signupError("Please enter your last name.");
+      if (!payload.password) return signupError("Please enter a password.");
+      if (payload.password !== payload.password_confirmation) return signupError("Passwords do not match.");
+
+      $.ajax({
+        method: "POST",
+        url: "/auth/email/sign_up",
+        headers: { "X-CSRF-Token": csrfToken() },
+        data: payload
+      })
+      .done(function(resp){
+        if (resp && resp.ok && resp.redirect_url) {
+          window.location.href = resp.redirect_url;
+          return;
+        }
+        if (resp && resp.ok) {
+          window.location.href = "<%= start_path %>";
+          return;
+        }
+        signupError((resp && resp.error) ? resp.error : "Unable to create account.");
+      })
+      .fail(function(xhr){
+        var msg = (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : "Unable to create account.";
+        signupError(msg);
+      });
+    });
+
+    // ---------------------------
+    // Existing onboarding selection + setup polling
+    // ---------------------------
+    var selected            = new Set();
+    var hadInitialSelection = false;
+    var autoSelectDone      = false;
+    var setupReady          = false;
+
+    function membersRoot() {
+      return $('.onboarding-members').first();
+    }
+
+    function syncHiddenInputs() {
+      var $box = $('#selected-users-hidden');
+      $box.empty();
+      Array.from(selected).forEach(function(id){
+        $box.append($('<input>', { type: 'hidden', name: 'user_ids[]', value: id }));
+      });
+      updateCount();
+
+      $.post('<%= onboarding_save_selection_path %>', {
+        user_ids: Array.from(selected),
+        authenticity_token: '<%= form_authenticity_token %>'
+      });
+    }
+
+    function updateCount() {
+      var count = selected.size;
+      var label = count + " person selected";
+      if (count !== 1) label = count + " people selected";
+      $('.js-member-count').text(label);
+    }
+
+    function iconPlus()  { return '<%= j icon("plus") %>'; }
+    function iconCheck() { return '<%= j icon("check") %>'; }
+
+    function reapplyChecks() {
+      membersRoot().find('.onboarding-member').each(function(){
+        var uid = $(this).data('user-id')?.toString();
+        var $btn = $(this).find('.onboarding-member-button');
+        if (uid && selected.has(uid)) {
+          $btn.addClass('checked').html(iconCheck());
+        } else {
+          $btn.removeClass('checked').html(iconPlus());
+        }
+      });
+    }
+
+    function visibleUserIds() {
+      return membersRoot().find('.onboarding-member:visible').map(function(){
+        var id = $(this).data('user-id');
+        return id ? id.toString() : null;
+      }).get().filter(Boolean);
+    }
+
+    function allVisibleSelected() {
+      var ids = visibleUserIds();
+      if (ids.length === 0) return false;
+      for (var i = 0; i < ids.length; i++) {
+        if (!selected.has(ids[i])) return false;
+      }
+      return true;
+    }
+
+    function updateSelectAllButton() {
+      var $btn = $('.js-select-all');
+      if (!$btn.length) return;
+
+      if (allVisibleSelected()) {
+        $btn.text('Deselect all').data('mode', 'deselect');
+      } else {
+        $btn.text('Select all').data('mode', 'select');
+      }
+    }
+
+    function loadMembers(params) {
+      params = params || {};
+      params.selected_ids = Array.from(selected);
+
+      $.get('<%= onboarding_members_path %>', params, function(html){
+        $('.onboarding-members').first().replaceWith(html);
+        $('.onboarding-members').not(':first').remove();
+
+        // Default behavior: on first load with no prior selection,
+        // auto-select all currently visible users.
+        if (!hadInitialSelection && !autoSelectDone) {
+          var ids = visibleUserIds();
+          if (ids.length) ids.forEach(function(id){ selected.add(id); });
+          autoSelectDone = true;
+          syncHiddenInputs();
+        }
+
+        rebindMemberClicks();
+        reapplyChecks();
+        updateSelectAllButton();
+      });
+    }
+
+    function rebindMemberClicks() {
+      membersRoot().find('.onboarding-member').off('click').on('click', function(){
+        var uid = $(this).data('user-id')?.toString();
+        if (!uid) return;
+
+        var $btn = $(this).find('.onboarding-member-button');
+        if (selected.has(uid)) {
+          selected.delete(uid);
+          $btn.removeClass('checked').html(iconPlus());
+        } else {
+          selected.add(uid);
+          $btn.addClass('checked').html(iconCheck());
+        }
+        clearError();
+        syncHiddenInputs();
+        updateSelectAllButton();
+      });
+    }
+
+    function rebindChannelClicks() {
+      $('.onboarding-member-channel').off('click').on('click', function(){
+        var type = $(this).data('filter-type') || 'channel';
+        var fid  = $(this).data('filter-id');
+        setActiveFilter(type, fid);
+
+        if (type === 'team') {
+          loadMembers({ team_id: fid });
+        } else {
+          loadMembers({ channel_id: fid });
+        }
+      });
+    }
+
+    function setActiveFilter(type, fid) {
+      $('.onboarding-member-channel').removeClass('active');
+      $('.onboarding-member-channel[data-filter-type="' + type + '"][data-filter-id="' + fid + '"]').addClass('active');
+    }
+
+    function debounce(fn, wait) {
+      var t;
+      return function(){
+        var ctx = this, args = arguments;
+        clearTimeout(t);
+        t = setTimeout(function(){ fn.apply(ctx, args); }, wait);
+      };
+    }
+
+    function bindSearch() {
+      $('.onboarding-member-search').on('input', debounce(function(){
+        var q = $(this).val();
+        setActiveFilter('channel', 'pseudo_everyone');
+        loadMembers({ q: q, channel_id: 'pseudo_everyone' });
+      }, 250));
+    }
+
+    function bindSelectAll() {
+      $('.js-select-all').on('click keypress', function(e){
+        if (e.type === 'keypress' && e.which !== 13 && e.which !== 32) return;
+
+        var ids  = visibleUserIds();
+        var mode = $(this).data('mode') || 'select';
+
+        if (mode === 'deselect') {
+          ids.forEach(function(id){ selected.delete(id); });
+        } else {
+          ids.forEach(function(id){ selected.add(id); });
+        }
+
+        clearError();
+        syncHiddenInputs();
+        reapplyChecks();
+        updateSelectAllButton();
+      });
+    }
+
+    function showError(msg) {
+      $('#onboarding-error').text(msg).show();
+    }
+    function clearError() {
+      $('#onboarding-error').hide().text('');
+    }
+
+    function passesValidation() {
+      if (selected.size < 3) {
+        var msg = "To protect anonymity of culture scores, please select at least 3 people before continuing.";
+        if (typeof notice === "function") {
+          notice(msg, { confirmLabel: "OK", cancelLabel: "Cancel" });
+        } else {
+          showError('Please select at least 3 members.');
+        }
+        return false;
+      }
+      clearError();
+      return true;
+    }
+
+    function bindContinueSubmit() {
+      $(document).on('click keypress', '.onboarding-footer .onboarding-footer-button', function(e){
+        if (e.type === 'keypress' && e.which !== 13 && e.which !== 32) return;
+        e.preventDefault();
+        syncHiddenInputs();
+        if (!passesValidation()) return;
+        var form = document.getElementById('create-group-form');
+        if (form) form.submit();
+      });
+    }
+
+    var setupPolling = { running: false, timer: null };
+
+    function showSetupModal(message) {
+      $('body').addClass('onboarding-setup-blocking');
+      $('.js-setup-subtitle').text(message || 'Importing people and channels. This usually takes a few seconds.');
+      $('.js-setup-backdrop, .js-setup-modal').show();
+    }
+
+    function hideSetupModal() {
+      $('.js-setup-backdrop, .js-setup-modal').hide();
+      $('body').removeClass('onboarding-setup-blocking');
+    }
+
+    function refreshChannelsAndMembers() {
+      var $active = $('.onboarding-member-channel.active').first();
+      var activeType = $active.data('filter-type') || 'channel';
+      var activeId = $active.data('filter-id') || 'pseudo_everyone';
+
+      $.get('<%= onboarding_channels_path %>', function(html){
+        $('.js-onboarding-channels').html(html);
+
+        rebindChannelClicks();
+        setActiveFilter(activeType, activeId);
+
+        if (activeType === 'team') {
+          loadMembers({ team_id: activeId });
+        } else {
+          loadMembers({ channel_id: activeId });
+        }
+        updateSelectAllButton();
+      });
+    }
+
+    function autoSelectEveryoneAfterSetupIfNeeded() {
+      if (autoSelectDone) return;
+      if (!setupReady) return;
+      if (hadInitialSelection) return;
+
+      setActiveFilter('channel', 'pseudo_everyone');
+
+      $.get('<%= onboarding_members_path %>', { channel_id: 'pseudo_everyone', selected_ids: [] }, function(html){
+        $('.onboarding-members').first().replaceWith(html);
+        $('.onboarding-members').not(':first').remove();
+
+        var ids = visibleUserIds();
+        if (ids.length) ids.forEach(function(id){ selected.add(id); });
+
+        autoSelectDone = true;
+
+        rebindMemberClicks();
+        reapplyChecks();
+        syncHiddenInputs();
+        updateSelectAllButton();
+      });
+    }
+
+    function pollSetupStatus() {
+      if (setupPolling.running) return;
+      setupPolling.running = true;
+
+      // --- Tunables ---
+      var POLL_OK_MS          = 1000;   // normal poll interval
+      var POLL_FAIL_MS        = 2000;   // backoff on network error
+      var HARD_TIMEOUT_MS     = 90000;  // stop after 90s no matter what
+      var STUCK_TIMEOUT_MS    = 25000;  // stop if no progress for 25s
+      var MAX_FAILS           = 8;      // stop after 8 consecutive failures
+
+      var startedAt       = Date.now();
+      var lastProgressAt  = Date.now();
+      var lastSnapshot    = null;
+      var consecutiveFails = 0;
+
+      function stopPolling() {
+        setupPolling.running = false;
+        if (setupPolling.timer) clearTimeout(setupPolling.timer);
+        setupPolling.timer = null;
+      }
+
+      function snapshotFrom(data) {
+        // Any change here resets "stuck" timer.
+        // Include counts + status + progress + step so we notice movement even if counts don’t.
+        return JSON.stringify({
+          status: data && data.setup_status,
+          step: data && data.setup_step,
+          progress: data && data.setup_progress,
+          counts: data && data.counts
+        });
+      }
+
+      function showStuckPrompt(message) {
+        stopPolling();
+        hideSetupModal();
+
+        // Use your existing warning modal if available
+        if (typeof warning === "function") {
+          warning(message, {
+            title: "Setup is taking longer than expected",
+            confirmLabel: "Retry",
+            cancelLabel: "Continue"
+          }).then(function(ok){
+            if (ok) {
+              // reset state and try again
+              consecutiveFails = 0;
+              startedAt = Date.now();
+              lastProgressAt = Date.now();
+              lastSnapshot = null;
+              pollSetupStatus();
+            } else {
+              // allow user to proceed; they can refresh later
+              showError("Setup is still running in the background. If channels/members don’t appear, refresh this page in a minute.");
+            }
+          });
+          return;
+        }
+
+        // Fallback if warning() is not present
+        showError(message + " Refresh the page to try again.");
+      }
+
+      function tick() {
+        // Hard timeout
+        if ((Date.now() - startedAt) > HARD_TIMEOUT_MS) {
+          showStuckPrompt("We couldn’t finish importing your directory in time.");
+          return;
+        }
+
+        $.getJSON('<%= onboarding_setup_status_path %>')
+          .done(function(data){
+            consecutiveFails = 0;
+
+            // 1) No integration: do NOT block user on a spinner
+            if (!data || data.integration_id == null) {
+              stopPolling();
+              hideSetupModal();
+              // Optional: show a gentle hint
+              // showError("No integration connected yet. Connect Slack or Teams to load your directory.");
+              return;
+            }
+
+            // 2) Explicit failure from server: stop
+            if (data.failed) {
+              stopPolling();
+              hideSetupModal();
+              var msg = data.error || "Setup failed while importing directory data.";
+              showError(msg);
+
+              // Optional: if you want a modal prompt too
+              if (typeof warning === "function") {
+                warning(msg, { title: "Setup failed", confirmLabel: "OK", cancelLabel: "Close" });
+              }
+              return;
+            }
+
+            // Progress / stuck detection
+            var snap = snapshotFrom(data);
+            if (snap !== lastSnapshot) {
+              lastSnapshot = snap;
+              lastProgressAt = Date.now();
+            }
+
+            // 3) Ready: hide and continue
+            if (data.ready) {
+              stopPolling();
+              setupReady = true;
+              hideSetupModal();
+              refreshChannelsAndMembers();
+              autoSelectEveryoneAfterSetupIfNeeded();
+              return;
+            }
+
+            // 4) Stuck: no progress for too long
+            if ((Date.now() - lastProgressAt) > STUCK_TIMEOUT_MS) {
+              var stuckMsg =
+                "Directory import appears stalled. " +
+                "You can retry, or continue and refresh later.";
+              showStuckPrompt(stuckMsg);
+              return;
+            }
+
+            // Otherwise keep showing modal + keep polling
+            var msg = 'Importing setup data...';
+            if (data.counts) {
+              msg = 'Importing setup data: ' +
+                    (data.counts.users || 0) + ' people, ' +
+                    (data.counts.channels || 0) + ' channels, ' +
+                    (data.counts.memberships || 0) + ' connections.';
+            }
+            showSetupModal(msg);
+
+            setupPolling.timer = setTimeout(tick, POLL_OK_MS);
+          })
+          .fail(function(){
+            consecutiveFails += 1;
+
+            // Don’t spin forever on network trouble
+            if (consecutiveFails >= MAX_FAILS) {
+              showStuckPrompt("We’re having trouble checking setup status (network errors).");
+              return;
+            }
+
+            showSetupModal('Finishing setup…');
+            setupPolling.timer = setTimeout(tick, POLL_FAIL_MS);
+          });
+      }
+
+      tick();
+    }
+
+
+    (function initSelectedFromSession(){
+      var raw = ($('.onboarding-content').data('selected') || '').toString();
+      if (!raw) { hadInitialSelection = false; return; }
+      hadInitialSelection = true;
+      raw.split(',').forEach(function(id){
+        id = id && id.trim();
+        if (id) selected.add(id);
+      });
+    })();
+
+    $(document).ready(function(){
+      rebindChannelClicks();
+      bindSearch();
+      bindSelectAll();
+      bindContinueSubmit();
+
+      syncHiddenInputs();
+
+      var $active = $('.onboarding-member-channel.active').first();
+
+      // If there is no prior server-side selection, default to Everyone
+      // and auto-select everyone when members are loaded.
+      if (!hadInitialSelection) {
+        setActiveFilter('channel', 'pseudo_everyone');
+        loadMembers({ channel_id: 'pseudo_everyone' });
+      } else if ($active.length) {
+        var activeType = $active.data('filter-type') || 'channel';
+        var activeId = $active.data('filter-id');
+        if (activeType === 'team') {
+          loadMembers({ team_id: activeId });
+        } else {
+          loadMembers({ channel_id: activeId });
+        }
+      } else {
+        loadMembers({});
+      }
+
+      updateSelectAllButton();
+      pollSetupStatus();
+    });
+
+  })(jQuery);
+</script>

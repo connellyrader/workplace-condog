@@ -1,0 +1,147 @@
+<!-- app/views/dashboard/components/_gauge.html.erb -->
+
+<%# ------------------------------------------------------------
+    Gauge
+    - dv: prefers @gauge_value (metric page) else @value (dashboard)
+    - enough_data: >= 30 days analyzed
+    - score_available (optional): if controller sets @score_available=false, we blank the score
+    - display_dv: nil => show "--" and treat as no-data zone
+    - gauge_fill: numeric 0..100 for the arc fill only
+    - gauge_text: the only display string for the number (avoids "0" leaking via CSS)
+   ------------------------------------------------------------ %>
+
+<%# Display value: prefer @gauge_value (metric page w/ reversal), fallback to @value (index) %>
+<% dv = (defined?(@gauge_value) && !@gauge_value.nil?) ? @gauge_value : @value %>
+
+<%# How many days we have fully analyzed %>
+<%
+  wid = @active_workspace&.id
+  days_analyzed =
+    if wid
+      Integration.where(workspace_id: wid).maximum(:days_analyzed).to_i
+    else
+      0
+    end
+%>
+<% enough_data = days_analyzed >= 30 %>
+
+<%# If @score_available is present, respect it. Otherwise default to true. %>
+<%
+  score_available =
+    if defined?(@score_available)
+      !!@score_available
+    else
+      true
+    end
+%>
+
+<%# For anything less than 30 days OR not score_available, treat as "no data" for display purposes %>
+<% display_dv = (enough_data && score_available) ? dv : nil %>
+
+<% notch1 = (@notch1 || 25).to_i
+   notch2 = (@notch2 || 75).to_i %>
+
+<% zone =
+     if display_dv.nil?
+       "no-data"
+     elsif display_dv.to_f < notch1
+       "low"
+     elsif display_dv.to_f < notch2
+       "mid"
+     else
+       "high"
+     end
+%>
+
+<% is_rev = (defined?(@metric) && @metric&.reverse?) ? true : false %>
+<% color_zone =
+     if zone == "no-data"
+       "no-data"
+     elsif is_rev
+       (zone == "low" ? "high" : (zone == "high" ? "low" : "mid"))
+     else
+       zone
+     end
+%>
+
+<% is_all_time = (defined?(@is_all_time) && @is_all_time) ? true : false %>
+
+<%# Trend display helpers %>
+<%
+  trend_raw     = (@trend_delta || 0).to_f
+  trend_int     = trend_raw.round
+  delta_abs_int = trend_int.abs
+
+  if is_rev
+    if trend_int > 0
+      arrow_dir = "up"
+      color_dir = "down"
+    else
+      arrow_dir = "down"
+      color_dir = "up"
+    end
+  else
+    arrow_dir = trend_int >= 0 ? "up" : "down"
+    color_dir = trend_int >= 0 ? "up" : "down"
+  end
+
+  show_trend     = !display_dv.nil? && !is_all_time
+  subtitle_label = is_all_time ? "All time" : @range_phrase
+%>
+
+<%# These two are the important “single source of truth” values for UI %>
+<%
+  gauge_fill = display_dv.nil? ? 0 : display_dv.to_f
+  gauge_text = display_dv.nil? ? "--" : "#{display_dv.to_i}"
+%>
+
+<div class="gauge <%= color_zone %> <%= is_rev ? "reversed" : "" %>">
+  <div class="progress zone-<%= color_zone %>"
+       style="--value:<%= gauge_fill %>"
+       data-label="<%= gauge_text %>">
+    <div class="notch" style="--pos:<%= notch1 %>"></div>
+    <div class="notch" style="--pos:<%= notch2 %>"></div>
+  </div>
+
+  <div class="gauge-data">
+    <div class="gauge-number">
+      <span class="gauge-number-inner"><%= gauge_text %></span>
+    </div>
+
+    <div class="gauge-title">
+      <%= defined?(@metric) ? @metric.name : "Culture Score" %> <%= icon "pie-chart" %>
+    </div>
+
+    <% if !display_dv.nil? %>
+      <div class="gauge-subtitle">
+        <% if show_trend %>
+          <span class="trend trend-<%= color_dir %>">
+            <%= icon "#{arrow_dir}-arrow" %> <%= delta_abs_int %>
+          </span>
+        <% end %>
+        <%= subtitle_label %>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="gauge-tooltip">
+    <div class="gauge-tooltip-title">About your score</div>
+
+    <div class="gauge-tooltip-row">
+      <div class="gauge-tooltip-indicator indicator--great"></div>Great
+      <div class="gauge-tooltip-range"><%= notch2 %>-100</div>
+    </div>
+
+    <div class="gauge-tooltip-row">
+      <div class="gauge-tooltip-indicator indicator--warn"></div>Needs Improvement
+      <div class="gauge-tooltip-range"><%= notch1 %>-<%= (notch2 - 1) %></div>
+    </div>
+
+    <div class="gauge-tooltip-row">
+      <div class="gauge-tooltip-indicator indicator--danger"></div>Danger
+      <div class="gauge-tooltip-range">Below <%= notch1 %></div>
+    </div>
+
+    <div class="gauge-tooltip-footer">Score is measured from the last 90 days of detected signals.</div>
+  </div>
+</div>

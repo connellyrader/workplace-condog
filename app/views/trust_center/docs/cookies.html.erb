@@ -1,0 +1,168 @@
+<%# app/views/trust_center/docs/cookies.html.erb %>
+
+<div class="trust-doc">
+  <div class="trust-doc-header">
+    <div class="trust-doc-breadcrumb">
+      <%= link_to "Trust Center", trust_home_url, class: "trust-doc-breadcrumb-link" %>
+      <span class="trust-doc-breadcrumb-sep">/</span>
+      <span class="trust-doc-breadcrumb-current">Cookie Policy</span>
+    </div>
+
+    <div class="trust-doc-title-row">
+      <%= image_tag "logo.png", class: "trust-doc-logo", alt: "Workplace.io" %>
+      <div class="trust-doc-title">Cookie Policy</div>
+    </div>
+
+    <div class="trust-doc-subtitle">
+      This Cookie Policy explains how 5 Voices Inc. (“5 Voices,” “we,” “us,” or “our”) uses cookies and similar technologies
+      in connection with Workplace.io (the “Service”).
+    </div>
+
+    <div class="trust-doc-updated">
+      Last updated: <%= @trust_center_stamp %>
+    </div>
+  </div>
+
+  <div class="trust-doc-body">
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">1. What are cookies?</div>
+      <div class="trust-doc-text">
+        Cookies are small text files stored by your browser when you visit a website. They help websites remember information about your visit,
+        such as sign-in state and preferences. We may also use similar technologies (such as local storage) for related purposes.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">2. Why we use cookies</div>
+      <div class="trust-doc-text">
+        We use cookies to operate the Service, keep it secure, and support essential functionality such as authentication, session continuity,
+        and referral attribution.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Essential operation:</strong> keep you signed in, route requests correctly, and preserve session state.</li>
+        <li><strong>Security:</strong> help protect against unauthorized access and common web threats.</li>
+        <li><strong>Preferences:</strong> remember limited preferences to improve usability.</li>
+        <li><strong>Referral attribution:</strong> where applicable, track referral link attribution for sign-ups.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">3. Categories of cookies we use</div>
+      <div class="trust-doc-text">
+        The categories below describe how cookies are used within the Service. Some cookies are required for the Service to function and cannot be
+        disabled through in-product settings.
+      </div>
+
+      <div class="trust-lines">
+        <div class="trust-line">
+          <div class="trust-line-title">Strictly Necessary (Essential)</div>
+          <div class="trust-line-desc">
+            Purpose: required to operate the Service, including authentication and session continuity.<br>
+            Examples: session cookies, CSRF/security-related cookies, routing/load-balancing related cookies (where applicable).<br>
+            Can you disable? Not through in-product settings; disabling in your browser may break sign-in and core functionality.
+          </div>
+        </div>
+
+        <div class="trust-line">
+          <div class="trust-line-title">Security</div>
+          <div class="trust-line-desc">
+            Purpose: support security controls and help protect against unauthorized access and abuse.<br>
+            Examples: cookies used to validate session integrity and protect state-changing requests.<br>
+            Can you disable? Not through in-product settings; disabling may reduce security and break features.
+          </div>
+        </div>
+
+        <div class="trust-line">
+          <div class="trust-line-title">Preferences</div>
+          <div class="trust-line-desc">
+            Purpose: remember limited preferences and improve usability.<br>
+            Examples: UI preferences (where implemented), selected workspace context (where applicable).<br>
+            Can you disable? Often yes by clearing cookies or using browser settings; some preferences may reset.
+          </div>
+        </div>
+
+        <div class="trust-line">
+          <div class="trust-line-title">Referral / Partner Attribution</div>
+          <div class="trust-line-desc">
+            Purpose: attribute eligible sign-ups to referral or partner links where applicable.<br>
+            Examples: cookies or signed values used to associate a new account with a referral click.<br>
+            Can you disable? Yes in browser settings; attribution may not be recorded if disabled or cleared.
+          </div>
+        </div>
+
+        <div class="trust-line">
+          <div class="trust-line-title">Analytics (if enabled)</div>
+          <div class="trust-line-desc">
+            Purpose: understand product usage and improve reliability and experience.<br>
+            Examples: aggregate usage analytics cookies (if configured).<br>
+            Can you disable? If we enable non-essential analytics, we will provide appropriate choices where required by law.
+          </div>
+        </div>
+      </div>
+
+      <div class="trust-doc-callout trust-doc-callout--note">
+        <div class="trust-doc-callout-title">About “Analytics (if enabled)”</div>
+        <div class="trust-doc-callout-text">
+          Some organizations require strict controls over non-essential analytics. If your workspace requires an analytics-free deployment,
+          contact us and we can discuss configuration options.
+        </div>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">4. Third-party cookies</div>
+      <div class="trust-doc-text">
+        Some third parties may set cookies as part of their own services when you use them (for example, an identity provider during SSO login).
+        These cookies are governed by the third party’s policies, not this Cookie Policy.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Subprocessors →", trust_doc_url_for("subprocessors"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">5. Managing cookies</div>
+      <div class="trust-doc-text">
+        You can control cookies through your browser settings. You may be able to delete cookies, block cookies, or configure the browser to warn
+        you before accepting cookies. If you block essential cookies, the Service may not function properly.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Delete cookies:</strong> remove stored cookies to reset sign-in and preferences.</li>
+        <li><strong>Block cookies:</strong> may prevent sign-in and break core features.</li>
+        <li><strong>Private browsing:</strong> may clear cookies after the session ends, which can affect session continuity.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">6. Changes to this Cookie Policy</div>
+      <div class="trust-doc-text">
+        We may update this Cookie Policy from time to time. If we make material changes, we will post an updated policy and revise the effective date.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">7. Contact</div>
+      <div class="trust-doc-text">
+        If you have questions about cookies or need an enterprise deployment discussion (e.g., analytics controls), contact us.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Trust & Security Contact →", trust_doc_url_for("contact"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-footer">
+      <div class="trust-doc-footer-title">Looking for privacy details?</div>
+      <div class="trust-doc-footer-text">
+        See our Privacy Policy for how we collect and use information across the Service.
+      </div>
+      <div class="trust-doc-footer-actions">
+        <%= link_to "Privacy Policy", trust_doc_url_for("privacy"), class: "trust-doc-button" %>
+        <%= link_to "Back to Trust Center", trust_home_url, class: "trust-doc-button trust-doc-button--secondary" %>
+      </div>
+    </div>
+  </div>
+</div>

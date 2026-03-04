@@ -1,0 +1,39 @@
+<style>
+  .navigation{display:none;}
+  .chat-container{display:none;}
+  .container{
+    left:0;
+    right:0;
+    width:100vw;
+    overflow:scroll;
+  }
+</style>
+
+<h1>Analysis Results</h1>
+
+<p><strong>Total Execution Time:</strong> <%= @execution_time.round(2) %> seconds</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Message ID</th>
+      <th>Message Text</th>
+      <th>Signal</th>
+      <th>Evidence</th>
+      <th>Reasoning</th>
+      <th>Confidence</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @analysis_results.each do |result| %>
+      <tr>
+        <td><%= result[:message_id] %></td>
+        <td><%= result[:message_text] %></td>
+        <td><%= result[:signal_name] %></td>
+        <td><%= result[:evidence] %></td>
+        <td><%= result[:reasoning] %></td>
+        <td><%= result[:confidence].capitalize %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

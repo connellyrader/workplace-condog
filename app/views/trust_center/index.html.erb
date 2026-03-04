@@ -1,0 +1,107 @@
+<div class="trust-center">
+  <div class="trust-center-header">
+    <div class="trust-center-title"><%= image_tag "logo.png" %> Trust Center</div>
+    <div class="trust-center-subtitle">
+      Security, privacy, compliance, and trust resources for Workplace.io.
+    </div>
+  </div>
+
+  <%
+    sections = [
+      {
+        heading: "Security Program",
+        subheading: "How we protect customer data and operate our security controls.",
+        items: [
+          { slug: "security-overview", title: "Security Overview", desc: "Overview of our security program, internal controls, and how we safeguard customer data." },
+          { slug: "architecture", title: "Architecture & Data Flow", desc: "A clear view of how data moves through Workplace.io, what we store, and where processing occurs." },
+          { slug: "encryption", title: "Encryption", desc: "How we encrypt data in transit and at rest, and how encryption keys are managed and protected." },
+          { slug: "access-controls", title: "Access Controls", desc: "How we enforce least privilege, role-based access, and administrative controls across the platform." },
+          { slug: "logging-monitoring", title: "Logging & Monitoring", desc: "How we log security-relevant events and monitor systems to detect and investigate suspicious activity." },
+          { slug: "secure-development", title: "Secure Development", desc: "How we build and ship software securely, including reviews, testing, change control, and dependency management." }
+        ]
+      },
+      {
+        heading: "Incident & Resilience",
+        subheading: "How we respond to incidents and operate reliably.",
+        items: [
+          { slug: "incident-response", title: "Incident Response", desc: "How we detect, triage, contain, remediate, and communicate security incidents." },
+          { slug: "vulnerability-disclosure", title: "Vulnerability Disclosure", desc: "How to report security vulnerabilities to us and what our response and remediation process looks like." },
+          { slug: "business-continuity", title: "Continuity & Disaster Recovery", desc: "How we handle backups, disaster recovery, and continuity planning to support reliable operations." },
+          { slug: "availability", title: "Availability & Uptime", desc: "How we design for availability and monitor service health, performance, and operational stability." }
+        ]
+      },
+      {
+        heading: "Privacy & Data Protection",
+        subheading: "How we handle personal data, retention, and customer requests.",
+        items: [
+          { slug: "data-handling", title: "Data Handling & Retention", desc: "What data we collect, how it’s used, how long it’s retained, and how deletion works." },
+          { slug: "subprocessors", title: "Subprocessors", desc: "A current list of subprocessors we use, what they do, and how we evaluate and manage vendor risk." },
+          { slug: "dpa", title: "Data Processing Addendum", desc: "Our DPA describing how we process customer data, security measures, and contractual privacy commitments." },
+          { slug: "gdpr", title: "GDPR & Data Rights", desc: "How we support GDPR-aligned rights requests, customer responsibilities, and privacy-by-design practices." },
+          { slug: "scc", title: "International Transfers (SCCs)", desc: "How we address cross-border data transfers and provide appropriate transfer mechanisms where applicable." }
+        ]
+      },
+      {
+        heading: "AI & Culture Scoring",
+        subheading: "How AI is used and how we reduce risk of misuse or surveillance.",
+        items: [
+          { slug: "ai-use", title: "AI Use Policy", desc: "How AI supports culture insights, including data minimization, safeguards, and customer controls." },
+          { slug: "model-governance", title: "Model Governance", desc: "How we evaluate model quality, manage changes, and maintain consistency of scoring and outputs over time." },
+          { slug: "acceptable-use", title: "Acceptable Use (Culture Insights)", desc: "How Workplace.io is intended to be used, and the uses we prohibit to prevent surveillance or misuse." },
+          { slug: "anonymity-aggregation", title: "Aggregation & Anonymity", desc: "How insights are aggregated and protected to reduce the risk of identifying individuals from results." }
+        ]
+      },
+      {
+        heading: "Compliance & Assurance",
+        subheading: "Assurance roadmap and progress toward formal attestations.",
+        items: [
+          { slug: "soc2", title: "SOC 2", desc: "Our SOC 2 readiness status, intended scope, and roadmap toward independent third-party attestation." },
+          { slug: "iso27001", title: "ISO 27001", desc: "Our ISO 27001 alignment approach and roadmap toward an information security management system (ISMS)." }
+          # { slug: "penetration-testing", title: "Penetration Testing", desc: "How we conduct penetration testing, track remediation, and validate security improvements." }
+        ]
+      },
+      {
+        heading: "Vendor Risk & Questionnaires",
+        subheading: "Materials procurement and security teams often request.",
+        items: [
+          { slug: "security-whitepaper", title: "Security Whitepaper", desc: "A detailed security overview for customer reviews, including architecture, controls, and operational practices." },
+          { slug: "caiq", title: "CSA CAIQ", desc: "Our responses to the CSA CAIQ to support vendor security assessments and procurement reviews." },
+          { slug: "security-questionnaire", title: "Security Questionnaire", desc: "How to submit a security questionnaire and what information we provide during due diligence." }
+        ]
+      },
+      {
+        heading: "Legal",
+        subheading: "Policies governing use of the product and data processing.",
+        items: [
+          { slug: "terms", title: "Terms of Service", desc: "The terms that govern use of Workplace.io, including account responsibilities and acceptable use." },
+          { slug: "partner-terms", title: "Partner Program Terms of Service", desc: "The terms that govern use of Workplace.io Partner Program, including account responsibilities and acceptable use." },
+          { slug: "privacy", title: "Privacy Policy", desc: "How we collect, use, share, and protect personal data, including user rights and choices." },
+          { slug: "cookies", title: "Cookie Policy", desc: "How we use cookies and similar technologies, and how users can manage preferences." }
+        ]
+      },
+      {
+        heading: "Contact",
+        subheading: "How to reach us for security, privacy, and compliance requests.",
+        items: [
+          { slug: "contact", title: "Trust & Security Contact", desc: "How to contact our Trust & Security team for reviews, questionnaires, and security inquiries." }
+        ]
+      }
+    ]
+  %>
+
+  <% sections.each do |section| %>
+    <div class="trust-section">
+      <div class="trust-section-heading"><%= section[:heading] %></div>
+      <div class="trust-section-subheading"><%= section[:subheading] %></div>
+
+      <div class="trust-grid">
+        <% section[:items].each do |item| %>
+          <%= link_to trust_doc_url_for(item[:slug]), class: "trust-card" do %>
+            <div class="trust-card-title"><%= item[:title] %></div>
+            <div class="trust-card-desc"><%= item[:desc] %></div>
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div>

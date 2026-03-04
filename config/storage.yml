@@ -1,0 +1,12 @@
+local:
+  service: Disk
+  root: <%= Rails.root.join("storage") %>
+
+# DigitalOcean Spaces (S3-compatible)
+spaces:
+  service: S3
+  access_key_id: <%= ENV.fetch("SPACES_ACCESS_KEY_ID", "dummy") %>
+  secret_access_key: <%= ENV.fetch("SPACES_SECRET_ACCESS_KEY", "dummy") %>
+  region: nyc3
+  bucket: workplace-io
+  endpoint: https://nyc3.digitaloceanspaces.com

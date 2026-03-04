@@ -1,0 +1,64 @@
+<%# Top signals / drivers table
+  Expected locals:
+    title    - optional title (e.g. "Top negative drivers for Burnout")
+    signals  - Array of hashes:
+                {
+                  name:        "Workload complaints",
+                  value:       "42% negative",
+                  count:       64,
+                  description: "Frequent mentions of long hours and late nights"
+                }
+    direction - "negative" | "positive" (optional, for label text)
+%>
+<%
+  heading   = (local_assigns[:title] || "Top signals").to_s
+  signals   = Array(local_assigns[:signals] || local_assigns[:rows])
+  direction = (local_assigns[:direction] || "negative").to_s
+%>
+
+<div class="ai-chat-widget ai-chat-widget--table ai-chat-widget--top-signals">
+  <div class="ai-chat-widget__header">
+    <div>
+      <div class="ai-chat-widget__title"><%= heading %></div>
+      <div class="ai-chat-widget__subtitle">
+        <%= direction == "positive" ? "Most positive signal categories" : "Most negative signal categories" %>
+      </div>
+    </div>
+  </div>
+
+  <div class="ai-chat-widget__body">
+    <table class="ai-table ai-table--compact">
+      <thead>
+        <tr>
+          <th>Signal</th>
+          <th><%= direction == "positive" ? "Positive %" : "Negative %" %></th>
+          <th>Signals</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if signals.empty? %>
+          <tr>
+            <td colspan="4">No signal categories stood out for this slice.</td>
+          </tr>
+        <% else %>
+          <% signals.each do |sig| %>
+            <%
+              name        = sig[:name]        || sig["name"]
+              value       = sig[:value]       || sig["value"] || sig[:neg_rate] || sig["neg_rate"] || sig[:pos_rate] || sig["pos_rate"]
+              count       = sig[:count]       || sig["count"] || sig[:total]    || sig["total"]
+              description = sig[:description] || sig["description"]
+            %>
+            <tr>
+              <td><%= name %></td>
+              <td><%= value %></td>
+              <td><%= count %></td>
+              <td class="ai-chat-widget__muted"><%= description %></td>
+            </tr>
+          <% end %>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
+

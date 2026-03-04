@@ -1,0 +1,41 @@
+<table class="mt-table" aria-describedby="model-tests-table-caption">
+  <caption id="model-tests-table-caption" class="sr-only">Model tests list</caption>
+  <thead>
+    <tr>
+      <th><button class="mt-sort mt-sort--active" data-dir="asc">Test Name</button></th>
+      <th><button class="mt-sort">Model</button></th>
+      <th><button class="mt-sort">Signal Metric</button></th>
+      <th><button class="mt-sort">Workspace</button></th>
+      <th><button class="mt-sort">Active</button></th>
+      <th><button class="mt-sort">Status</button></th>
+      <th><button class="mt-sort">Detections</button></th>
+      <th><button class="mt-sort">Quality</button></th>
+      <th><button class="mt-sort">Prev Msgs</button></th>
+      <th><button class="mt-sort">Duration</button></th>
+    </tr>
+  </thead>
+  <tbody>
+    <% model_tests.each do |mt| %>
+      <% dets = mt.model_test_detections %>
+      <% det_count = dets.count %>
+      <% avg_quality = (dets.where.not(ai_quality_score: nil).average(:ai_quality_score))&.to_f %>
+      <% has_pending = AsyncInferenceResult.where(model_test_id: mt.id, inference_type: 'scoring', status: 'pending').exists? %>
+      <% status_text  = has_pending ? 'running'   : 'completed' %>
+      <% status_class = has_pending ? 'mt-badge--warn' : 'mt-badge--ok' %>
+      <% hms = mt.duration ? Time.at(mt.duration.to_f).utc.strftime("%H:%M:%S") : '—' %>
+
+      <tr data-href="<%= model_test_path(mt) %>">
+        <td><%= mt.name.presence || "Test ##{mt.id}" %></td>
+        <td><%= mt.model&.name || '—' %></td>
+        <td><%= mt.signal_category&.name || '—' %></td>
+        <td><%= mt.workspace&.name || '—' %></td>
+        <td><%= mt.active? ? 'true' : 'false' %></td>
+        <td><span class="mt-badge <%= status_class %>"><%= status_text %></span></td>
+        <td><%= number_with_delimiter(det_count) %></td>
+        <td><%= avg_quality ? avg_quality.round(1) : '—' %></td>
+        <td><%= mt.prev_message_count || 0 %></td>
+        <td><%= hms %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

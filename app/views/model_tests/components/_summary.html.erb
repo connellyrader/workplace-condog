@@ -1,0 +1,53 @@
+<% hms = duration_sec ? Time.at(duration_sec).utc.strftime("%H:%M:%S") : "—" %>
+
+<!-- LEFT: Key metrics -->
+<article class="mts-card">
+  <h3 class="mts-title">Test Summary</h3>
+  <table class="mts-table">
+    <tbody>
+      <tr><th>Name</th><td><%= model_test.name.presence || "—" %></td></tr>
+      <tr>
+        <th>Model</th>
+        <td>
+          <%= @model&.name || "—" %>
+          <% if @model&.hf_model_id.present? %>
+            (<%= @model.hf_model_id %>)
+          <% end %>
+        </td>
+      </tr>
+      <tr><th>Signal Metric</th><td><%= category&.name || "—" %></td></tr>
+      <tr><th>Workspace</th><td><%= @workspace&.name || "—" %></td></tr>
+      <tr><th>Active</th><td><%= model_test.active? ? "true" : "false" %></td></tr>
+      <tr>
+        <th>Status</th>
+        <td><span class="mtt-badge <%= @status_badge_class %>"><%= @status_text %></span></td>
+      </tr>
+      <tr><th>Detected Signals</th><td><%= number_with_delimiter(det_count) %></td></tr>
+      <tr><th>Signal Quality (avg)</th><td><%= avg_quality ? avg_quality.round(1) : "—" %></td></tr>
+      <tr><th>Previous Messages</th><td><%= model_test.prev_message_count || 0 %></td></tr>
+      <tr><th>Duration</th><td><%= hms %></td></tr>
+      <tr><th>Input Tokens</th><td><%= number_with_delimiter(input_tokens || 0) %></td></tr>
+      <tr><th>Output Tokens</th><td><%= number_with_delimiter(output_tokens || 0) %></td></tr>
+      <tr>
+        <th>Estimated Cost</th>
+        <td><%= @estimated_cost ? number_to_currency(@estimated_cost) : "—" %></td>
+      </tr>
+    </tbody>
+  </table>
+</article>
+
+<!-- RIGHT: Numeric summary / placeholders (you can compute globally if needed) -->
+<!--article class="mts-card">
+  <h3 class="mts-title">Numeric Summary & Comparison</h3>
+  <ul class="mts-stats">
+    <li><span class="mts-stat-label">Avg Quality vs Fleet:</span> <strong>—</strong></li>
+    <li><span class="mts-stat-label">Signals per 1k msgs:</span> <strong>—</strong></li>
+    <li><span class="mts-stat-label">Neg vs Pos indicators:</span>
+      <strong>
+        <%= @polarity_neg %> / <%= @polarity_pos %>
+      </strong>
+    </li>
+    <li><span class="mts-stat-label">Cost vs Median:</span> <strong>—</strong></li>
+  </ul>
+  <p class="mts-meta">Compared across all tests.</p>
+</article-->

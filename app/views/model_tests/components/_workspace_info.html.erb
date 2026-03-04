@@ -1,0 +1,11 @@
+<article class="mts-card">
+  <h3 class="mts-title">Workspace Information</h3>
+  <table class="mts-table">
+    <tbody>
+      <tr><th>Workspace</th><td><%= workspace&.name || "—" %></td></tr>
+      <tr><th>Channels</th><td><%= number_with_delimiter(channels_count) %></td></tr>
+      <tr><th>Users</th><td><%= number_with_delimiter(users_count) %></td></tr>
+      <tr><th>Messages Processed</th><td><%= number_with_delimiter(messages_count) %></td></tr>
+    </tbody>
+  </table>
+</article>

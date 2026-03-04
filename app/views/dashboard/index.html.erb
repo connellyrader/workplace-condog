@@ -1,0 +1,222 @@
+<div id="dashboard-root">
+
+  <%= render "dashboard/components/topbar" %>
+
+  <div id="gauge-container">
+    <%= render "dashboard/components/gauge" %>
+  </div>
+
+  <div class="dashboard-last-100-container" style="width: calc(100% - 250px - 24px); margin-left:24px;">
+    <%= render "dashboard/components/recent_signals" %>
+  </div>
+
+  <div class="dashboard-box-grid">
+    <% @metrics.each do |metric| %>
+      <%= render "dashboard/components/metric_box", :metric => metric %>
+    <% end %>
+  </div>
+</div>
+
+
+<script>
+
+  document.addEventListener('filters:change', function (e) {
+
+    const d = e.detail;
+    if (!d || !d.type) return;
+
+    const dateButton  = document.querySelector('.topbar .filter-button[data-current-start]');
+    const groupButton = document.querySelector('.topbar .filter-button.group-filter');
+
+    let currentStart  = dateButton ? dateButton.dataset.currentStart  : null;
+    let currentEnd    = dateButton ? dateButton.dataset.currentEnd    : null;
+    let currentPreset = dateButton ? (dateButton.dataset.currentPreset || '') : '';
+    let currentGroup = groupButton ? String(groupButton.dataset.currentGroupId || 'all') : 'all';
+
+    const nextPreset = (typeof d.preset === 'string' ? d.preset : '') || currentPreset;
+    const nextStart  = d.start || currentStart;
+    const nextEnd    = d.end   || currentEnd;
+    const nextGroup  = d.group_id ? String(d.group_id) : currentGroup;
+
+    if (nextStart === currentStart && nextEnd === currentEnd && nextGroup === currentGroup && nextPreset === currentPreset) return;
+
+    // Build query params for the new range/group
+    const params = new URLSearchParams();
+
+    if (nextPreset) {
+      params.set('preset', nextPreset);
+    } else {
+      if (nextStart) params.set('start', nextStart);
+      if (nextEnd)   params.set('end', nextEnd);
+    }
+
+    params.set('group_id', nextGroup);
+
+    const root   = document.getElementById('dashboard-root'); // wraps the whole dashboard
+    const grid   = document.querySelector('.dashboard-box-grid');
+    const gauge  = document.getElementById('gauge-container');
+    const last100 = document.getElementById('signals-list');
+
+    // Numbers-only shimmer: add .loading on the root so
+    // .metric-value and .gauge-value animate via CSS
+    if (root) root.classList.add('loading');
+    if (last100) $('#signals-list li').removeClass('pos neg').addClass('zero');
+
+    fetch('/dashboard.json?' + params.toString(), {
+      headers: { 'Accept': 'application/json' }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (grid && data.metric_boxes) grid.innerHTML = data.metric_boxes;
+        if (gauge && data.gauge)       gauge.innerHTML = data.gauge;
+        if (last100 && data.last100)   last100.innerHTML = data.last100;
+
+        // Update the stored current range/group now that the UI reflects it
+        if (dateButton) {
+          dateButton.dataset.currentStart = nextStart;
+          dateButton.dataset.currentEnd   = nextEnd;
+        }
+        if (groupButton) {
+          groupButton.dataset.currentGroupId = nextGroup;
+        }
+
+        document.dispatchEvent(new CustomEvent('signals:updated'));
+      })
+      .catch(err => {
+        console.error('Dashboard AJAX error:', err);
+      })
+      .finally(() => {
+        if (root) root.classList.remove('loading');
+      });
+  });
+</script>
+
+
+
+
+<script>
+  (function () {
+    // Enable only when you want it:
+
+    console.log('checking for debug mode...');
+    const DEBUG = new URLSearchParams(window.location.search).get('debug') === '1';
+    if (!DEBUG) return;
+
+    function text(el) {
+      return (el && el.textContent || '').replace(/\s+/g, ' ').trim();
+    }
+
+    function numberFromText(str) {
+      // Extract first signed number in a string, e.g. "▲ 72 in 30 days" -> 72
+      const m = String(str || '').match(/-?\d+(\.\d+)?/);
+      return m ? parseFloat(m[0]) : null;
+    }
+
+    function parseSparklineFromSVG(svg) {
+      // Attempts to read plotted points by sampling the path 'd' is hard.
+      // Instead, we log the accessible "data" if present, else we log path endpoints.
+      if (!svg) return { ok: false };
+
+      const paths = svg.querySelectorAll('path');
+      const primary = paths[paths.length - 1]; // last path is typically primary
+      const micro   = paths.length >= 2 ? paths[paths.length - 2] : null;
+
+      function endpointsFromPath(p) {
+        if (!p) return null;
+        const d = p.getAttribute('d') || '';
+        // Grab first "M x y" and last "x y" pair
+        const m = d.match(/M\s*([0-9.\-]+)\s*([0-9.\-]+)/);
+        const all = d.match(/([0-9.\-]+)\s+([0-9.\-]+)(?!.*[0-9.\-]+\s+[0-9.\-]+)/);
+        if (!m || !all) return null;
+        return {
+          x0: parseFloat(m[1]), y0: parseFloat(m[2]),
+          x1: parseFloat(all[1]), y1: parseFloat(all[2])
+        };
+      }
+
+      return {
+        ok: true,
+        primary_endpoints_xy: endpointsFromPath(primary),
+        micro_endpoints_xy: endpointsFromPath(micro),
+        primary_path_d_head: primary ? (primary.getAttribute('d') || '').slice(0, 80) : null
+      };
+    }
+
+    function logGauge() {
+      const gauge = document.querySelector('.gauge');
+      if (!gauge) {
+        console.warn('[DashDebug] gauge not found');
+        return;
+      }
+
+      const scoreEl = gauge.querySelector('.gauge-number-inner');
+      const subtitle = gauge.querySelector('.gauge-subtitle');
+      const trendEl = gauge.querySelector('.gauge-subtitle .trend');
+
+      const score = numberFromText(text(scoreEl));
+      const delta = numberFromText(text(trendEl));
+      const label = text(subtitle);
+
+      console.groupCollapsed('[DashDebug] Gauge');
+      console.log({ score, delta, label });
+      console.groupEnd();
+    }
+
+    function logMetricBoxes() {
+      const boxes = Array.from(document.querySelectorAll('.dashboard-box'));
+      if (!boxes.length) {
+        console.warn('[DashDebug] no metric boxes found');
+        return;
+      }
+
+      console.groupCollapsed(`[DashDebug] Metric Boxes (${boxes.length})`);
+
+      boxes.forEach((box) => {
+        const title = text(box.querySelector('.dashboard-box-title'));
+        const value = numberFromText(text(box.querySelector('.metric-value')));
+        const trendEl = box.querySelector('[class^="trend-"], [class*=" trend-"]');
+        const delta = numberFromText(text(trendEl));
+
+        // Sparkline SVG for the tile
+        const svg = box.querySelector('.dashboard-box-chart-container svg');
+        const spark = parseSparklineFromSVG(svg);
+
+        console.groupCollapsed(title);
+        console.log({
+          score: value,
+          delta,
+          delta_text: text(trendEl),
+          spark
+        });
+        console.groupEnd();
+      });
+
+      console.groupEnd();
+    }
+
+    function logAll() {
+      console.groupCollapsed('[DashDebug] Snapshot', new Date().toISOString());
+      logGauge();
+      logMetricBoxes();
+      console.groupEnd();
+    }
+
+    // Log on initial load
+    document.addEventListener('DOMContentLoaded', () => {
+      logAll();
+    });
+
+    // Log after your AJAX updates complete
+    // We hook into your existing "signals:updated" event.
+    document.addEventListener('signals:updated', () => {
+      // allow DOM to settle
+      setTimeout(logAll, 0);
+    });
+
+    // Also log when filters change is triggered (before fetch)
+    document.addEventListener('filters:change', (e) => {
+      console.groupCollapsed('[DashDebug] filters:change fired', e.detail);
+      console.groupEnd();
+    });
+  })();
+</script>

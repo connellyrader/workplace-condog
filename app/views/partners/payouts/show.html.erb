@@ -1,0 +1,108 @@
+<%= link_to "Export Payout Details", request.params.merge(format: :csv), class: "pp-export-btn" %>
+<h1>Payout Details</h1>
+
+<!-- Summary -->
+<section class="pp-card pp-span-3" style="margin-bottom:12px;">
+  <div class="grid" style="display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:12px;">
+    <!-- Period -->
+    <div class="pp-field">
+      <div class="pp-muted">Period</div>
+      <div><%= @payout.start_date.strftime("%b %-d, %Y") %> – <%= @payout.end_date.strftime("%b %-d, %Y") %></div>
+    </div>
+
+    <!-- Payout date -->
+    <div class="pp-field">
+      <div class="pp-muted"><%= @payout.respond_to?(:payout_date) ? "Expected Payout" : "Payout Date" %></div>
+      <div>
+        <% if @payout.respond_to?(:payout_date) %>
+          <%= @payout.payout_date.strftime("%a, %b %-d, %Y") %>
+        <% else %>
+          <%= (@payout.paid_at || @payout.created_at).strftime("%a, %b %-d, %Y") %>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Status -->
+    <div class="pp-field">
+      <div class="pp-muted">Status</div>
+      <div>
+        <% if @payout.respond_to?(:is_pseudo) && @payout.is_pseudo %>
+          <span class="pp-status">Pending</span>
+        <% elsif @payout.paid_at.present? %>
+          <span class="pp-status">Completed</span>
+        <% else %>
+          <span class="pp-status">Processing</span>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="pp-field">
+      <div class="pp-muted">Total Sales</div>
+      <div class="pp-num" style="font-weight:600; text-align:left;">
+        $<%= number_with_precision(@payout.charges.sum(:amount).to_i / 100.0, precision: 2) %>
+      </div>
+    </div>
+
+    <div class="pp-field">
+      <div class="pp-muted">Total Commissions</div>
+      <div class="pp-num" style="font-weight:600; text-align:left;">
+        $<%= number_with_precision(@payout.amount.to_i / 100.0, precision: 2) %>
+      </div>
+    </div>
+
+
+
+    <%# Optional: External ID (for real payouts) %>
+    <% if @payout.respond_to?(:external_id) && @payout.external_id.present? %>
+      <div class="pp-field">
+        <div class="pp-muted">External ID</div>
+        <div class="pp-mono"><%= @payout.external_id %></div>
+      </div>
+    <% end %>
+  </div>
+</section>
+
+<!-- Transactions table -->
+<section class="pp-card pp-span-3">
+  <% if @payout.charges.any? %>
+    <div class="pp-table-wrap">
+      <table class="pp-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Customer</th>
+            <th>Plan</th>
+            <th>Charge ID</th>
+            <th class="pp-num">Sale</th>
+            <th class="pp-num">Commission</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @payout.charges.includes(:subscription, :customer).each do |charge| %>
+            <tr>
+              <td><%= charge.created_at.strftime("%b %-d, %Y") %></td>
+              <td class="pp-mono"><%= charge.customer&.email || "N/A" %></td>
+              <td><%= charge.subscription&.interval&.capitalize || "—" %></td>
+              <td class="pp-mono"><%= charge.stripe_charge_id %></td>
+              <td class="pp-num">$<%= number_with_precision(charge.amount.to_i / 100.0, precision: 2) %></td>
+              <td class="pp-num">$<%= number_with_precision(charge.commission.to_i / 100.0, precision: 2) %></td>
+            </tr>
+          <% end %>
+        </tbody>
+        <tfoot>
+          <tr>
+            <th colspan="4" class="pp-num" style="text-align:right;">Totals</th>
+            <th class="pp-num">
+              $<%= number_with_precision(@payout.charges.sum(:amount).to_i / 100.0, precision: 2) %>
+            </th>
+            <th class="pp-num">
+              $<%= number_with_precision(@payout.charges.sum(:commission).to_i / 100.0, precision: 2) %>
+            </th>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  <% else %>
+    <p class="pp-muted" style="margin: 0 0 8px 0;"><em>No charges are currently included in this payout.</em></p>
+  <% end %>
+</section>

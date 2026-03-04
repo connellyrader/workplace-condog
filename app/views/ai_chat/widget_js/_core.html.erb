@@ -1,0 +1,684 @@
+<script>
+/* ============================== Chat Widget — Core (floating sidebar + row menus; multi menu buttons; original cable binding; spinner helpers) ============================== */
+(function (global) {
+  function qs(root, sel){ return root.querySelector(sel); }
+  function qsa(root, sel){ return Array.prototype.slice.call(root.querySelectorAll(sel)); }
+  function csrf(){ var m=document.querySelector('meta[name="csrf-token"]'); return m && m.content; }
+
+  function askConfirm(opts) {
+    // Non-destructive confirm
+    return notice(opts.body || "", {
+      title: opts.title || "Notice",
+      confirmLabel: opts.confirmText || "Continue",
+      cancelLabel: opts.cancelText || "Cancel"
+    });
+  }
+
+  function askDanger(opts) {
+    // Destructive confirm
+    return warning(opts.body || "", {
+      title: opts.title || "Warning",
+      confirmLabel: opts.confirmText || "Delete",
+      cancelLabel: opts.cancelText || "Cancel"
+    });
+  }
+
+  function AiChatWidget(root){
+    this.root = root;
+    this.conversations = [];
+    this.currentConversationId = null;
+    this.sidebarOpen = false;
+    this.subscription = null;
+
+    var ds = root.dataset || {};
+    this.listUrl   = ds.aiChatWidgetListUrlValue   || ds.listUrl;
+    this.showUrl   = ds.aiChatWidgetShowUrlValue   || ds.showUrl;
+    this.createUrl = ds.aiChatWidgetCreateUrlValue || ds.createUrl;
+    this.cableUrl  = ds.aiChatWidgetCableUrlValue  || ds.cableUrl || "/cable";
+
+    this.conversationListEl = qs(root,'[data-ai-chat-widget-target="conversationList"]') || qs(root, ".ai-chat__list");
+    this.threadEl           = qs(root,'[data-ai-chat-widget-target="thread"]')           || qs(root, ".ai-chat__thread");
+    this.inputEl            = qs(root,'[data-ai-chat-widget-target="input"]')            || qs(root, ".ai-chat__input");
+    this.sendBtnEl          = qs(root,'[data-ai-chat-widget-target="sendBtn"]')          || qs(root, ".ai-chat__send");
+    this.scrollBtnEl        = qs(root, ".ai-chat__scroll-bottom");
+    this.composerForm       = qs(root, ".ai-chat__composer") || qs(root, "form");
+
+    this._streamingActive   = false;
+
+    /* persistent UI */
+    this.menuBtns           = qsa(root, ".ai-chat__menu");  // multiple triggers supported
+    this.scrimEl            = qs(root, ".ai-chat__scrim");
+
+    /* optional legacy buttons */
+    this.hamburgerBtn       = qs(root, ".ai-chat__hamburger");
+    this.newBtn             = qs(root, ".ai-chat__new");
+  }
+
+  /* ---- scrolling ---- */
+  AiChatWidget.prototype.isNearBottom = function(){
+    if (!this.threadEl) return true;
+    var el = this.threadEl;
+    var threshold = 48;
+    return (el.scrollHeight - (el.scrollTop + el.clientHeight)) <= threshold;
+  };
+
+  AiChatWidget.prototype.showScrollToBottom = function(show){
+    if (!this.scrollBtnEl) return;
+    this.scrollBtnEl.classList.toggle("is-visible", !!show);
+    this.scrollBtnEl.setAttribute("aria-hidden", show ? "false" : "true");
+  };
+
+  AiChatWidget.prototype._updateStickyState = function(){
+    var atBottom = this.isNearBottom();
+    if (this._streamingActive && !atBottom) {
+      this.showScrollToBottom(true);
+    } else {
+      this.showScrollToBottom(false);
+    }
+  };
+
+  AiChatWidget.prototype._scroll = function(){
+    if (!this.threadEl) return;
+    this.threadEl.scrollTop = this.threadEl.scrollHeight;
+    this.showScrollToBottom(false);
+  };
+  AiChatWidget.prototype.scrollToBottom = function(){ this._scroll(); };
+
+  /* ---- lifecycle ---- */
+  AiChatWidget.prototype.init = function(){
+    /* ✅ keep EXACT working cable logic */
+    var useAC = (global.ActionCable && typeof global.ActionCable.createConsumer === "function");
+    var Cable = useAC ? { createConsumer: global.ActionCable.createConsumer.bind(global.ActionCable) }
+                      : global.SimpleCable;
+
+    this.consumer = Cable && typeof Cable.createConsumer === "function" ? Cable.createConsumer(this.cableUrl) : null;
+    if (!this.consumer || !this.consumer.subscriptions || typeof this.consumer.subscriptions.create !== "function") {
+      console.error("[AiChatWidget] Cable consumer missing subscriptions.create"); return;
+    }
+
+    /* events */
+    if (this.composerForm){
+      var self = this;
+      this._onSubmit = this.send ? this.send.bind(this) : function(e){ e && e.preventDefault && e.preventDefault(); };
+      this.composerForm.addEventListener("submit", this._onSubmit);
+    }
+
+    // Enter to send (Shift+Enter = newline)
+    if (this.inputEl) {
+      var selfInput = this;
+      this._onInputKeydown = function(e){
+        if (e.key === "Enter" && !e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey) {
+          e.preventDefault();
+          // Don't try to send if already disabled (still streaming)
+          if (selfInput.sendBtnEl && selfInput.sendBtnEl.disabled) return;
+          if (selfInput.composerForm) {
+            selfInput.composerForm.dispatchEvent(
+              new Event("submit", { bubbles: true, cancelable: true })
+            );
+          }
+        }
+      };
+      this.inputEl.addEventListener("keydown", this._onInputKeydown);
+
+      // Auto-resize textarea (expands upward via flex-end alignment)
+      this._resizeInput = function(){
+        var el = selfInput.inputEl;
+        if (!el) return;
+        el.style.height = "0";
+        el.style.height = Math.min(el.scrollHeight, 200) + "px";
+      };
+      this.inputEl.addEventListener("input", this._resizeInput);
+      this.inputEl.addEventListener("focus", this._resizeInput);
+      this._resizeInput();
+
+      // Toggle Send button ready state based on input content
+      this._updateSendReady = function(){
+        var hasContent = selfInput.inputEl && selfInput.inputEl.value.trim().length > 0;
+        if (selfInput.sendBtnEl) {
+          selfInput.sendBtnEl.classList.toggle("is-ready", !!hasContent);
+        }
+      };
+      this.inputEl.addEventListener("input", this._updateSendReady);
+      this.inputEl.addEventListener("focus", this._updateSendReady);
+      this.inputEl.addEventListener("blur", this._updateSendReady);
+      this._updateSendReady();
+    }
+
+    if (this.menuBtns && this.menuBtns.length){
+      var selfMenu = this;
+      this._onMenu = function(e){ if(e&&e.preventDefault) e.preventDefault(); selfMenu.setSidebarOpen(!selfMenu.isSidebarOpen()); };
+      this.menuBtns.forEach(function(btn){ btn.addEventListener("click", selfMenu._onMenu); });
+    }
+
+    if (this.scrimEl){
+      var selfScrim = this;
+      this._onScrim = function(e){ if(e&&e.preventDefault) e.preventDefault(); selfScrim.setSidebarOpen(false); };
+      this.scrimEl.addEventListener("click", this._onScrim);
+    }
+    if (this.hamburgerBtn){
+      var selfHam = this;
+      this._onToggle = function(e){ if(e&&e.preventDefault) e.preventDefault(); selfHam.setSidebarOpen(!selfHam.isSidebarOpen()); };
+      this.hamburgerBtn.addEventListener("click", this._onToggle);
+    }
+    if (this.newBtn){
+      var selfNew = this;
+      this._onNew = function(e){ if(e&&e.preventDefault) e.preventDefault(); selfNew.createConversation && selfNew.createConversation(); selfScrim.setSidebarOpen(false); };
+      this.newBtn.addEventListener("click", this._onNew);
+    }
+
+    // Scroll tracking + jump-to-bottom
+    if (this.threadEl) {
+      var selfScroll = this;
+      this._onThreadScroll = function(){ selfScroll._updateStickyState && selfScroll._updateStickyState(); };
+      this.threadEl.addEventListener("scroll", this._onThreadScroll, { passive: true });
+    }
+    if (this.scrollBtnEl) {
+      var selfJump = this;
+      this._onScrollBtn = function(e){
+        if (e && e.preventDefault) e.preventDefault();
+        selfJump.scrollToBottom && selfJump.scrollToBottom();
+        selfJump.showScrollToBottom && selfJump.showScrollToBottom(false);
+      };
+      this.scrollBtnEl.addEventListener("click", this._onScrollBtn);
+    }
+
+    /* conversation list delegation (row click / kebab / popover actions) */
+    var selfList = this;
+    if (this.conversationListEl){
+      this._onListClick = function(e){ selfList.onListClick && selfList.onListClick(e); };
+      this.conversationListEl.addEventListener("click", this._onListClick);
+    }
+    var selfDoc = this;
+    this._onDocClick = function(e){ selfDoc.onDocClick && selfDoc.onDocClick(e); };
+    document.addEventListener("click", this._onDocClick);
+
+    /* start closed */
+    this.setSidebarOpen(false);
+
+    this.loadConversations().catch(function(e){ console.error("[AiChatWidget] loadConversations failed:", e); });
+  };
+
+  AiChatWidget.prototype.destroy = function(){
+    if (this.subscription && this.subscription.unsubscribe) this.subscription.unsubscribe();
+    if (this.composerForm && this._onSubmit) this.composerForm.removeEventListener("submit", this._onSubmit);
+
+    if (this.inputEl && this._onInputKeydown) {this.inputEl.removeEventListener("keydown", this._onInputKeydown);}
+    if (this.menuBtns && this._onMenu) { this.menuBtns.forEach(function(btn){ btn.removeEventListener("click", this._onMenu); }, this); }
+    if (this.scrimEl && this._onScrim) this.scrimEl.removeEventListener("click", this._onScrim);
+    if (this.hamburgerBtn && this._onToggle) this.hamburgerBtn.removeEventListener("click", this._onToggle);
+    if (this.newBtn && this._onNew) this.newBtn.removeEventListener("click", this._onNew);
+
+    if (this.conversationListEl && this._onListClick) this.conversationListEl.removeEventListener("click", this._onListClick);
+    if (this._onDocClick) document.removeEventListener("click", this._onDocClick);
+    if (this.threadEl && this._onThreadScroll) this.threadEl.removeEventListener("scroll", this._onThreadScroll);
+    if (this.scrollBtnEl && this._onScrollBtn) this.scrollBtnEl.removeEventListener("click", this._onScrollBtn);
+  };
+
+  /* ---- sidebar control ---- */
+  AiChatWidget.prototype.isSidebarOpen = function(){ return this.root.classList.contains("ai-chat--sidebar-open"); };
+  AiChatWidget.prototype.setSidebarOpen = function(open){
+    this.sidebarOpen = !!open;
+    this.root.classList.toggle("ai-chat--sidebar-open", this.sidebarOpen);
+    if (this.menuBtns && this.menuBtns.length){
+      var expanded = String(this.sidebarOpen);
+      this.menuBtns.forEach(function(btn){ btn.setAttribute("aria-expanded", expanded); });
+    }
+  };
+  AiChatWidget.prototype.toggleSidebar = function(e){ if (e && e.preventDefault) e.preventDefault(); this.setSidebarOpen(!this.isSidebarOpen()); };
+  AiChatWidget.prototype.closeSidebar  = function(e){ if (e && e.preventDefault) e.preventDefault(); this.setSidebarOpen(false); };
+
+  /* ---- REST ---- */
+  AiChatWidget.prototype.loadConversations = async function(){
+    var res = await fetch(this.listUrl, { headers: { "Accept":"application/json" } });
+    if(!res.ok) throw new Error("Failed to load conversations");
+    this.conversations = await res.json();
+    this.renderConversationList();
+    if (this.conversations.length) { this.openConversation && this.openConversation(this.conversations[0].id); }
+    else { await this.createConversation(); }
+  };
+
+  AiChatWidget.prototype.createConversation = async function(){
+    var payload = { title: "New conversation" };
+
+    var res = await fetch(this.createUrl, {
+      method: "POST",
+      headers: { "Accept":"application/json", "Content-Type":"application/json", "X-CSRF-Token": csrf() },
+      body: JSON.stringify(payload)
+    });
+    if(!res.ok) throw new Error("Failed to create conversation");
+    var conv = await res.json();
+    this.conversations.unshift(conv);
+    this.renderConversationList();
+    this.openConversation && this.openConversation(conv.id);
+  };
+
+  /* rows with kebab (⋯) + popover (Delete) */
+  AiChatWidget.prototype.renderConversationList = function(){
+    if(!this.conversationListEl) return;
+    var self = this;
+    this.conversationListEl.innerHTML = "";
+    this.conversations.forEach(function(c){
+      var row = document.createElement("div");
+      row.className = "ai-chat__list-item" + (c.id === self.currentConversationId ? " is-active" : "");
+      row.dataset.id = c.id;
+
+      var title = document.createElement("div");
+      title.className = "ai-chat__list-title";
+      title.textContent = c.title || c.name || ("Conversation #" + c.id);
+
+      var menu = document.createElement("button");
+      menu.className = "ai-chat__row-menu";
+      menu.setAttribute("aria-haspopup","menu");
+      menu.setAttribute("aria-expanded","false");
+      menu.innerText = "⋯";
+
+      var pop = document.createElement("div");
+      pop.className = "ai-chat__row-popover";
+      pop.setAttribute("role","menu");
+
+      var del = document.createElement("button");
+      del.className = "ai-chat__row-act";
+      del.dataset.action = "delete";
+      del.textContent = "Delete conversation";
+
+      pop.appendChild(del);
+      row.appendChild(title);
+      row.appendChild(menu);
+      row.appendChild(pop);
+      self.conversationListEl.appendChild(row);
+    });
+  };
+
+  /* ---- row menu interactions ---- */
+  AiChatWidget.prototype.onListClick = function(e){
+    var row = e.target && e.target.closest && e.target.closest(".ai-chat__list-item");
+    if (!row) return;
+
+    // kebab toggle
+    if (e.target.closest(".ai-chat__row-menu")) {
+      e.preventDefault();
+      var pop = row.querySelector(".ai-chat__row-popover");
+      var btn = row.querySelector(".ai-chat__row-menu");
+      var isOpen = pop.classList.contains("is-open");
+      this.closeAllRowMenus();
+      if (!isOpen) {
+        pop.classList.add("is-open");
+        btn && btn.setAttribute("aria-expanded","true");
+      }
+      return;
+    }
+
+    // popover actions
+    var act = e.target.closest(".ai-chat__row-act");
+    if (act) {
+      e.preventDefault();
+      var id = parseInt(row.dataset.id, 10);
+      var title = (row.querySelector(".ai-chat__list-title") || {}).textContent || ("Conversation #"+id);
+      if (act.dataset.action === "delete") {
+        this.closeAllRowMenus();
+        var self = this;
+        askDanger({
+          title: "Delete conversation?",
+          body: 'This will permanently remove “' + title + '”. This action cannot be undone.',
+          confirmText: "Delete conversation",
+          cancelText: "Cancel"
+        }).then(function(ok){
+          if (!ok) return;
+          if (self.deleteConversation) self.deleteConversation(id);
+        });
+      }
+      return;
+    }
+
+    // open convo + close sidebar
+    this.openConversation && this.openConversation(parseInt(row.dataset.id, 10));
+    this.closeSidebar();
+  };
+
+  AiChatWidget.prototype.onDocClick = function(e){
+    if (!(e.target && (e.target.closest(".ai-chat__row-popover") || e.target.closest(".ai-chat__row-menu")))) {
+      this.closeAllRowMenus();
+    }
+  };
+
+  AiChatWidget.prototype.closeAllRowMenus = function(){
+    var pops = this.conversationListEl ? this.conversationListEl.querySelectorAll(".ai-chat__row-popover.is-open") : [];
+    Array.prototype.forEach.call(pops, function(p){ p.classList.remove("is-open"); });
+    var btns = this.conversationListEl ? this.conversationListEl.querySelectorAll(".ai-chat__row-menu[aria-expanded='true']") : [];
+    Array.prototype.forEach.call(btns, function(b){ b.setAttribute("aria-expanded","false"); });
+  };
+
+  /* ---- spinner helpers ---- */
+  AiChatWidget.prototype.showSpinner = function(bubble, label){
+    var msg = this.ensureMsgContainer(bubble); if (!msg) return;
+    this.removeSpinner(bubble);
+    var wrap = document.createElement("div");
+    wrap.className = "ai-typing";
+    wrap.setAttribute("role","status");
+    wrap.setAttribute("aria-live","polite");
+    wrap.innerHTML = '<span class="ai-typing__dot"></span><span class="ai-typing__dot"></span><span class="ai-typing__dot"></span>' +
+                     (label ? ('<span class="ai-typing__label">'+String(label)+'</span>') : '');
+    bubble.dataset.loading = "1";
+    msg.appendChild(wrap);
+  };
+  AiChatWidget.prototype.removeSpinner = function(bubble){
+    bubble = bubble || this.findLastAssistantBubble();
+    if (!bubble) return;
+    delete bubble.dataset.loading;
+    var t = bubble.querySelector(".ai-typing");
+    if (t && t.parentNode) t.parentNode.removeChild(t);
+  };
+  AiChatWidget.prototype.fadeSpinner = function(bubble){
+    bubble = bubble || this.findLastAssistantBubble();
+    if (!bubble) return;
+    delete bubble.dataset.loading;
+    var t = bubble.querySelector(".ai-typing");
+    if (!t) return;
+    t.classList.add("ai-typing--fade");
+    setTimeout(function(){
+      if (t && t.parentNode) t.parentNode.removeChild(t);
+    }, 450);
+  };
+
+  AiChatWidget.prototype.setComposerEnabled = function(enabled){
+    var disabled = !enabled;
+
+    // --- Button + icon swap ---------------------------------------------------
+    if (this.sendBtnEl) {
+      this.sendBtnEl.disabled = disabled;
+      this.sendBtnEl.classList.toggle("is-busy", disabled);
+
+      var idleIcon = this.sendBtnEl.querySelector(".ai-chat__send-icon--idle");
+      var busyIcon = this.sendBtnEl.querySelector(".ai-chat__send-icon--busy");
+
+      if (idleIcon && busyIcon) {
+        idleIcon.hidden = disabled;   // hide arrow when busy
+        busyIcon.hidden = !disabled;  // show clock when busy
+      }
+    }
+
+    // --- Input enable/disable + placeholder swap ------------------------------
+    if (this.inputEl) {
+      // Cache the original placeholder once
+      if (typeof this._idlePlaceholder === "undefined") {
+        this._idlePlaceholder = this.inputEl.getAttribute("placeholder") || "";
+      }
+
+      var busyPlaceholder = "Clara is thinking…";
+
+      this.inputEl.disabled = disabled;
+
+      if (disabled) {
+        this.inputEl.setAttribute("placeholder", busyPlaceholder);
+      } else {
+        this.inputEl.setAttribute("placeholder", this._idlePlaceholder);
+      }
+    }
+  };
+
+  AiChatWidget.prototype.setPromptVersionId = function(id){
+    this.promptVersionId = null;
+  };
+
+  /* ---- bubbles & helpers (unchanged except token hides spinner) ---- */
+  AiChatWidget.prototype.appendMessageBubble = function(role, text){
+    if (!this.threadEl) return null;
+    var bubble = document.createElement("div");
+    bubble.className = (role === "user") ? "ai-chat__bubble ai-chat__bubble--user" : "ai-chat__bubble ai-chat__bubble--assistant";
+    bubble.dataset.role = role;
+    var msg = document.createElement("div"); msg.className = "ai-msg"; msg.__mdBuf = null;
+    if (text) {
+      var html = ""; try { html = global.__renderMarkdown ? global.__renderMarkdown(text) : ""; } catch(_){}
+      if (html && html.trim()) msg.innerHTML = html; else msg.textContent = text;
+    }
+    var blocks = document.createElement("div"); blocks.className = "ai-blocks";
+    bubble.appendChild(msg); bubble.appendChild(blocks);
+    this.threadEl.appendChild(bubble);
+    // no auto-scroll on append
+    return bubble;
+  };
+
+  AiChatWidget.prototype.appendSystem = function (text) {
+    if (!this.threadEl) return;
+    var div = document.createElement("div");
+    div.className = "ai-chat__system";
+    div.textContent = text || "";
+    this.threadEl.appendChild(div);
+  };
+
+  AiChatWidget.prototype.ensureBlocksContainer = function(bubble){
+    var el = bubble && bubble.querySelector(".ai-blocks");
+    if (!el) { el = document.createElement("div"); el.className = "ai-blocks"; if (bubble) bubble.appendChild(el); }
+    return el;
+  };
+
+  AiChatWidget.prototype.findLastAssistantBubble = function () {
+    if (!this.threadEl) return null;
+    var kids = Array.prototype.slice.call(this.threadEl.children || []);
+    for (var i = kids.length - 1; i >= 0; i--) {
+      var el = kids[i];
+      if (el && el.dataset && el.dataset.role === "assistant") return el;
+    }
+    return null;
+  };
+
+  AiChatWidget.prototype.ensureAssistantBubble = function () {
+    var b = this.findLastAssistantBubble();
+    if (!b) { this.appendMessageBubble("assistant", ""); b = this.findLastAssistantBubble(); }
+    return b;
+  };
+
+  AiChatWidget.prototype.ensureMsgContainer = function (bubble) {
+    if (!bubble) return null;
+    var msg = bubble.querySelector(".ai-msg");
+    if (!msg) { msg = document.createElement("div"); msg.className = "ai-msg"; bubble.insertBefore(msg, bubble.firstChild); }
+    return msg;
+  };
+
+  AiChatWidget.prototype.resetStreamBubble = function (bubble, opts) {
+    bubble = bubble || this.ensureAssistantBubble();
+    if (!bubble) return;
+    opts = opts || {};
+    var keepSpinner = !!opts.keepSpinner;
+    var spinnerLabel = null;
+    if (keepSpinner) {
+      var labelEl = bubble.querySelector(".ai-typing__label");
+      if (labelEl) spinnerLabel = labelEl.textContent;
+    }
+    if (bubble.dataset) { delete bubble.dataset.outputIndex; }
+    var msg = this.ensureMsgContainer(bubble);
+    if (msg) {
+      if (msg.__mdTimer) { clearTimeout(msg.__mdTimer); msg.__mdTimer = null; }
+      msg.__raw = "";
+      msg.__node = null;
+      msg.__tailNode = null;
+      msg.textContent = "";
+      msg.innerHTML = "";
+    }
+    var blocks = bubble.querySelector(".ai-blocks");
+    if (blocks) blocks.innerHTML = "";
+
+    // If we were already showing a spinner, re-attach it after clearing the message.
+    if (keepSpinner && bubble.dataset && bubble.dataset.loading === "1") {
+      this.showSpinner && this.showSpinner(bubble, spinnerLabel || "Thinking…");
+    }
+  };
+
+  AiChatWidget.prototype.flushMarkdown = function (bubble) {
+    if (!bubble) return;
+    var msg = bubble.querySelector(".ai-msg");
+    if (!msg || msg.__raw == null) return;
+    if (msg.__mdTimer) { clearTimeout(msg.__mdTimer); msg.__mdTimer = null; }
+    var md = msg.__raw;
+    var html = ""; try { html = global.__renderMarkdown ? global.__renderMarkdown(md) : ""; } catch(_){}
+    if (html && html.trim()) { msg.innerHTML = html; }
+    else { if (msg.__node) msg.__node.nodeValue = md; else msg.textContent = md; }
+    msg.__raw = null; msg.__node = null;
+    msg.__tailNode = null;
+  };
+
+  AiChatWidget.prototype._computeSafeMarkdownSplit = function (text) {
+    var safeIndex = text.length;
+    var hideTail = false;
+
+    // Hold back unclosed widget/block placeholders.
+    var lastWidget = text.lastIndexOf("{{widget:");
+    var lastBlock  = text.lastIndexOf("{{block:");
+    var lastOpen   = Math.max(lastWidget, lastBlock);
+    if (lastOpen >= 0 && text.indexOf("}}", lastOpen) === -1) {
+      safeIndex = Math.min(safeIndex, lastOpen);
+      hideTail = true;
+    }
+
+    // Hold back unclosed fenced code blocks.
+    var fenceCount = 0;
+    var lastFence = -1;
+    for (var i = 0; i < text.length; i++) {
+      if (text.substr(i, 3) === "```") {
+        fenceCount += 1;
+        lastFence = i;
+        i += 2;
+      }
+    }
+    if (fenceCount % 2 === 1 && lastFence >= 0) {
+      safeIndex = Math.min(safeIndex, lastFence);
+    }
+
+    // Hold back unclosed inline code (outside fenced blocks).
+    var inFence = false;
+    var inlineOpenIdx = -1;
+    for (var j = 0; j < text.length; j++) {
+      if (text.substr(j, 3) === "```") {
+        inFence = !inFence;
+        j += 2;
+        continue;
+      }
+      if (inFence) continue;
+      if (text[j] === "`") {
+        inlineOpenIdx = inlineOpenIdx === -1 ? j : -1;
+      }
+    }
+    if (inlineOpenIdx !== -1) {
+      safeIndex = Math.min(safeIndex, inlineOpenIdx);
+    }
+
+    if (safeIndex < 0) safeIndex = 0;
+    return { index: safeIndex, hideTail: hideTail };
+  };
+
+  AiChatWidget.prototype._renderStreamingMarkdown = function (bubble) {
+    if (!bubble) return;
+    var msg = bubble.querySelector(".ai-msg");
+    if (!msg) return;
+    var raw = msg.__raw || "";
+    var split = this._computeSafeMarkdownSplit(raw);
+    var safeText = raw.slice(0, split.index);
+    var tailText = split.hideTail ? "" : raw.slice(split.index);
+
+    // Hide fully-formed widget/block markers during streaming; they'll be hydrated once on completion.
+    safeText = safeText.replace(/\{\{(widget|block):[^}]+}}/g, " ");
+    tailText = tailText.replace(/\{\{(widget|block):[^}]+}}/g, " ");
+
+    var html = "";
+    try { html = global.__renderMarkdown ? global.__renderMarkdown(safeText) : ""; } catch(_){ html = ""; }
+
+    msg.innerHTML = html && html.trim() ? html : "";
+
+    if (tailText) {
+      var tailNode = msg.__tailNode;
+      if (!tailNode || tailNode.parentNode !== msg) {
+        tailNode = document.createTextNode("");
+        msg.appendChild(tailNode);
+        msg.__tailNode = tailNode;
+      }
+      tailNode.nodeValue = tailText;
+    } else if (msg.__tailNode) {
+      msg.__tailNode.nodeValue = "";
+    }
+  };
+
+  AiChatWidget.prototype._scheduleMarkdownRender = function (bubble) {
+    var msg = bubble && bubble.querySelector(".ai-msg");
+    if (!msg) return;
+    if (msg.__mdTimer) return;
+    var self = this;
+    msg.__mdTimer = setTimeout(function(){
+      msg.__mdTimer = null;
+      self._renderStreamingMarkdown(bubble);
+    }, 180);
+  };
+
+  AiChatWidget.prototype.handleToken = function (token, outputIndex) {
+    if (!this.threadEl) return;
+    var bubble = this.ensureAssistantBubble(); if (!bubble) return;
+
+    // If the model switches to a new output index mid-stream, reset the bubble
+    // so earlier "thinking" fragments don't flash before the final answer.
+    var idx = parseInt(outputIndex, 10);
+    if (!isNaN(idx)) {
+      var prevIdx = bubble.dataset.outputIndex ? parseInt(bubble.dataset.outputIndex, 10) : null;
+      if (prevIdx === null || idx > prevIdx) {
+        bubble.dataset.outputIndex = String(idx);
+        var resetMsg = this.ensureMsgContainer(bubble);
+        if (resetMsg) {
+          resetMsg.__raw = "";
+          resetMsg.__node = null;
+          resetMsg.textContent = "";
+          resetMsg.innerHTML = "";
+        }
+        var resetBlocks = bubble.querySelector(".ai-blocks");
+        if (resetBlocks) resetBlocks.innerHTML = "";
+      } else if (idx < prevIdx) {
+        return;
+      }
+    }
+
+    // first token => fade spinner
+    this.fadeSpinner(bubble);
+
+    var msg = this.ensureMsgContainer(bubble); if (!msg) return;
+    msg.__raw = (msg.__raw || "") + String(token);
+
+    // Guardrails: fix squished numbers in-stream so "remove1–2" -> "remove 1–2" and "Safety):100%" -> "Safety): 100%".
+    msg.__raw = msg.__raw
+      .replace(/([A-Za-z])(\d)/g, "$1 $2")
+      .replace(/([):])(\d)/g, "$1 $2");
+
+    this._scheduleMarkdownRender(bubble);
+
+    // Do not auto-scroll during streaming; only show arrow if user is not near bottom
+    if (this._streamingActive && !this.isNearBottom()) {
+      this.showScrollToBottom(true);
+    }
+  };
+
+
+  AiChatWidget.prototype.chartKeyFromParams = function (p) {
+    if (!p) return null;
+    try {
+      var metric = (p.metric || "").toString();
+      var cat = (p.category || "").toString();
+      var s = (p.start_date || "").toString();
+      var e = (p.end_date || "").toString();
+      var mids = (p.metric_ids || []).slice().sort().join("-");
+      var smids = (p.submetric_ids || []).slice().sort().join("-");
+      var scids = (p.subcategory_ids || []).slice().sort().join("-");
+      return [metric, cat, s, e, mids, smids, scids].join("|");
+    } catch(_) { return null; }
+  };
+
+  /* ---- mount ---- */
+  AiChatWidget.mount = function(target){
+    var el = (typeof target === "string") ? document.querySelector(target) : target;
+    if (!el) return null;
+    var w = new AiChatWidget(el); w.init(); return w;
+  };
+
+  document.addEventListener("DOMContentLoaded", function(){
+    var nodes = document.querySelectorAll('[data-controller="ai-chat-widget"], .js-ai-chat-widget');
+    for (var i=0; i<nodes.length; i++){ if (!nodes[i]._aiChatWidget) nodes[i]._aiChatWidget = AiChatWidget.mount(nodes[i]); }
+  });
+
+  global.AiChatWidget = AiChatWidget;
+})(window);
+</script>

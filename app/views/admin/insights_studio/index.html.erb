@@ -1,0 +1,423 @@
+<% content_for :page_title do %>
+  Insights Studio
+<% end %>
+
+<% content_for :page_subtitle do %>
+  Rollup-based pipeline runs, candidate inspection, and narrative previews.
+<% end %>
+
+<% content_for :page_actions do %>
+  <div class="insights-studio-action-buttons">
+    <button type="button" class="pp-button pp-button--secondary" data-insights-modal-open="how" hidden>How it works</button>
+    <button type="button" class="pp-button pp-button--secondary" data-insights-modal-open="templates">View templates</button>
+  </div>
+<% end %>
+
+<% workspace_name = @selected_workspace&.name || "Select a workspace" %>
+<% snapshot_label = @status_snapshot ? (l(@status_snapshot, format: :short) rescue @status_snapshot.to_s) : "Snapshot not set" %>
+<% last_run_status = @last_run&.status.to_s.presence || "unknown" %>
+<% last_run_label = @last_run ? "Run ##{@last_run.id}" : "No runs yet" %>
+<% last_run_time = @last_run&.created_at ? l(@last_run.created_at, format: :short) : "" %>
+<% primary_count = @templates.count(&:primary?) %>
+<% supporting_count = @templates.size - primary_count %>
+<% rollup_range_label = @rollup_range ? "#{@rollup_range[:start_date]} → #{@rollup_range[:end_date]}" : "-" %>
+<% rollup_rows = @rollup_status[:row_count].to_i %>
+<% rollup_total = @rollup_status[:total_detections].to_i %>
+<% rollup_updated = @rollup_status[:last_updated] %>
+<% run_for_log = @run || @last_run %>
+<% insights_count = @candidate_rows&.size.to_i %>
+<% current_run = (@run&.status == "running" ? @run : (@last_run&.status == "running" ? @last_run : nil)) %>
+<% run_timings = run_for_log&.timings || {} %>
+<% quality_metrics = run_timings["quality"] || run_timings[:quality] || {} %>
+<% filter_counts = quality_metrics["filter_counts"] || quality_metrics[:filter_counts] || {} %>
+<% median_window_days = quality_metrics["median_effective_window_days"] || quality_metrics[:median_effective_window_days] %>
+<% completeness_metrics = run_timings["completeness"] || run_timings[:completeness] || {} %>
+<% completeness_status = completeness_metrics["status"] || completeness_metrics[:status] %>
+<% completeness_ratio = completeness_metrics["ratio"] || completeness_metrics[:ratio] %>
+
+<div id="insights-studio" class="insights-studio"
+     data-snapshot-at="<%= @status_snapshot&.iso8601 %>"
+     data-current-run-id="<%= current_run&.id %>">
+
+  <div class="insights-studio-status">
+    <div class="insights-studio-status-block">
+      <div class="insights-studio-status-label">Workspace</div>
+      <div class="insights-studio-status-value"><%= workspace_name %></div>
+      <div class="insights-studio-status-meta">Templates <%= @templates.size %> (<%= primary_count %> primary, <%= supporting_count %> supporting)</div>
+    </div>
+    <div class="insights-studio-status-block">
+      <div class="insights-studio-status-label">Snapshot</div>
+      <div class="insights-studio-status-value"><%= snapshot_label %></div>
+      <div class="insights-studio-status-meta">Baseline <%= @defaults[:baseline_mode] %> - Logit min <%= @defaults[:logit_margin_min] %></div>
+    </div>
+    <div class="insights-studio-status-block insights-studio-status-block--health">
+      <div class="insights-studio-status-label">Last run health</div>
+      <div class="insights-studio-status-value"><%= last_run_label %></div>
+      <div class="insights-studio-status-meta">
+        <% if @last_run %>
+          <% status_class = last_run_status == "ok" ? "ok" : (last_run_status == "running" ? "muted" : "error") %>
+          <% status_label = last_run_status == "ok" ? "Healthy" : (last_run_status == "running" ? "Running" : "Needs review") %>
+          <span class="insights-studio-pill insights-studio-pill--<%= status_class %>">
+            <%= status_label %>
+          </span>
+          <span class="insights-studio-status-time"><%= last_run_time %></span>
+        <% else %>
+          <span class="admin-muted">Run the pipeline to populate status.</span>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <div class="insights-studio-grid">
+    <section class="insights-studio-column insights-studio-column--run">
+      <header class="insights-studio-section-header">
+        <div>
+          <h3>Test insights</h3>
+          <p class="admin-muted">Run the full pipeline with one button, then review the candidates.</p>
+        </div>
+      </header>
+
+      <% if flash.now[:alert].present? %>
+        <div class="admin-alert admin-alert--error"><%= flash.now[:alert] %></div>
+      <% end %>
+      <% if flash.now[:notice].present? %>
+        <div class="admin-alert admin-alert--success"><%= flash.now[:notice] %></div>
+      <% end %>
+
+      <div class="insights-studio-card insights-studio-run-card">
+        <div class="insights-studio-run-card-header">
+          <div>
+            <h4>Run a full test</h4>
+            <p class="admin-muted">Refresh rollups and evaluate the selected date range.</p>
+          </div>
+          <button type="button" class="pp-button pp-button--primary" data-insights-run>Run full test</button>
+        </div>
+        <div class="insights-studio-run-card-status">
+          <span id="insights-studio-live-status">Idle</span>
+          <div class="insights-studio-progress" aria-hidden="true">
+            <span id="insights-studio-progress-bar"></span>
+          </div>
+        </div>
+        <%= form_with url: admin_insights_studio_run_path, method: :post, local: true, class: "insights-studio-form", id: "insights-studio-run-form" do |f| %>
+          <div class="insights-studio-form-grid insights-studio-form-grid--compact">
+            <div class="insights-studio-field">
+              <label>Workspace</label>
+              <% workspace_options = @workspaces.map { |workspace| ["#{workspace.id} - #{workspace.name}", workspace.id] } %>
+              <%= select_tag :workspace_id, options_for_select(workspace_options, (@selected_workspace&.id || params[:workspace_id])), include_blank: true, class: "admin-select" %>
+            </div>
+          </div>
+          <details class="insights-studio-advanced">
+            <summary>Advanced settings</summary>
+            <div class="insights-studio-form-grid">
+              <div class="insights-studio-field">
+                <label>Start date</label>
+                <%= date_field_tag :start_date, @defaults[:start_date], class: "admin-input" %>
+              </div>
+              <div class="insights-studio-field">
+                <label>Snapshot at</label>
+                <%= date_field_tag :snapshot_at, @defaults[:snapshot_at], class: "admin-input" %>
+              </div>
+              <div class="insights-studio-field">
+                <label>Baseline mode</label>
+                <%= select_tag :baseline_mode, options_for_select(["trailing", "previous_period"], @defaults[:baseline_mode]), class: "admin-select" %>
+              </div>
+              <div class="insights-studio-field">
+                <label>Logit ratio min</label>
+                <%= text_field_tag :logit_margin_min, @defaults[:logit_margin_min], class: "admin-input" %>
+              </div>
+              <div class="insights-studio-field">
+                <label>FDR q threshold</label>
+                <%= text_field_tag :fdr_q_threshold, @defaults[:fdr_q_threshold], class: "admin-input" %>
+              </div>
+            </div>
+            <div class="insights-studio-run-log">
+              <div class="insights-studio-run-log-row">
+                <span>Rollup range</span>
+                <strong><%= rollup_range_label %></strong>
+              </div>
+              <div class="insights-studio-run-log-row">
+                <span>Rollup rows</span>
+                <strong><%= rollup_rows %></strong>
+              </div>
+              <div class="insights-studio-run-log-row">
+                <span>Total detections</span>
+                <strong><%= rollup_total %></strong>
+              </div>
+              <div class="insights-studio-run-log-row">
+                <span>Last updated</span>
+                <strong><%= rollup_updated || "-" %></strong>
+              </div>
+            </div>
+            <% if rollup_rows.zero? %>
+              <div class="insights-studio-note">No rollups found for this workspace and threshold.</div>
+            <% end %>
+            <% if @rollup_build_result %>
+              <div class="insights-studio-note">
+                Rollups built: <%= @rollup_build_result.built ? "yes" : "no" %> (<%= @rollup_build_result.start_date %> → <%= @rollup_build_result.end_date %>)
+              </div>
+            <% end %>
+          </details>
+        <% end %>
+      </div>
+
+      <div class="insights-studio-card insights-studio-run-summary">
+        <div class="insights-studio-card-header">
+          <h4>Latest run</h4>
+          <span class="admin-muted">
+            <% if @run %>
+              Run #<%= @run.id %> - <%= @run.status %> - Snapshot <%= l(@run.snapshot_at, format: :short) %>
+            <% else %>
+              No run data yet.
+            <% end %>
+          </span>
+        </div>
+        <div class="insights-studio-kpi-grid">
+          <div class="insights-studio-kpi">
+            <div class="insights-studio-kpi-value"><%= insights_count %></div>
+            <div class="insights-studio-kpi-label">Insights returned</div>
+          </div>
+        </div>
+        <div class="insights-studio-run-log">
+          <div class="insights-studio-run-log-row">
+            <span>Last run</span>
+            <strong><%= run_for_log ? "Run ##{run_for_log.id}" : "No runs yet" %></strong>
+          </div>
+          <div class="insights-studio-run-log-row">
+            <span>Status</span>
+            <strong><%= run_for_log&.status || "unknown" %></strong>
+          </div>
+          <div class="insights-studio-run-log-row">
+            <span>Snapshot</span>
+            <strong><%= run_for_log&.snapshot_at ? l(run_for_log.snapshot_at, format: :short) : "-" %></strong>
+          </div>
+          <% if median_window_days.present? %>
+            <div class="insights-studio-run-log-row">
+              <span>Median window days</span>
+              <strong><%= median_window_days.to_f.round(1) %></strong>
+            </div>
+          <% end %>
+          <% if filter_counts.present? %>
+            <div class="insights-studio-run-log-row">
+              <span>Filtered (FDR)</span>
+              <strong><%= filter_counts["fdr"] || filter_counts[:fdr] || 0 %></strong>
+            </div>
+            <div class="insights-studio-run-log-row">
+              <span>Filtered (min volume)</span>
+              <strong><%= (filter_counts["min_volume"] || filter_counts[:min_volume] || 0).to_i + (filter_counts["min_baseline"] || filter_counts[:min_baseline] || 0).to_i %></strong>
+            </div>
+          <% end %>
+          <% if completeness_status.present? %>
+            <div class="insights-studio-run-log-row">
+              <span>Completeness</span>
+              <strong>
+                <%= completeness_status %>
+                <% if completeness_ratio.present? %>
+                  (<%= number_with_precision(completeness_ratio.to_f, precision: 2) %>)
+                <% end %>
+              </strong>
+            </div>
+          <% end %>
+          <% if run_for_log&.error_payload.present? && run_for_log.error_payload.any? %>
+            <div class="insights-studio-run-log-row insights-studio-run-log-row--error">
+              <span>Error</span>
+              <strong><%= run_for_log.error_payload["message"] || run_for_log.error_payload[:message] || "Check logs" %></strong>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="insights-studio-card insights-studio-candidates">
+        <div class="insights-studio-card-header">
+          <h4>Insights</h4>
+          <span class="admin-muted">Insights sorted by window end date.</span>
+        </div>
+        <div class="insights-studio-step-body">
+          <% if @run && @candidate_rows.any? %>
+            <div class="insights-studio-table-wrap">
+              <table class="insights-studio-table">
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>Metric / Subject</th>
+                    <th>Severity</th>
+                    <th>Window end</th>
+                    <th>Delta</th>
+                    <th>Evidence</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% @candidate_rows.each do |row| %>
+                    <tr class="insights-studio-row"
+                        data-status="<%= row[:status] %>"
+                        data-status-reason="<%= row[:status_reason] %>"
+                        data-candidate="<%= json_escape(row[:payload].to_json) %>">
+                      <td class="insights-studio-rank"><%= row[:rank] %></td>
+                      <td>
+                        <div class="insights-studio-metric"><%= row[:metric_label] %></div>
+                        <div class="insights-studio-subject"><%= row[:subject_label] %></div>
+                      </td>
+                      <td>
+                        <div class="insights-studio-severity">
+                          <div class="insights-studio-severity-bar">
+                            <span style="width: <%= row[:severity_pct].round(1) %>%;"></span>
+                          </div>
+                          <div class="insights-studio-severity-value"><%= number_with_precision(row[:severity], precision: 2) %></div>
+                        </div>
+                      </td>
+                      <td class="insights-studio-date"><%= row[:window_end_label] || "-" %></td>
+                      <td class="insights-studio-delta"><%= row[:delta_display] %></td>
+                      <td class="insights-studio-evidence-count"><%= row[:evidence_count] %></td>
+                      <td>
+                        <span class="insights-studio-pill insights-studio-pill--<%= row[:status] == "accepted" ? "ok" : "muted" %>" title="<%= row[:status_reason] %>">
+                          <%= row[:status] == "accepted" ? "accepted" : "filtered" %>
+                        </span>
+                      </td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          <% elsif @run && @run.candidates_primary.to_i.positive? %>
+            <div class="insights-studio-empty">Preparing candidates…</div>
+          <% elsif @run %>
+            <div class="insights-studio-empty">No candidates fired for this run.</div>
+          <% else %>
+            <div class="insights-studio-empty">Run a full test to see candidates.</div>
+          <% end %>
+        </div>
+      </div>
+
+    </section>
+
+    <section class="insights-studio-column insights-studio-column--inspector">
+      <header class="insights-studio-section-header">
+        <div>
+          <h3>Inspect & preview</h3>
+          <p class="admin-muted">Select a candidate to preview details.</p>
+        </div>
+      </header>
+
+      <div id="insights-studio-inspector" class="insights-studio-card insights-studio-inspector">
+        <div class="insights-studio-empty">Select a candidate to inspect details.</div>
+      </div>
+    </section>
+  </div>
+
+  <div class="insights-studio-modal" data-insights-modal="templates" hidden>
+    <div class="insights-studio-modal__backdrop" data-insights-modal-close></div>
+    <div class="insights-studio-modal__panel" role="dialog" aria-modal="true" aria-labelledby="insights-studio-modal-title">
+      <div class="insights-studio-modal__header">
+        <div>
+          <h3 id="insights-studio-modal-title">Template library</h3>
+          <p class="admin-muted">Quick overview of templates, configuration, and run signals.</p>
+        </div>
+        <button type="button" class="pp-button pp-button--secondary" data-insights-modal-close>Close</button>
+      </div>
+      <div class="insights-studio-modal__body">
+        <% @template_groups.each do |family, templates| %>
+          <div class="insights-studio-modal-group">
+            <div class="insights-studio-modal-group-header">
+              <h4><%= family.to_s.humanize %></h4>
+              <span class="insights-studio-family-count"><%= templates.size %></span>
+            </div>
+            <ul class="insights-studio-modal-list">
+              <% templates.each do |template| %>
+                <% stats = @template_run_stats[template.id] || {} %>
+                <% stats_available = @template_run_stats.key?(template.id) %>
+                <% fire_rate = stats[:fire_rate].to_f %>
+                <% last_fired_at = stats[:last_fired_at] %>
+                <% scopes = template.subject_scope_list %>
+                <% scope_label = scopes.any? ? scopes.join(", ") : "all" %>
+                <% direction = template.direction.presence || "neutral" %>
+                <% meta = template.metadata || {} %>
+                <% summary = template.description.presence || meta["summary"] || meta["ui_summary"] || template.driver_type.to_s.humanize %>
+                <% quick_bits = [] %>
+                <% quick_bits << "#{template.window_days}d window" if template.window_days.present? %>
+                <% quick_bits << "#{template.baseline_days}d baseline" if template.baseline_days.present? %>
+                <% quick_bits << "#{template.cooldown_days}d cooldown" if template.cooldown_days.present? %>
+                <li class="insights-studio-modal-row <%= "is-disabled" unless template.enabled? %>">
+                  <div class="insights-studio-modal-main">
+                    <div class="insights-studio-modal-title">
+                      <span><%= template.name %></span>
+                      <code><%= template.key %></code>
+                    </div>
+                    <p class="insights-studio-modal-summary"><%= summary %></p>
+                    <% if quick_bits.any? %>
+                      <div class="insights-studio-modal-quick"><%= quick_bits.join(" - ") %></div>
+                    <% end %>
+                    <div class="insights-studio-library-badges">
+                      <span class="insights-studio-badge <%= template.primary? ? "is-primary" : "is-supporting" %>">
+                        <%= template.primary? ? "primary" : "supporting" %>
+                      </span>
+                      <span class="insights-studio-badge is-scope"><%= scope_label %></span>
+                      <span class="insights-studio-badge is-direction"><%= direction %></span>
+                    </div>
+                  </div>
+                  <div class="insights-studio-modal-side">
+                    <label class="insights-studio-toggle">
+                      <input type="checkbox" <%= "checked" if template.enabled? %> disabled>
+                      <span></span>
+                    </label>
+                    <div class="insights-studio-library-stats">
+                      <div class="insights-studio-library-stat">
+                        <span class="insights-studio-stat-label">Last fired</span>
+                        <span class="insights-studio-stat-value">
+                          <% if stats_available && last_fired_at.present? %>
+                            <%= l(last_fired_at, format: :short) %>
+                          <% else %>
+                            -
+                          <% end %>
+                        </span>
+                      </div>
+                      <div class="insights-studio-library-stat">
+                        <span class="insights-studio-stat-label">Fire rate</span>
+                        <span class="insights-studio-stat-value">
+                          <% if stats_available %>
+                            <%= format("%.1f%%", fire_rate * 100.0) %>
+                          <% else %>
+                            -
+                          <% end %>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <div class="insights-studio-modal" data-insights-modal="how" hidden>
+    <div class="insights-studio-modal__backdrop" data-insights-modal-close></div>
+    <div class="insights-studio-modal__panel" role="dialog" aria-modal="true" aria-labelledby="insights-studio-how-title">
+      <div class="insights-studio-modal__header">
+        <div>
+          <h3 id="insights-studio-how-title">How it works</h3>
+          <p class="admin-muted">Super‑simple overview of what the demo is doing.</p>
+        </div>
+        <button type="button" class="pp-button pp-button--secondary" data-insights-modal-close>Close</button>
+      </div>
+      <div class="insights-studio-modal__body">
+        <div class="insights-studio-modal-group">
+          <div class="insights-studio-modal-group-header">
+            <h4>In one minute</h4>
+          </div>
+          <ul class="insights-studio-facts">
+            <li>It scans recent message detections and compares them to a longer baseline.</li>
+            <li>It always produces candidates so you can explore early signals.</li>
+            <li>Confidence is graded by volume, spread across days, and effect size.</li>
+            <li>Drivers explain which submetrics/categories moved the most.</li>
+            <li>High confidence always delivers; medium needs recurrence; low can deliver when FDR is not applicable.</li>
+            <li>FDR only applies when there’s enough volume and enough tests.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%= render "admin/insights_studio/scripts" %>

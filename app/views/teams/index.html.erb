@@ -1,0 +1,19 @@
+<h2>Team Members</h2>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Slack Username</th>
+      <th>Email (if available)</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @team_members.each do |member| %>
+      <tr>
+        <td><%= member['name'] %></td>
+        <td><%= member['profile'] ? member['profile']['email'] : 'N/A' %></td>
+        <td><%= member['deleted'] ? "Inactive" : "Active" %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

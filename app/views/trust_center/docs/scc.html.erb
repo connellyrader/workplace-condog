@@ -1,0 +1,110 @@
+<%# app/views/trust_center/docs/scc.html.erb %>
+
+<div class="trust-doc">
+  <div class="trust-doc-header">
+    <div class="trust-doc-breadcrumb">
+      <%= link_to "Trust Center", trust_home_url, class: "trust-doc-breadcrumb-link" %>
+      <span class="trust-doc-breadcrumb-sep">/</span>
+      <span class="trust-doc-breadcrumb-current">International Transfers (SCCs)</span>
+    </div>
+
+    <div class="trust-doc-title-row">
+      <%= image_tag "logo.png", class: "trust-doc-logo", alt: "Workplace.io" %>
+      <div class="trust-doc-title">International Transfers (SCCs)</div>
+    </div>
+
+    <div class="trust-doc-subtitle">
+      How we address cross-border data transfers and provide appropriate transfer mechanisms where applicable. This page summarizes our approach;
+      the specific mechanism used depends on customer deployment and data residency needs.
+    </div>
+
+    <div class="trust-doc-updated">
+      Last updated: <%= @trust_center_stamp %>
+    </div>
+  </div>
+
+  <div class="trust-doc-body">
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Overview</div>
+      <div class="trust-doc-text">
+        Customers may use Workplace.io across regions. Where personal data is transferred from the EEA/UK/Switzerland to other jurisdictions,
+        we support appropriate transfer mechanisms as required, including Standard Contractual Clauses (SCCs) where applicable.
+      </div>
+
+      <div class="trust-doc-callout trust-doc-callout--note">
+        <div class="trust-doc-callout-title">Practical scope</div>
+        <div class="trust-doc-callout-text">
+          Transfer requirements depend on where customer users and systems are located and where the service is hosted. We coordinate with customers
+          during procurement to meet contractual and compliance requirements.
+        </div>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">How SCCs fit into our contracts</div>
+      <div class="trust-doc-text">
+        SCCs are typically incorporated through the Data Processing Addendum (DPA) when required. If your organization requires SCCs,
+        we will provide the relevant documentation during procurement.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Data Processing Addendum →", trust_doc_url_for("dpa"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Subprocessors and transfers</div>
+      <div class="trust-doc-text">
+        Subprocessors may process data in different regions depending on configuration. We document key subprocessors and coordinate appropriate
+        contractual commitments for subprocessors where required.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Subprocessors →", trust_doc_url_for("subprocessors"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Security measures supporting transfers</div>
+      <div class="trust-doc-text">
+        Transfer mechanisms are supported by security controls that reduce exposure risk. Workplace.io applies encryption in transit and at rest,
+        access controls, and logging/monitoring to support confidentiality and integrity.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Encryption:</strong> TLS for data in transit and encryption at rest in hosting environments.</li>
+        <li><strong>Access controls:</strong> workspace membership and role-based restrictions for administrative actions.</li>
+        <li><strong>Data minimization:</strong> message content processed briefly; derived metadata and aggregated results retained.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Encryption →", trust_doc_url_for("encryption"), class: "trust-doc-link" %>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <%= link_to "Access Controls →", trust_doc_url_for("access-controls"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">How to request SCCs</div>
+      <div class="trust-doc-text">
+        If your procurement or legal team requires SCCs, contact us with your preferred contracting flow and jurisdiction scope.
+        We will coordinate the appropriate documentation.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Contact Trust & Security →", trust_doc_url_for("contact"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-footer">
+      <div class="trust-doc-footer-title">International transfer questions?</div>
+      <div class="trust-doc-footer-text">
+        Contact us for SCC documentation, DPA requests, or region-specific hosting questions.
+      </div>
+      <div class="trust-doc-footer-actions">
+        <%= link_to "Contact Trust & Security", trust_doc_url_for("contact"), class: "trust-doc-button" %>
+        <%= link_to "Back to Trust Center", trust_home_url, class: "trust-doc-button trust-doc-button--secondary" %>
+      </div>
+    </div>
+  </div>
+</div>

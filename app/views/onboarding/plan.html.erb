@@ -1,0 +1,320 @@
+<script src="https://js.stripe.com/v3"></script>
+
+<div class="onboarding-bg"></div>
+<a href="<%= settings_path %>"><div class="onboarding-logo"><%= image_tag "logo.png" %></div></a>
+<a href="<%= settings_path %>"><%= icon "x-mark", class_name: "onboarding-close" %></a>
+
+<div class="onboarding-content">
+  <div class="onboarding-title">Start your free trial</div>
+  <div class="onboarding-subtitle">
+    Get access to your culture and performance dashboard for 14 days before paying for anything.
+  </div>
+
+  <div class="plans-line"></div>
+
+  <div class="plans-row">
+    <div class="plans-row-amount">$0.00</div>
+    <div class="plans-row-description">Due today</div>
+  </div>
+
+  <div class="plans-row">
+    <div class="plans-row-amount">
+      <%= number_to_currency(@billing_amount_cents.to_i / 100.0) %><span>/month</span>
+    </div>
+    <div class="plans-row-description" style="margin-top:0;">
+      <div class="plans-row-description" style="margin-top:0;">
+        <div class="plans-row-description-top">
+          After trial (Billed <%= @trial_ends_on.strftime("%b %-d, %Y") %>)
+        </div>
+        <div class="plans-row-description-bottom">
+          <% if @owner_selected %>
+            For <%= @seat_count %> people
+          <% else %>
+            For <%= @selected_member_count %> people selected + you
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="plans-line"></div>
+
+  <%= form_with url: start_trial_path,
+        id: "stripe-elements-form",
+        method: :post,
+        local: true,
+        class: "plans-stripe-elements-form",
+        html: {
+          "data-stripe-publishable-key": ENV["STRIPE_PUBLISHABLE_KEY"],
+          "data-setup-intent-client-secret": @setup_intent_client_secret,
+          "data-manual-eligible": (@manual_invoice_eligible ? "1" : "0"),
+          "data-billing-name": current_user.full_name.to_s,
+          "data-billing-email": current_user.email.to_s
+        } do %>
+
+    <%= hidden_field_tag :billing_mode, "auto", id: "billing-mode-input" %>
+
+    <!-- this is only needed for auto; we keep it but will leave it blank in manual mode -->
+    <input type="hidden" name="payment_method" id="payment-method-input" value="" />
+
+    <div class="js-payment-wrap">
+      <div id="payment-element"></div>
+      <div id="payment-errors" role="alert"></div>
+    </div>
+  <% end %>
+
+
+  <% if @manual_invoice_eligible %>
+    <div class="onboarding-net-30-box">
+      <div class="onboarding-net-30-description">
+        This subscription is eligible for manual invoicing on NET 30 payment terms.
+      </div>
+
+      <button type="button"
+              class="onboarding-net-30-button js-toggle-manual"
+              data-enabled="0">
+        Enable NET 30 invoicing
+      </button>
+    </div>
+  <% end %>
+
+
+
+  <div class="onboarding-section-box-plan-selection">
+    <div style="display:flex; align-items:center;">
+      <div style="display:flex; align-items:center;">
+        <% @selected_preview_users.each_with_index do |u, idx| %>
+          <% avatar = u.avatar_url.presence || image_path('blank.png') %>
+          <div style="
+               width:32px;
+               height:32px;
+               border-radius:999px;
+               background-size:cover;
+               background-position:center;
+               background-image:url('<%= avatar %>');
+               border:2px solid #fff;
+               <%= 'margin-left:-10px;' unless idx == 0 %>
+             ">
+          </div>
+        <% end %>
+      </div>
+
+      <div style="margin-left:8px; font-size:13px; flex:1;">
+        <%= @selected_member_count %> people selected
+      </div>
+
+      <% selection_group = (@groups || []).first %>
+      <%= link_to "Edit",
+                  (selection_group ? start_path(group_id: selection_group.id) : start_path),
+                  class: "onboarding-section-box-plan-selection-button" %>
+    </div>
+  </div>
+</div>
+
+<%= render "onboarding/components/footer" %>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const form = document.getElementById("stripe-elements-form");
+    if (!form) return;
+
+    const manualEligible = (form.dataset.manualEligible || "0") === "1";
+    const paymentWrap = document.querySelector(".js-payment-wrap");
+    const manualBtn = document.querySelector(".js-toggle-manual");
+    const manualNote = document.querySelector(".js-manual-note");
+
+    const billingModeInput = document.getElementById("billing-mode-input");
+    const pmInput = document.getElementById("payment-method-input");
+
+    const footerBtn = document.querySelector(".onboarding-footer .onboarding-footer-button");
+
+    function setFooterBusy(busy) {
+      if (!footerBtn) return;
+      if (busy) {
+        if (!footerBtn.dataset.originalLabel) footerBtn.dataset.originalLabel = footerBtn.textContent.trim();
+        footerBtn.classList.add("is-busy");
+        footerBtn.setAttribute("aria-disabled", "true");
+        footerBtn.setAttribute("aria-busy", "true");
+        footerBtn.textContent = "Finalizing...";
+      } else {
+        footerBtn.classList.remove("is-busy");
+        footerBtn.removeAttribute("aria-disabled");
+        footerBtn.removeAttribute("aria-busy");
+        if (footerBtn.dataset.originalLabel) footerBtn.textContent = footerBtn.dataset.originalLabel;
+      }
+    }
+
+    // -----------------------------
+    // Manual invoicing toggle
+    // -----------------------------
+    let manualMode = false;
+
+    function setManualMode(on) {
+      manualMode = !!on;
+      if (billingModeInput) billingModeInput.value = manualMode ? "manual" : "auto";
+
+      if (paymentWrap) paymentWrap.style.display = manualMode ? "none" : "block";
+      if (manualNote) manualNote.style.display = manualMode ? "block" : "none";
+
+      if (manualBtn) {
+        manualBtn.dataset.enabled = manualMode ? "1" : "0";
+        manualBtn.textContent = manualMode ? "Disable NET 30 invoicing" : "Enable NET 30 invoicing";
+      }
+
+      // Clear any prior errors
+      const errorsEl = document.getElementById("payment-errors");
+      if (errorsEl) errorsEl.textContent = "";
+    }
+
+    if (manualEligible && manualBtn) {
+      manualBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        setManualMode(!manualMode);
+      });
+    }
+
+    // -----------------------------
+    // Stripe Elements init
+    // -----------------------------
+    const stripe = Stripe(form.dataset.stripePublishableKey);
+
+    const appearance = {
+      theme: 'none',
+      variables: {
+        colorText: '#94A3B8',
+        colorBackground: '#FFFFFF',
+        colorBorder: '#E2E8F0',
+        borderRadius: '12px'
+      },
+      rules: {
+        '.Input': {
+          backgroundColor: '#FFFFFF',
+          color: '#94A3B8',
+          border: '1px solid #E2E8F0',
+          boxShadow: '0 0 8px 2px rgba(0,0,0,0.04)'
+        },
+        '.Input::placeholder': { color: '#94A3B8' },
+        '.Input:focus, .Input--focus, .Input:focus-visible': {
+          outline: 'none',
+          boxShadow: '0 0 8px 2px rgba(0,0,0,0.04)',
+          borderColor: '#E2E8F0'
+        },
+        '.Block': {
+          border: '1px solid #E2E8F0',
+          backgroundColor: '#FFFFFF',
+          borderRadius: '12px',
+          boxShadow: '0 0 8px 2px rgba(0,0,0,0.04)'
+        },
+        '.Block:focus, .Block--focus': {
+          outline: 'none',
+          boxShadow: '0 0 8px 2px rgba(0,0,0,0.04)'
+        }
+      }
+    };
+
+    const elements = stripe.elements({
+      clientSecret: form.dataset.setupIntentClientSecret,
+      appearance
+    });
+
+    const paymentElement = elements.create('payment', {
+      fields: { billingDetails: { name: 'never', email: 'never' } },
+      paymentMethodOrder: ['card', 'us_bank_account'],
+      wallets: { applePay: 'never', googlePay: 'never' }
+    });
+
+    paymentElement.mount("#payment-element");
+
+    // -----------------------------
+    // Footer button submits the form
+    // -----------------------------
+    function submitForm() {
+      if (footerBtn && footerBtn.classList.contains("is-busy")) return;
+      setFooterBusy(true);
+      if (typeof form.requestSubmit === "function") form.requestSubmit();
+      else form.dispatchEvent(new Event("submit", { cancelable: true }));
+    }
+
+    document.addEventListener("click", function (e) {
+      const btn = e.target.closest(".onboarding-footer .onboarding-footer-button");
+      if (!btn) return;
+      e.preventDefault();
+      submitForm();
+    });
+
+    document.addEventListener("keydown", function (e) {
+      const btn = document.activeElement?.closest?.(".onboarding-footer .onboarding-footer-button");
+      if (!btn) return;
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        submitForm();
+      }
+    });
+
+    // -----------------------------
+    // Form submit:
+    // - manual mode => bypass confirmSetup entirely
+    // - auto mode => confirmSetup then submit PM id
+    // -----------------------------
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      // Manual mode: bypass stripe, submit directly
+      if (manualMode) {
+        if (!manualEligible) {
+          document.getElementById("payment-errors").textContent = "Manual invoicing is not available for this plan.";
+          setFooterBusy(false);
+          return;
+        }
+
+        if (pmInput) pmInput.value = "";
+        if (billingModeInput) billingModeInput.value = "manual";
+        form.submit(); // native submit; does not re-trigger this handler
+        return;
+      }
+
+      // Auto mode: confirm setup, then submit PM
+      try {
+        if (billingModeInput) billingModeInput.value = "auto";
+
+        const billingName  = (form.dataset.billingName  || "").trim();
+        const billingEmail = (form.dataset.billingEmail || "").trim();
+
+        const { setupIntent, error } = await stripe.confirmSetup({
+          elements,
+          redirect: "if_required",
+          confirmParams: {
+            payment_method_data: {
+              billing_details: {
+                // Stripe requires name if you set fields.billingDetails.name = 'never'
+                name:  billingName || billingEmail || "Customer",
+                // If you set email='never', pass it here too
+                email: billingEmail || undefined
+              }
+            }
+          }
+        });
+
+
+        if (error) {
+          document.getElementById("payment-errors").textContent = error.message || "Payment error";
+          setFooterBusy(false);
+          return;
+        }
+
+        const pmId = setupIntent && setupIntent.payment_method;
+        if (!pmId) {
+          document.getElementById("payment-errors").textContent = "Missing payment method.";
+          setFooterBusy(false);
+          return;
+        }
+
+        if (pmInput) pmInput.value = pmId;
+        form.submit();
+      } catch (err) {
+        document.getElementById("payment-errors").textContent = (err && err.message) || "Payment error";
+        setFooterBusy(false);
+      }
+    });
+  });
+</script>

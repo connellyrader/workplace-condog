@@ -1,0 +1,50 @@
+<%# Minimal horizontal gauge for a single metric
+  Expected locals (all optional):
+    metric  - name of the metric (e.g. "Burnout")
+    value   - numeric or string percentage (e.g. 62 or "62%")
+    change  - string change vs prior (e.g. "+5%" or "-3%")
+%>
+<%
+  metric_name = (local_assigns[:metric] || "Metric").to_s
+
+  raw_value   = local_assigns[:value] || local_assigns[:percent]
+  numeric     = raw_value.to_s.delete("%").to_f
+  clamped     = numeric.clamp(0.0, 100.0)
+
+  change_str  = local_assigns[:change].to_s
+  delta       = change_str.delete("%").to_f
+  delta_dir   = if delta > 0
+                  "up"
+                elsif delta < 0
+                  "down"
+                else
+                  "flat"
+                end
+%>
+
+<div class="ai-chat-widget ai-chat-widget--gauge">
+  <div class="ai-chat-widget__header">
+    <div class="ai-chat-widget__title">
+      <%= metric_name %>
+    </div>
+    <div class="ai-chat-gauge__value">
+      <%= "#{clamped.round(1)}%" %>
+    </div>
+  </div>
+
+  <div class="ai-chat-widget__body">
+    <div class="ai-chat-gauge">
+      <div class="ai-chat-gauge__track">
+        <div class="ai-chat-gauge__fill" style="width:<%= clamped %>%;"></div>
+      </div>
+
+      <% if change_str.present? %>
+        <div class="ai-chat-gauge__delta ai-chat-gauge__delta--<%= delta_dir %>">
+          <span class="ai-chat-gauge__delta-icon"></span>
+          <span class="ai-chat-gauge__delta-text"><%= change_str %></span>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+

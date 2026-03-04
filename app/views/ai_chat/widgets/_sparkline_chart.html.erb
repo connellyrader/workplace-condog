@@ -1,0 +1,113 @@
+<%# Minimal sparkline chart for chat widgets
+  Expected locals (all optional, with sensible fallbacks):
+    title     - short title or metric name (String)
+    subtitle  - secondary label, e.g., date range (String)
+    values    - Array of numeric values already normalized to 0–100 (e.g., positive % * 100)
+    labels    - Optional array of x-axis labels (same length as values); we show only first/last
+%>
+<%
+  raw_values = Array(local_assigns[:values] || [])
+  count      = [raw_values.size, 2].max
+
+  width      = 100.0
+  height     = 40.0
+  pad_x      = 2.0
+  pad_y      = 4.0
+  inner_w    = width - pad_x * 2
+  inner_h    = height - pad_y * 2
+  step_x     = count > 1 ? (inner_w / (count - 1)) : 0.0
+
+  # If there are fewer points than count, extend with last known value
+  values = if raw_values.empty?
+    [0.0, 0.0]
+  elsif raw_values.size < count
+    raw_values + Array.new(count - raw_values.size, raw_values.last.to_f)
+  else
+    raw_values
+  end
+
+  points = values.each_with_index.map do |val, idx|
+    v = val.to_f.clamp(0.0, 100.0)
+    x = pad_x + idx * step_x
+    y = pad_y + inner_h - (v / 100.0 * inner_h)
+    [x.round(2), y.round(2)]
+  end
+
+  path_d = points.map.with_index { |(x, y), i| "#{i.zero? ? 'M' : 'L'} #{x} #{y}" }.join(" ")
+
+  latest_value = raw_values.last
+  latest_point = points.last
+
+  has_labels = local_assigns.key?(:labels) && labels.respond_to?(:[]) && labels.size >= 2
+  start_label = has_labels ? labels.first.to_s : nil
+  end_label   = has_labels ? labels.last.to_s  : nil
+%>
+
+<div class="ai-chat-widget ai-chat-widget--sparkline">
+  <div class="ai-chat-widget__header">
+    <div>
+      <div class="ai-chat-widget__title">
+        <%= (local_assigns[:title] || "Trend").to_s %>
+      </div>
+      <% if local_assigns[:subtitle].present? %>
+        <div class="ai-chat-widget__subtitle">
+          <%= subtitle %>
+        </div>
+      <% end %>
+    </div>
+    <% if !latest_value.nil? %>
+      <div class="ai-chat-widget__pill">
+        <%= "#{latest_value.to_f.round(1)}%" %>
+      </div>
+    <% end %>
+  </div>
+
+  <% if raw_values.any? %>
+    <div class="ai-chat-sparkline">
+      <svg
+        class="ai-chat-sparkline__svg"
+        viewBox="0 0 <%= width %> <%= height %>"
+        preserveAspectRatio="none"
+        role="img"
+        aria-label="Metric trend"
+      >
+        <defs>
+          <linearGradient id="sparkline-area" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stop-color="var(--ai-chat-accent, #2563eb)" stop-opacity="0.16"/>
+            <stop offset="100%" stop-color="var(--ai-chat-accent, #2563eb)" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+
+        <% if points.any? %>
+          <% first_x, first_y = points.first %>
+          <% last_x,  last_y  = points.last  %>
+          <% area_path = "M #{first_x} #{height - pad_y} L #{first_x} #{first_y} #{points.drop(1).map { |x,y| "L #{x} #{y}" }.join(' ')} L #{last_x} #{height - pad_y} Z" %>
+
+          <path d="<%= area_path %>" class="ai-chat-sparkline__area" fill="url(#sparkline-area)"/>
+          <path d="<%= path_d %>" class="ai-chat-sparkline__line" fill="none"/>
+
+          <% if latest_point %>
+            <% lx, ly = latest_point %>
+            <circle cx="<%= lx %>" cy="<%= ly %>" r="1.6" class="ai-chat-sparkline__dot"/>
+          <% end %>
+        <% end %>
+      </svg>
+
+      <% if start_label || end_label %>
+        <div class="ai-chat-sparkline__labels">
+          <span class="ai-chat-sparkline__label ai-chat-sparkline__label--start">
+            <%= start_label %>
+          </span>
+          <span class="ai-chat-sparkline__label ai-chat-sparkline__label--end">
+            <%= end_label %>
+          </span>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="ai-chat-widget__empty">
+      No data for this period.
+    </div>
+  <% end %>
+</div>
+

@@ -1,0 +1,153 @@
+#!/usr/bin/env bash
+
+# NOTE: run with command `bin/deploy_prod`
+
+set -euo pipefail
+
+APP_DIR="/home/rails/workplace"
+BRANCH="master"
+RAILS_ENV="production"
+
+SSH_USER="rails"
+SERVICE_NAME="rails.service"
+HEALTH_URL="http://127.0.0.1/health"
+
+# Whenever / cron (canonical identifier)
+WHENEVER_IDENTIFIER="/home/rails/workplace/config/schedule.rb"
+
+PROD_PRIMARY_HOST="prod1.workplace.io"
+PROD_HOSTS=(
+  "prod1.workplace.io"
+  "prod2.workplace.io"
+  "prod3.workplace.io"
+)
+
+log () { printf "\n[%s] %s\n" "$(date '+%H:%M:%S')" "$*"; }
+
+deploy_one () {
+  local host="$1"
+  local run_migrations="$2"
+
+  log "Deploying to ${host} (migrations=${run_migrations})"
+
+  ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new "${SSH_USER}@${host}" \
+    "APP_DIR='${APP_DIR}' BRANCH='${BRANCH}' RAILS_ENV='${RAILS_ENV}' SERVICE_NAME='${SERVICE_NAME}' HEALTH_URL='${HEALTH_URL}' RUN_MIGRATIONS='${run_migrations}' WHENEVER_IDENTIFIER='${WHENEVER_IDENTIFIER}' bash -s" <<'REMOTE'
+set -e
+set -o pipefail
+
+# Load RVM (avoid nounset; RVM isn't nounset-safe)
+if [ -s /etc/profile.d/rvm.sh ]; then
+  source /etc/profile.d/rvm.sh
+elif [ -s /usr/share/rvm/scripts/rvm ]; then
+  source /usr/share/rvm/scripts/rvm
+else
+  echo "[deploy] ERROR: RVM not found"
+  exit 1
+fi
+
+rvm use 3.3.0 >/dev/null
+
+cd "$APP_DIR"
+
+echo "[deploy] ruby: $(ruby -v)"
+echo "[deploy] bundler (current): $(bundle -v)"
+
+# Ensure bundler matches lockfile
+if ! gem list -i bundler -v 2.5.6 >/dev/null 2>&1; then
+  echo "[deploy] installing bundler 2.5.6"
+  gem install bundler -v 2.5.6 --no-document
+fi
+
+echo "[deploy] git fetch/reset"
+git fetch origin "$BRANCH"
+git reset --hard "origin/$BRANCH"
+
+echo "[deploy] bundle install"
+bundle _2.5.6_ install
+
+if [ "$RUN_MIGRATIONS" = "1" ]; then
+  echo "[deploy] db:migrate"
+  RAILS_ENV="$RAILS_ENV" bundle _2.5.6_ exec rails db:migrate
+else
+  echo "[deploy] db:migrate skipped"
+fi
+
+echo "[deploy] assets:precompile"
+RAILS_ENV="$RAILS_ENV" bundle _2.5.6_ exec rails assets:precompile
+
+# ✅ Only update cron/whenever on the primary host (RUN_MIGRATIONS=1)
+if [ "$RUN_MIGRATIONS" = "1" ]; then
+  echo "[deploy] reset + update cron via whenever (primary host only)"
+  # Clear legacy identifiers first to prevent duplicate blocks from identifier drift.
+  RAILS_ENV="$RAILS_ENV" bundle _2.5.6_ exec whenever --clear-crontab workplace-production || true
+  RAILS_ENV="$RAILS_ENV" bundle _2.5.6_ exec whenever --clear-crontab /home/rails/workplace/config/schedule.rb || true
+
+  # Install exactly one canonical block from config/schedule.rb.
+  RAILS_ENV="$RAILS_ENV" bundle _2.5.6_ exec whenever --update-crontab "$WHENEVER_IDENTIFIER" --set environment="$RAILS_ENV"
+else
+  echo "[deploy] skipping whenever on non-primary host"
+fi
+
+echo "[deploy] restart ${SERVICE_NAME}"
+sudo -n /usr/bin/systemctl restart rails.service
+
+echo "[deploy] verify systemd"
+state="$(sudo -n /usr/bin/systemctl is-active rails.service || true)"
+if [ "$state" != "active" ]; then
+  echo "[deploy] ERROR: rails.service is not active (state=$state)"
+  sudo -n /usr/bin/systemctl status rails.service || true
+  exit 1
+fi
+
+echo "[deploy] verify /health"
+ok=0
+for i in $(seq 1 20); do
+  if curl -fsS "$HEALTH_URL" >/dev/null; then ok=1; break; fi
+  sleep 1
+done
+
+if [ "$ok" != "1" ]; then
+  echo "[deploy] ERROR: Health check failed: $HEALTH_URL"
+  sudo -n /usr/bin/systemctl status rails.service || true
+  exit 1
+fi
+
+echo "[deploy] done"
+REMOTE
+}
+
+report_all () {
+  log "Health report (systemd + /health)"
+  printf "%-28s %-10s %-10s\n" "HOST" "SYSTEMD" "HEALTH"
+
+  for host in "${PROD_HOSTS[@]}"; do
+    sys="FAIL"
+    health="FAIL"
+
+    # systemd
+    if ssh -o BatchMode=yes "${SSH_USER}@${host}" "sudo -n /usr/bin/systemctl is-active rails.service" >/dev/null 2>&1; then
+      sys="$(ssh -o BatchMode=yes "${SSH_USER}@${host}" "sudo -n /usr/bin/systemctl is-active rails.service" 2>/dev/null | tr -d '\r')"
+    fi
+
+    # /health
+    if ssh -o BatchMode=yes "${SSH_USER}@${host}" "curl -fsS ${HEALTH_URL} >/dev/null" >/dev/null 2>&1; then
+      health="OK"
+    fi
+
+    printf "%-28s %-10s %-10s\n" "$host" "$sys" "$health"
+  done
+}
+
+log "Starting production deploy (branch=${BRANCH})"
+log "Primary host (migrations): ${PROD_PRIMARY_HOST}"
+log "Hosts: ${PROD_HOSTS[*]}"
+
+deploy_one "${PROD_PRIMARY_HOST}" "1"
+
+for host in "${PROD_HOSTS[@]}"; do
+  [ "$host" = "$PROD_PRIMARY_HOST" ] && continue
+  deploy_one "$host" "0"
+done
+
+report_all
+log "Deploy complete."

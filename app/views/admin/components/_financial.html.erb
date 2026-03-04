@@ -1,0 +1,40 @@
+<article class="admin-card">
+  <h3>Financial Overview — Monthly Recurring Revenue</h3>
+  <canvas id="mrr-chart" class="admin-chart"></canvas>
+  <div class="fin-kpis">
+    <div class="fin-kpi">
+      <div class="fin-kpi-label">Active Customers</div>
+      <div class="fin-kpi-value">183</div>
+    </div>
+    <div class="fin-kpi">
+      <div class="fin-kpi-label">ARPU</div>
+      <div class="fin-kpi-value">$131</div>
+    </div>
+    <div class="fin-kpi">
+      <div class="fin-kpi-label">Churn</div>
+      <div class="fin-kpi-value fin-kpi-warn">3.2%</div>
+    </div>
+  </div>
+</article>
+
+<script>
+(() => {
+  const ctx = document.getElementById('mrr-chart');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+      datasets: [{
+        label: 'MRR ($)',
+        data: [18200, 18750, 19400, 20500, 21400, 22100, 22810, 23890, 24440, 25120, 25800, 26810],
+        backgroundColor: 'rgba(34,197,94,.5)',
+        borderColor: 'rgba(34,197,94,1)', borderWidth: 1, borderRadius: 6
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: { y: { grid: { color:'#223' } }, x:{ grid:{ display:false } } }
+    }
+  });
+})();
+</script>

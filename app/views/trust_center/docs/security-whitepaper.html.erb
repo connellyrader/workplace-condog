@@ -1,0 +1,130 @@
+<%# app/views/trust_center/docs/security-whitepaper.html.erb %>
+
+<div class="trust-doc">
+  <div class="trust-doc-header">
+    <div class="trust-doc-breadcrumb">
+      <%= link_to "Trust Center", trust_home_url, class: "trust-doc-breadcrumb-link" %>
+      <span class="trust-doc-breadcrumb-sep">/</span>
+      <span class="trust-doc-breadcrumb-current">Security Whitepaper</span>
+    </div>
+
+    <div class="trust-doc-title-row">
+      <%= image_tag "logo.png", class: "trust-doc-logo", alt: "Workplace.io" %>
+      <div class="trust-doc-title">Security Whitepaper</div>
+    </div>
+
+    <div class="trust-doc-subtitle">
+      A consolidated overview of Workplace.io security practices and architecture for customer reviews. This document is customer-facing and
+      intentionally excludes proprietary analytics details.
+    </div>
+
+    <div class="trust-doc-updated">Last updated: <%= @trust_center_stamp %></div>
+  </div>
+
+  <div class="trust-doc-body">
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Executive summary</div>
+      <div class="trust-doc-text">
+        Workplace.io is a SaaS platform designed to generate organization-level culture insights from collaboration signals. Security controls are
+        designed around encryption, least privilege access, monitored operations, and controlled change management. Message content is processed
+        briefly for analysis and then removed; derived metadata and aggregates are retained for reporting.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">System architecture</div>
+      <div class="trust-doc-text">
+        The application is hosted on DigitalOcean (droplets behind a load balancer, managed database). Classification and culture inference workloads
+        run on AWS using Amazon SageMaker, separated from the application serving layer.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Architecture & Data Flow →", trust_doc_url_for("architecture"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Data handling</div>
+      <ul class="trust-doc-list">
+        <li><strong>Short-lived content:</strong> message content processed briefly and then removed.</li>
+        <li><strong>Derived results:</strong> structured metadata and aggregates retained for dashboards and trends.</li>
+        <li><strong>Workspace isolation:</strong> access scoped by workspace membership and roles.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Data Handling & Retention →", trust_doc_url_for("data-handling"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Access control</div>
+      <div class="trust-doc-text">
+        Workplace.io uses role-based access control for administrative actions (integrations, billing, membership management, archiving).
+        Internal access to production systems is restricted using least privilege practices.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Access Controls →", trust_doc_url_for("access-controls"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Encryption</div>
+      <div class="trust-doc-text">
+        Data is protected in transit using TLS and protected at rest using encryption. Integration credentials are treated as sensitive and
+        access-restricted.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Encryption →", trust_doc_url_for("encryption"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Monitoring and incident response</div>
+      <div class="trust-doc-text">
+        We monitor service health and security-relevant signals and maintain an incident response process for triage, containment, remediation,
+        and customer communication when warranted.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Logging & Monitoring →", trust_doc_url_for("logging-monitoring"), class: "trust-doc-link" %>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <%= link_to "Incident Response →", trust_doc_url_for("incident-response"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Secure development</div>
+      <div class="trust-doc-text">
+        Changes follow a controlled release process with review, testing, and post-release monitoring to reduce risk and detect regressions.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Secure Development →", trust_doc_url_for("secure-development"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Vendor and subprocessor transparency</div>
+      <div class="trust-doc-text">
+        We maintain a list of subprocessors and describe their roles in hosting, communications, billing, and inference workloads.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Subprocessors →", trust_doc_url_for("subprocessors"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-footer">
+      <div class="trust-doc-footer-title">Need a PDF version?</div>
+      <div class="trust-doc-footer-text">
+        If your procurement process requires a downloadable document, contact us and we’ll provide an appropriate format.
+      </div>
+      <div class="trust-doc-footer-actions">
+        <%= link_to "Contact Trust & Security", trust_doc_url_for("contact"), class: "trust-doc-button" %>
+        <%= link_to "Back to Trust Center", trust_home_url, class: "trust-doc-button trust-doc-button--secondary" %>
+      </div>
+    </div>
+  </div>
+</div>

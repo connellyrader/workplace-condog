@@ -1,0 +1,54 @@
+<!-- app/views/dashboard/components/_metric_box.html.erb -->
+<%
+  start_param = @range_start.strftime("%Y-%m-%d")
+  end_param   = @range_end.strftime("%Y-%m-%d")
+  group_param = @group_scope.presence || @current_group_id.presence || params[:group_id].presence || "all"
+%>
+
+<%= link_to metric_path(metric) do %>
+  <div class="dashboard-box">
+    <div class="dashboard-box-title"><%= metric.name %></div>
+    <%= icon metric.name.parameterize, class_name: "dashboard-box-icon" %>
+    <div class="dashboard-box-subtitle"><%= metric.short_description %></div>
+
+    <%
+      data = (@metric_card_data || {})[metric.id] || {}
+      points = data[:points] || [50, 50]
+      score_available = !!data[:score_available]
+      score = score_available ? data[:score_int].to_i.to_s : "--"
+      metric_delta_abs = data[:metric_delta_abs].to_i
+      arrow_dir = data[:arrow_dir] || "up"
+      color_dir = data[:color_dir] || "up"
+      show_trend = !!data[:show_trend]
+      enough_data = !!data[:enough_data]
+      has_any_data = !!data[:has_any_data]
+    %>
+
+    <div class="dashboard-box-number">
+      <% unless score_available %>
+        <div class="metric-score-help" data-tooltip="Not enough data for this metric within the selected date range to provide a culture score.">
+          Not enough data
+        </div>
+      <% end %>
+
+      <span class="metric-value"><%= score %></span>
+
+      <% if show_trend %>
+        <div class="trend-<%= color_dir %>">
+          <%= icon "#{arrow_dir}-arrow" %> <%= metric_delta_abs.to_i %>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="dashboard-box-chart-container">
+      <%= render "dashboard/components/sparkline", points: points %>
+    </div>
+
+    <% if enough_data && has_any_data %>
+      <div class="dashboard-box-date-start"><%= @range_start.strftime("%b %-d %Y") %></div>
+      <div class="dashboard-box-date-end">
+        <%= @range_end == Time.zone.today ? "Today" : @range_end.strftime("%b %-d") %>
+      </div>
+    <% end %>
+  </div>
+<% end %>

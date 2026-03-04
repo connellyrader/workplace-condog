@@ -1,0 +1,38 @@
+.masquerade-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: var(--slate-50);
+  font-size: 13px;
+  border-radius: 10px;
+  margin: 10px 16px 0 16px;
+}
+
+.masquerade-banner strong {
+  font-weight: 600;
+}
+
+.masquerade-banner-exit {
+  color: var(--slate-0);
+  background: rgba(239, 68, 68, 0.6);
+  border: 1px solid rgba(239, 68, 68, 0.7);
+  padding: 6px 10px;
+  border-radius: 8px;
+  text-decoration: none;
+}
+
+.masquerade-banner-exit:hover {
+  background: rgba(239, 68, 68, 0.85);
+}
+
+.masquerade-inline-form {
+  margin: 0;
+}
+.masquerade-inline-form .masquerade-banner-exit {
+  font: inherit;
+  cursor: pointer;
+}

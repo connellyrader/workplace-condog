@@ -1,0 +1,67 @@
+<% provide(:title, 'Partner Sign Up') %>
+
+<div class="onboarding-bg"></div>
+<div class="devise-content">
+  <%= image_tag('logo', class: "devise-logo") %>
+  <div class="devise-title">Create a Partner Account</div>
+  <div class="devise-subtitle">Access your partner dashboard and resources</div>
+
+  <% if resource.errors.any? %>
+    <div style="margin-top:16px; text-align:left; border:1px solid #fee2e2; background:#fff7f7; border-radius:8px; padding:12px;">
+      <strong><%= pluralize(resource.errors.count, "error") %></strong> prevented the form from saving:
+      <ul style="margin:8px 0 0 18px;">
+        <% resource.errors.full_messages.each do |msg| %><li><%= msg %></li><% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <%= form_with model: resource, url: partner_registration_path, local: true do |f| %>
+    <div style="margin-top:24px; text-align:left; display:grid; gap:12px;">
+      <div>
+        <%= f.label :first_name, class: "pp-muted" %>
+        <%= f.text_field :first_name, class: "pp-input", required: true, autofocus: true %>
+      </div>
+
+      <div>
+        <%= f.label :last_name, class: "pp-muted" %>
+        <%= f.text_field :last_name, class: "pp-input", required: true %>
+      </div>
+
+      <div>
+        <%= f.label :email, class: "pp-muted" %>
+        <%= f.email_field :email, class: "pp-input", autocomplete: "email", required: true %>
+      </div>
+
+      <div>
+        <div class="pp-muted" style="display:flex; justify-content:space-between; align-items:center;">
+          <label for="user_password">Password</label>
+          <% if defined?(@minimum_password_length) && @minimum_password_length %>
+            <small>min <%= @minimum_password_length %> chars</small>
+          <% end %>
+        </div>
+        <%= f.password_field :password, class: "pp-input", autocomplete: "new-password", required: true %>
+      </div>
+
+      <div>
+        <%= f.label :password_confirmation, class: "pp-muted" %>
+        <%= f.password_field :password_confirmation, class: "pp-input", autocomplete: "new-password", required: true %>
+      </div>
+
+      <div style="text-align:center; margin-top:8px;">
+        <%= f.submit "Sign up", class: "pp-btn", data: { turbo: false } %>
+      </div>
+    </div>
+  <% end %>
+
+  <div style="margin-top:16px;">
+    Already have an account?
+    <%= link_to 'Sign in here', new_partner_session_path, class: "pp-link" %>
+  </div>
+
+  <div class="devise-footer">
+    By signing up you agree to our
+    <%= link_to "Privacy Policy", "/privacy", class: "pp-link", target: "_blank", rel: "noopener" %>
+    and
+    <%= link_to "Terms of Use", "/terms", class: "pp-link", target: "_blank", rel: "noopener" %>.
+  </div>
+</div>

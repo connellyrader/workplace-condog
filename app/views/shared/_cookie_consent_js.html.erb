@@ -1,0 +1,69 @@
+<script>
+// Shared cookie consent helpers (client-side)
+(function() {
+  if (window.WorkplaceConsent) return; // idempotent
+
+  function getCookie(name) {
+    const m = document.cookie.match(
+      new RegExp(
+        '(?:^|; )' +
+          name.replace(/([.$?*|{}()\[\]\\\/\+^])/g, '\\$1') +
+          '=([^;]*)'
+      )
+    );
+    return m ? decodeURIComponent(m[1]) : null;
+  }
+
+  function setCookie(name, value, days) {
+    const d = new Date();
+    d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+    document.cookie = `${name}=${encodeURIComponent(value)}; expires=${d.toUTCString()}; path=/; SameSite=Lax`;
+  }
+
+  function parseJson(raw) {
+    if (!raw) return null;
+    try { return JSON.parse(raw); } catch (_) { return null; }
+  }
+
+  window.WorkplaceConsent = {
+    cookieName: "wp_cookie_consent_v1",
+    cookieDays: 365,
+    policyVersion: 1,
+
+    read: function() {
+      return parseJson(getCookie(this.cookieName));
+    },
+
+    canUse: function(consent) {
+      return !!(consent && consent.policy_version === this.policyVersion);
+    },
+
+    write: function(consent) {
+      const payload = {
+        v: 1,
+        policy_version: this.policyVersion,
+        updated_at: new Date().toISOString(),
+        necessary: true,
+        analytics: !!consent.analytics,
+        functional: true,
+        marketing: !!consent.marketing
+      };
+
+      setCookie(this.cookieName, JSON.stringify(payload), this.cookieDays);
+      this.expose(payload);
+      return payload;
+    },
+
+    expose: function(payload) {
+      window.workplaceConsent = payload;
+      window.workplaceConsentAllowed = function(category) {
+        const c = window.workplaceConsent;
+        if (!c) return false;
+        if (category === 'necessary') return true;
+        if (category === 'functional') return true;
+        return !!c[category];
+      };
+    }
+  };
+})();
+</script>

@@ -1,0 +1,213 @@
+<%= form_with url: billing_add_card_path,
+              method: :post,
+              local: false,
+              id: "billing-card-form",
+              data: { turbo: false },
+              html: {
+                class: "js-billing-card-form",
+                "data-stripe-publishable-key": ENV["STRIPE_PUBLISHABLE_KEY"],
+                "data-setup-intent-client-secret": @setup_intent_client_secret,
+                "data-billing-name": current_user.full_name.to_s,
+                "data-billing-email": current_user.email.to_s
+              } do %>
+
+  <div class="invite-modal js-billing-card-modal" style="display:none; overflow-y: scroll;">
+    <div class="invite-modal-heading">
+      <div class="invite-modal-heading-left">
+        <div class="invite-modal-title">Add payment method</div>
+        <div class="invite-modal-subtitle">
+          This payment method will be saved to your workspace billing profile.
+        </div>
+      </div>
+      <div class="invite-modal-heading-close js-billing-card-close">
+        <%= icon "x-mark" %>
+      </div>
+    </div>
+
+    <div style="margin-top:16px;">
+      <div id="billing-payment-element"></div>
+      <div id="billing-payment-errors" role="alert" style="margin-top:10px; font-size:13px; color:#b00020;"></div>
+    </div>
+
+    <div class="invite-modal-footer">
+      <div class="invite-modal-cancel js-billing-card-close">Cancel</div>
+      <div class="invite-modal-send js-billing-card-submit">Save payment method</div>
+    </div>
+  </div>
+<% end %>
+
+<div class="invite-modal-backdrop js-billing-card-backdrop" style="display:none;"></div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const modal    = document.querySelector(".js-billing-card-modal");
+    const backdrop = document.querySelector(".js-billing-card-backdrop");
+
+    // Updated selector (you can keep .js-billing-add-card if you don't rename the button)
+    const openBtn  = document.querySelector(".js-billing-add-payment-method") || document.querySelector(".js-billing-add-card");
+
+    const closers  = document.querySelectorAll(".js-billing-card-close");
+    const submitBtn= document.querySelector(".js-billing-card-submit");
+    const form     = document.getElementById("billing-card-form");
+    const errorsEl = document.getElementById("billing-payment-errors");
+    const csrf     = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content");
+
+    if (!modal || !backdrop || !openBtn || !form) return;
+
+    let stripe = null;
+    let elements = null;
+    let paymentElement = null;
+    let initialized = false;
+
+    function show() {
+      modal.style.display = "flex";
+      backdrop.style.display = "block";
+      initStripeOnce();
+    }
+
+    function hide() {
+      modal.style.display = "none";
+      backdrop.style.display = "none";
+      if (errorsEl) errorsEl.textContent = "";
+    }
+
+    function initStripeOnce() {
+      if (initialized) return;
+      initialized = true;
+
+      stripe = Stripe(form.dataset.stripePublishableKey);
+
+      const appearance = {
+        theme: 'none',
+        variables: {
+          colorText: '#94A3B8',
+          colorBackground: '#FFFFFF',
+          colorBorder: '#E2E8F0',
+          borderRadius: '12px'
+        },
+        rules: {
+          '.Input': {
+            backgroundColor: '#FFFFFF',
+            color: '#94A3B8',
+            border: '1px solid #E2E8F0',
+            boxShadow: '0 0 8px 2px rgba(0,0,0,0.04)'
+          },
+          '.Input::placeholder': { color: '#94A3B8' },
+          '.Input:focus, .Input--focus, .Input:focus-visible': {
+            outline: 'none',
+            boxShadow: '0 0 8px 2px rgba(0,0,0,0.04)',
+            borderColor: '#E2E8F0'
+          },
+          '.Block': {
+            border: '1px solid #E2E8F0',
+            backgroundColor: '#FFFFFF',
+            borderRadius: '12px',
+            boxShadow: '0 0 8px 2px rgba(0,0,0,0.04)'
+          },
+          '.Block:focus, .Block--focus': {
+            outline: 'none',
+            boxShadow: '0 0 8px 2px rgba(0,0,0,0.04)'
+          }
+        }
+      };
+
+      elements = stripe.elements({
+        clientSecret: form.dataset.setupIntentClientSecret,
+        appearance
+      });
+
+      // ✅ Allow ACH (us_bank_account) + card
+      // Note: this only works if your SetupIntent includes ["card", "us_bank_account"]
+      paymentElement = elements.create('payment', {
+        fields: {
+          billingDetails: {
+            name: 'never',
+            email: 'never'
+          }
+        },
+        paymentMethodOrder: ['card', 'us_bank_account'],
+        wallets: { applePay: 'never', googlePay: 'never' }
+      });
+
+      paymentElement.mount("#billing-payment-element");
+    }
+
+    openBtn.addEventListener("click", show);
+    backdrop.addEventListener("click", hide);
+    closers.forEach(el => el.addEventListener("click", hide));
+
+    document.addEventListener("keydown", function(e) {
+      if (e.key === "Escape" || e.key === "Esc") hide();
+    });
+
+    if (submitBtn) {
+      submitBtn.addEventListener("click", function() {
+        if (!stripe || !elements) return;
+
+        submitBtn.classList.add("is-busy");
+
+        const billingName  = (form.dataset.billingName  || "").trim();
+        const billingEmail = (form.dataset.billingEmail || "").trim();
+
+        // Return URL for any required redirects (ACH verification, etc.)
+        const returnUrl = window.location.href;
+
+        stripe.confirmSetup({
+          elements,
+          redirect: "if_required",
+          confirmParams: {
+            return_url: returnUrl,
+            payment_method_data: {
+              billing_details: {
+                name:  billingName || billingEmail || "Customer",
+                email: billingEmail || undefined
+              }
+            }
+          }
+        }).then(function(result) {
+          const err = result.error;
+          const setupIntent = result.setupIntent;
+
+          if (err) {
+            if (errorsEl) errorsEl.textContent = err.message || "Payment error";
+            submitBtn.classList.remove("is-busy");
+            return;
+          }
+
+          const pmId = setupIntent && setupIntent.payment_method;
+          if (!pmId) {
+            if (errorsEl) errorsEl.textContent = "Missing payment method.";
+            submitBtn.classList.remove("is-busy");
+            return;
+          }
+
+          fetch(form.action, {
+            method: "POST",
+            headers: {
+              "Accept": "application/json",
+              "Content-Type": "application/json",
+              ...(csrf ? { "X-CSRF-Token": csrf } : {})
+            },
+            credentials: "same-origin",
+            body: JSON.stringify({ payment_method: pmId, set_default: true })
+          })
+          .then(res => res.json().then(data => ({ res, data })))
+          .then(({ res, data }) => {
+            if (!res.ok || !data.ok) throw new Error(data.error || "add_failed");
+            showToast("Payment method added", "Your payment method has been saved.", false);
+            hide();
+            window.location.reload();
+          })
+          .catch(() => {
+            showToast("Error", "Unable to add payment method. Please try again.", true);
+            submitBtn.classList.remove("is-busy");
+          });
+        }).catch(function() {
+          showToast("Error", "Unable to add payment method. Please try again.", true);
+          submitBtn.classList.remove("is-busy");
+        });
+
+      });
+    }
+  });
+</script>

@@ -1,0 +1,152 @@
+<%# app/views/trust_center/docs/ai-use.html.erb %>
+
+<div class="trust-doc">
+  <div class="trust-doc-header">
+    <div class="trust-doc-breadcrumb">
+      <%= link_to "Trust Center", trust_home_url, class: "trust-doc-breadcrumb-link" %>
+      <span class="trust-doc-breadcrumb-sep">/</span>
+      <span class="trust-doc-breadcrumb-current">AI Use Policy</span>
+    </div>
+
+    <div class="trust-doc-title-row">
+      <%= image_tag "logo.png", class: "trust-doc-logo", alt: "Workplace.io" %>
+      <div class="trust-doc-title">AI Use Policy</div>
+    </div>
+
+    <div class="trust-doc-subtitle">
+      How Workplace.io uses automated analysis to generate culture insights, how we limit exposure of sensitive data, and the guardrails
+      we apply to reduce misuse. This page intentionally excludes proprietary model and taxonomy details.
+    </div>
+
+    <div class="trust-doc-updated">Last updated: <%= @trust_center_stamp %></div>
+  </div>
+
+  <div class="trust-doc-body">
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">At a glance</div>
+      <div class="trust-doc-bullets">
+        <ul class="trust-doc-bullet-list">
+          <li><strong>Purpose-limited:</strong> automated analysis is used to generate organizational insights and trends.</li>
+          <li><strong>Short-lived content:</strong> message content is processed briefly for analysis and then removed.</li>
+          <li><strong>Derived metadata retained:</strong> structured results and aggregates are retained to power reporting.</li>
+          <li><strong>Guardrails:</strong> role-based access and acceptable-use restrictions reduce surveillance risk.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">What we mean by “AI”</div>
+      <div class="trust-doc-text">
+        Workplace.io uses automated classification and scoring techniques to map collaboration signals into structured, research-informed metrics.
+        We do not disclose proprietary model architecture, training data, or internal signal taxonomy in public documentation.
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">What automated analysis is used for</div>
+      <div class="trust-doc-text">
+        Automated analysis supports product features such as metric trends, aggregate summaries, and structured signal outputs used for reporting.
+        It is designed for organization-level insight rather than individual monitoring.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li>Generate aggregate metrics and trends at the workspace and group level.</li>
+        <li>Produce structured outputs used to power dashboards and comparisons.</li>
+        <li>Support operational quality checks and consistency of reporting over time.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Inputs and outputs</div>
+      <div class="trust-doc-text">
+        Automated analysis may temporarily process message content and related metadata needed for analysis. Outputs are structured results and
+        aggregates used for reporting.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Inputs (short-lived):</strong> message content and limited metadata required for analysis.</li>
+        <li><strong>Outputs (retained):</strong> derived metadata (structured results) and aggregated reporting data.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Data Handling & Retention →", trust_doc_url_for("data-handling"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Where inference runs</div>
+      <div class="trust-doc-text">
+        Classification and culture inference workloads run on AWS using Amazon SageMaker, separated from the application serving layer hosted
+        on DigitalOcean. We restrict access paths and credentials used to operate these workloads.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Architecture & Data Flow →", trust_doc_url_for("architecture"), class: "trust-doc-link" %>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <%= link_to "Subprocessors →", trust_doc_url_for("subprocessors"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Interactive chat (optional)</div>
+      <div class="trust-doc-text">
+        Workplace.io includes an optional interactive chat feature that helps users interpret dashboards and metrics. When used, this feature may
+        send a user’s prompt and limited dashboard context to a third-party AI provider (currently OpenAI) in order to generate a response.
+        This chat feature is separate from our culture classification system, which runs on AWS using Amazon SageMaker.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>User-initiated:</strong> chat runs only when a user submits a prompt or interacts with chat features.</li>
+        <li><strong>Minimized context:</strong> we limit what is sent to what is needed to answer the user’s request.</li>
+        <li><strong>Sensitive input:</strong> we recommend users avoid entering sensitive personal data into free-form prompts.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Subprocessors →", trust_doc_url_for("subprocessors"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Guardrails and intended use</div>
+      <div class="trust-doc-text">
+        Workplace.io is intended to support organizational health insights. We encourage configurations and access patterns that reduce the
+        risk of individual surveillance and misuse.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Role-based access:</strong> administrative controls are restricted to authorized roles.</li>
+        <li><strong>Aggregation:</strong> reporting emphasizes group/workspace-level results.</li>
+        <li><strong>Customer control:</strong> admins choose which sources to connect and can disconnect integrations.</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "Acceptable Use (Culture Insights) →", trust_doc_url_for("acceptable-use"), class: "trust-doc-link" %>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <%= link_to "Aggregation & Anonymity →", trust_doc_url_for("anonymity-aggregation"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">Quality and change management</div>
+      <div class="trust-doc-text">
+        We manage changes to scoring and outputs to preserve consistency and reliability. We perform evaluation and operational checks appropriate
+        to the platform’s maturity and customer needs.
+      </div>
+
+      <div class="trust-doc-links">
+        <%= link_to "Model Governance →", trust_doc_url_for("model-governance"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-footer">
+      <div class="trust-doc-footer-title">Questions about automated analysis?</div>
+      <div class="trust-doc-footer-text">
+        Contact us for procurement reviews or deeper discussion of safeguards and intended use.
+      </div>
+      <div class="trust-doc-footer-actions">
+        <%= link_to "Contact Trust & Security", trust_doc_url_for("contact"), class: "trust-doc-button" %>
+        <%= link_to "Back to Trust Center", trust_home_url, class: "trust-doc-button trust-doc-button--secondary" %>
+      </div>
+    </div>
+  </div>
+</div>

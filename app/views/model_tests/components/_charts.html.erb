@@ -1,0 +1,127 @@
+<article class="mts-card">
+  <h3 class="mts-title">Subcategory Breakdown</h3>
+  <canvas id="mts-subcat-quality" class="adm-chart"></canvas>
+  <div id="mts-subcat-quality-empty" class="mts-empty" style="display:none;">No subcategory data available.</div>
+</article>
+
+<article class="mts-card">
+  <h3 class="mts-title">Overall Detection Quality & Indicator Polarity</h3>
+  <div class="mts-mini-grid">
+    <div>
+      <canvas id="mts-overall-quality" class="adm-chart"></canvas>
+      <div id="mts-overall-quality-empty" class="mts-empty" style="display:none;">No detections to summarize yet.</div>
+    </div>
+    <div>
+      <canvas id="mts-polarity" class="adm-chart" style="float:right;"></canvas>
+      <div id="mts-polarity-empty" class="mts-empty" style="display:none;">No indicator polarity data.</div>
+    </div>
+  </div>
+</article>
+
+<script>
+(() => {
+  const bins     = <%= (@quality_bins || Array.new(11,0)).to_json.html_safe %>;  // 0..10 buckets
+  const subLabs  = <%= (@subcat_labels || []).to_json.html_safe %>;
+  const subCnt  = <%= (@subcat_counts || []).to_json.html_safe %>;
+  const subMax   = <%= (@subcat_suggested_max || 100).to_json.html_safe %>;
+  const subStep  = <%= (@subcat_step || 10).to_json.html_safe %>;
+  const polNeg   = <%= (@polarity_neg || 0).to_i %>;
+  const polPos   = <%= (@polarity_pos || 0).to_i %>;
+
+  function showEmpty(canvasId, emptyId, msg) {
+    const cv = document.getElementById(canvasId);
+    const em = document.getElementById(emptyId);
+    if (!cv || !em) return;
+    if (msg) em.textContent = msg;
+    cv.style.display = 'none';
+    em.style.display = 'grid';
+  }
+
+  // Overall distribution (0..10 integer scale)
+  const totalBins = (bins || []).reduce((a,b)=>a+(+b||0), 0);
+  if (totalBins === 0) {
+    showEmpty('mts-overall-quality', 'mts-overall-quality-empty', 'No detections to summarize yet.');
+  } else {
+    new Chart(document.getElementById('mts-overall-quality'), {
+      type: 'bar',
+      data: {
+        labels: ['0','1','2','3','4','5','6','7','8','9','10'],
+        datasets: [{
+          label: 'Detections',
+          data: bins,
+          backgroundColor: 'rgba(78,168,255,.6)',
+          borderColor: 'rgba(78,168,255,1)',
+          borderWidth: 1, borderRadius: 6
+        }]
+      },
+      options: {
+        plugins: { legend: { display:false } },
+        scales: { y:{ grid:{ color:'#223' } }, x:{ grid:{ display:false } } }
+      }
+    });
+  }
+
+  // Subcategory avg quality
+  if (!subLabs || subLabs.length === 0 || !subCnt || subCnt.length === 0) {
+    showEmpty('mts-subcat-quality', 'mts-subcat-quality-empty', 'No subcategory data available.');
+  } else {
+    new Chart(document.getElementById('mts-subcat-quality'), {
+      type: 'bar',
+      data: {
+        labels: subLabs,
+        datasets: [{
+          label: 'Detections',
+          data: subCnt,
+          backgroundColor: 'rgba(99,102,241,.55)',
+          borderColor: 'rgba(99,102,241,1)',
+          borderWidth: 1, borderRadius: 6
+        }]
+      },
+      options: {
+        plugins: { legend: { display:false } },
+        scales: {
+          y:{
+            suggestedMin: 0,
+            suggestedMax: <%= (@subcat_suggested_max || 10) %>,
+            ticks: { stepSize: <%= (@subcat_step || 1) %> },
+            grid:{ color:'#223' }
+          },
+          x:{ grid:{ display:false } }
+        }
+      }
+    });
+  }
+
+  // Polarity
+  if ((polNeg + polPos) === 0) {
+    showEmpty('mts-polarity', 'mts-polarity-empty', 'No indicator polarity data.');
+  } else {
+    new Chart(document.getElementById('mts-polarity'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Negative','Positive'],
+        datasets: [{ data: [polNeg, polPos], backgroundColor: ['#D64F54','#84BA6A'] }]
+      },
+      options: {
+        cutout: '62%',
+        plugins: { legend: { position:'bottom', labels:{ color:'#cbd5e1' } } }
+      }
+    });
+  }
+})();
+</script>
+
+<style>
+.mts-empty {
+  min-height: 200px;
+  display: grid;
+  place-items: center;
+  color: #9aa7b5;
+  background: rgba(255,255,255,0.02);
+  border: 1px dashed #2a3240;
+  border-radius: 10px;
+  margin-top: 8px;
+  font-size: 13px;
+  letter-spacing: .2px;
+}
+</style>

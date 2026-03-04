@@ -1,0 +1,72 @@
+<%# app/views/trust_center/docs/security-questionnaire.html.erb %>
+
+<div class="trust-doc">
+  <div class="trust-doc-header">
+    <div class="trust-doc-breadcrumb">
+      <%= link_to "Trust Center", trust_home_url, class: "trust-doc-breadcrumb-link" %>
+      <span class="trust-doc-breadcrumb-sep">/</span>
+      <span class="trust-doc-breadcrumb-current">Security Questionnaire</span>
+    </div>
+
+    <div class="trust-doc-title-row">
+      <%= image_tag "logo.png", class: "trust-doc-logo", alt: "Workplace.io" %>
+      <div class="trust-doc-title">Security Questionnaire</div>
+    </div>
+
+    <div class="trust-doc-subtitle">
+      How to submit a security questionnaire and what information we provide during due diligence.
+    </div>
+
+    <div class="trust-doc-updated">Last updated: <%= @trust_center_stamp %></div>
+  </div>
+
+  <div class="trust-doc-body">
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">What to send</div>
+      <div class="trust-doc-text">
+        Send your questionnaire and any required formats (spreadsheet, portal link, or PDF). Include your timeline and the scope of your review.
+      </div>
+
+      <ul class="trust-doc-list">
+        <li><strong>Email:</strong> <a class="trust-doc-link" href="mailto:security@workplace.io">security@workplace.io</a></li>
+        <li><strong>Recommended:</strong> include your company name, primary contact, and target completion date.</li>
+        <li><strong>Scope:</strong> note whether you will connect Slack and/or Microsoft Teams and whether SSO will be used.</li>
+      </ul>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">What we typically provide</div>
+      <ul class="trust-doc-list">
+        <li>Trust Center documentation (security overview, encryption, access controls, logging/monitoring, incident response).</li>
+        <li>Subprocessor list and architecture summary (DigitalOcean hosting, AWS SageMaker inference).</li>
+        <li>CAIQ-aligned responses upon request.</li>
+        <li>Roadmap status for SOC 2 / ISO 27001 (not attested/certified yet).</li>
+      </ul>
+
+      <div class="trust-doc-links">
+        <%= link_to "CSA CAIQ →", trust_doc_url_for("caiq"), class: "trust-doc-link" %>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <%= link_to "Security Whitepaper →", trust_doc_url_for("security-whitepaper"), class: "trust-doc-link" %>
+      </div>
+    </div>
+
+    <div class="trust-doc-section">
+      <div class="trust-doc-section-title">How we handle proprietary details</div>
+      <div class="trust-doc-text">
+        We support due diligence without exposing proprietary analytics details. We can describe controls, data handling, and operational practices
+        at the level needed for risk review, while keeping model architecture, training data, and internal taxonomy confidential.
+      </div>
+    </div>
+
+    <div class="trust-doc-footer">
+      <div class="trust-doc-footer-title">Submit a questionnaire</div>
+      <div class="trust-doc-footer-text">
+        Email security@workplace.io and we’ll confirm receipt and next steps.
+      </div>
+      <div class="trust-doc-footer-actions">
+        <a class="trust-doc-button" href="mailto:security@workplace.io">Email security@workplace.io</a>
+        <%= link_to "Back to Trust Center", trust_home_url, class: "trust-doc-button trust-doc-button--secondary" %>
+      </div>
+    </div>
+  </div>
+</div>

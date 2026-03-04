@@ -1,0 +1,24 @@
+<div class="py-5 text-light">
+  <h1 class="mb-4"><%= @workspace.name %></h1>
+  <p class="text-secondary"><%= @workspace.domain %>.slack.com</p>
+
+  <div class="mb-4">
+    <%= link_to "View Messages",
+                workspace_messages_path(@workspace),
+                class: "btn btn-primary me-2" %>
+
+    <% uw = current_user.workspace_users.find_by(workspace: @workspace) %>
+    <% if uw&.owner? %>
+      <%= link_to "View Members",
+                  workspace_members_path(@workspace),
+                  class: "btn btn-secondary me-2" %>
+      <%= link_to "Manage Billing",
+                  manage_billing_workspace_path(@workspace),
+                  class: "btn btn-secondary" %>
+    <% end %>
+  </div>
+
+  <%= link_to "← Back to Dashboard",
+              root_path,
+              class: "btn btn-outline-light" %>
+</div>

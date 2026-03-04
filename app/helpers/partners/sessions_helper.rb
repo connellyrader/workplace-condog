@@ -1,0 +1,2 @@
+module Partners::SessionsHelper
+end

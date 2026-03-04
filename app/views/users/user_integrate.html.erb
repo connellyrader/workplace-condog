@@ -1,0 +1,70 @@
+<!-- app/views/invites/show.html.erb -->
+<div class="onboarding-bg"></div>
+
+<a href="<%= settings_path %>">
+  <div class="onboarding-logo"><%= image_tag "logo.png" %></div>
+</a>
+<a href="<%= settings_path %>"><%= icon "x-mark", class_name: "onboarding-close" %></a>
+
+<div class="onboarding-content">
+
+    <div class="info-card-images">
+      <div class="info-card-icon" style="background-image: url('<%= image_path("apps/workplace.png") %>')"></div>
+
+      <div class="info-card-icon-connect">
+        <div class="info-card-icon-connect-dot-small"></div>
+        <div class="info-card-icon-connect-dot-large"></div>
+        <div class="info-card-icon-connect-dot-small"></div>
+      </div>
+
+      <%
+        iu =
+          current_user&.integration_users
+            &.detect { |x| x.integration&.workspace_id == @active_workspace&.id }
+
+        avatar_url = iu&.avatar_url.to_s
+      %>
+
+      <div
+        class="info-card-icon"
+        style="<%= "background-image: url('#{avatar_url}')" if avatar_url.present? %>">
+        <% unless avatar_url.present? %>
+          <%= icon "user" %>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="info-card-header">
+      Connect an integration to continue
+    </div>
+
+    <div class="info-card-content">
+
+      <div class="info-card-row">
+        <div class="info-card-row-label">Workspace</div>
+        <div class="info-card-row-value"><%= @active_workspace&.name.to_s %></div>
+      </div>
+
+      <div class="info-card-row">
+        <div class="info-card-row-value">
+          To expand the culture graph of collaboration and build accurate dashboards and insights, you’ll need to connect Slack or Microsoft Teams.
+        </div>
+      </div>
+
+
+
+
+
+      <div class="info-card-state">
+
+        <div class="info-card-actions">
+
+          <%= link_to @connect_integration_label,
+            @connect_integration_path,
+            class: "info-card-button-primary" %>
+
+        </div>
+
+      </div>
+    </div>
+</div>

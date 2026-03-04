@@ -1,0 +1,78 @@
+<%= form_with model: @partner_resource,
+              url: @partner_resource.persisted? ? admin_partner_resource_path(@partner_resource) : admin_partner_resources_path,
+              method: @partner_resource.persisted? ? :patch : :post,
+              local: true,
+              html: { multipart: true } do |f| %>
+
+  <% if @partner_resource.errors.any? %>
+    <div class="admin-card" style="border:1px solid rgba(239,68,68,0.5);">
+      <div style="font-weight:600; margin-bottom:6px;">Fix these:</div>
+      <ul>
+        <% @partner_resource.errors.full_messages.each do |m| %>
+          <li><%= m %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="admin-card" style="margin-top:12px;">
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+      <div>
+        <label style="display:block; margin-bottom:6px;">Category</label>
+        <%= f.select :category,
+                     options_for_select(PartnerResource::CATEGORIES.map { |k,v| [v, k] }, @partner_resource.category),
+                     {},
+                     class: "admin-input" %>
+      </div>
+
+      <div>
+        <label style="display:block; margin-bottom:6px;">Type</label>
+        <%= f.select :resource_type,
+                     options_for_select(PartnerResource::RESOURCE_TYPES.map { |k,v| [v, k] }, @partner_resource.resource_type.to_s.presence || "file"),
+                     {},
+                     class: "admin-input js-resource-type" %>
+      </div>
+
+      <div>
+        <label style="display:block; margin-bottom:6px;">Position (lower first)</label>
+        <%= f.number_field :position, class: "admin-input" %>
+      </div>
+
+      <div style="grid-column: 1 / -1;">
+        <label style="display:block; margin-bottom:6px;">Title</label>
+        <%= f.text_field :title, class: "admin-input", placeholder: "i.e. Culture Analytics Whitepaper" %>
+      </div>
+
+      <div class="js-file-fields" style="grid-column: 1 / -1;">
+        <label style="display:block; margin-bottom:6px;">File (optional)</label>
+        <%= f.file_field :file, class: "admin-input" %>
+
+        <% if @partner_resource.file.attached? %>
+          <div style="margin-top:6px; opacity:0.75;">
+            Current: <%= @partner_resource.file.filename.to_s %>
+          </div>
+        <% end %>
+      </div>
+
+      <div class="js-file-fields" style="grid-column: 1 / -1;">
+        <label style="display:block; margin-bottom:6px;">URL (optional)</label>
+        <%= f.text_field :url, class: "admin-input", placeholder: "https://..." %>
+        <div style="margin-top:6px; opacity:0.75; font-size:13px;">
+          Provide either a file upload or a URL.
+        </div>
+      </div>
+
+      <div class="js-color-fields" style="grid-column: 1 / -1;">
+        <label style="display:block; margin-bottom:6px;">Hex color</label>
+        <%= f.text_field :hex, class: "admin-input", placeholder: "#111827" %>
+      </div>
+    </div>
+
+    <div style="margin-top:14px; display:flex; gap:10px;">
+      <%= f.submit(@partner_resource.persisted? ? "Update" : "Create", class: "admin-btn") %>
+      <%= link_to "Cancel", admin_partner_resources_path, class: "admin-btn" %>
+    </div>
+  </div>
+
+  <%= render "form_toggle_js" %>
+<% end %>

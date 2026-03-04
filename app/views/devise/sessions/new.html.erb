@@ -1,0 +1,562 @@
+<div class="onboarding-bg"></div>
+<div class="devise-content">
+  <%= image_tag('logo.png', :class => "devise-logo") %>
+  <div class="devise-title">Welcome to Workplace</div>
+  <div class="devise-subtitle">Start measuring culture and performance</div>
+
+
+  <div class="devise-login-buttons">
+    <%= link_to user_slack_sso_omniauth_authorize_path, method: :get, class: "devise-login-button" do %>
+      <%= image_tag('apps/slack.png') %> Sign in with Slack
+    <% end %>
+
+    <%= link_to user_entra_id_omniauth_authorize_path, method: :post, class: "devise-login-button" do %>
+      <%= image_tag('apps/microsoft_teams.png') %> Sign in with Teams
+    <% end %>
+
+    <%= link_to user_google_oauth2_omniauth_authorize_path, method: :post, class: "devise-login-button" do %>
+      <%= image_tag('apps/google.png') %> Sign in with Google
+    <% end %>
+
+    <button type="button" class="devise-login-button js-email-auth-open">
+      <%= icon "mail" %> Sign in with Email
+    </button>
+  </div>
+
+  <div class="devise-footer">
+    By continuing, you agree to our
+    <%= link_to "Terms of Service", "https://trust.workplace.io/terms", target: "_blank", rel: "noopener" %>,
+    <%= link_to "Privacy Policy", "https://trust.workplace.io/privacy", target: "_blank", rel: "noopener" %>,
+    and
+    <%= link_to "Cookie Policy", "https://trust.workplace.io/cookies", target: "_blank", rel: "noopener" %>.
+    You acknowledge we may receive basic profile information from your sign-in provider and confirm you are authorized to create or access an account for your organization.
+    Learn more in our <%= link_to "Trust Center", "https://trust.workplace.io", target: "_blank", rel: "noopener" %>.
+  </div>
+
+
+</div>
+
+
+<div class="devise-native-modal js-email-auth-modal" style="display:none;">
+  <div class="devise-native-modal-heading">
+    <div class="devise-native-modal-heading-left">
+      <div class="devise-native-modal-title js-email-auth-title">Sign in with Email</div>
+      <div class="devise-native-modal-description js-email-auth-desc">Enter your email to continue.</div>
+    </div>
+    <div class="devise-native-modal-heading-close devise-native-modal-close js-email-auth-close">
+      <%= icon "x-mark" %>
+    </div>
+  </div>
+
+  <div class="devise-native-modal-footer">
+    <!-- Step 1: Email -->
+    <div class="js-email-auth-step js-step-email">
+      <input type="email" class="devise-native-modal-input js-email-auth-email" placeholder="Email address" autocomplete="email">
+      <div style="height:12px;"></div>
+
+      <div class="devise-native-modal-actions">
+        <div class="devise-native-modal-cancel js-email-auth-cancel">Cancel</div>
+        <div class="devise-native-modal-continue js-email-auth-next">Continue</div>
+      </div>
+    </div>
+
+    <!-- Step 2: Password -->
+    <div class="js-email-auth-step js-step-password" style="display:none;">
+      <input type="password" class="devise-native-modal-input js-email-auth-password" placeholder="Password" autocomplete="current-password">
+      <div style="height:12px;"></div>
+
+      <div class="devise-native-modal-actions">
+        <div class="devise-native-modal-cancel js-email-auth-cancel">Cancel</div>
+        <div class="devise-native-modal-continue js-email-auth-signin">Sign in</div>
+      </div>
+    </div>
+
+    <!-- Step 3: Signup -->
+    <div class="js-email-auth-step js-step-signup" style="display:none;">
+      <input type="text" class="devise-native-modal-input js-email-auth-first" placeholder="First name" autocomplete="given-name">
+      <div style="height:10px;"></div>
+      <input type="text" class="devise-native-modal-input js-email-auth-last" placeholder="Last name" autocomplete="family-name">
+      <div style="height:10px;"></div>
+      <input type="password" class="devise-native-modal-input js-email-auth-pass" placeholder="Password" autocomplete="new-password">
+      <div style="height:10px;"></div>
+      <input type="password" class="devise-native-modal-input js-email-auth-pass2" placeholder="Confirm password" autocomplete="new-password">
+      <div style="height:12px;"></div>
+
+      <div class="devise-native-modal-actions">
+        <div class="devise-native-modal-cancel js-email-auth-cancel">Cancel</div>
+        <div class="devise-native-modal-continue js-email-auth-signup">Create account</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="devise-native-modal-backdrop js-email-auth-backdrop" style="display:none;"></div>
+
+<!-- Cookie consent (GDPR) -->
+<div class="cookie-consent-banner js-cookie-banner" style="display:none;" role="dialog" aria-live="polite" aria-label="Cookie consent">
+  <div class="cookie-consent-banner__content">
+    <div class="cookie-consent-banner__title">We use cookies</div>
+    <div class="cookie-consent-banner__text">
+      We use strictly necessary cookies to run the site. With your permission, we may also use cookies for analytics and to improve the product.
+      See our
+      <%= link_to "Privacy Policy", "https://trust.workplace.io/privacy", target: "_blank", rel: "noopener" %>
+      and
+      <%= link_to "Cookie Policy", "https://trust.workplace.io/cookies", target: "_blank", rel: "noopener" %>.
+    </div>
+  </div>
+
+  <div class="cookie-consent-banner__actions">
+    <button type="button" class="cookie-consent-btn cookie-consent-btn--secondary js-cookie-reject">Reject non-essential</button>
+    <button type="button" class="cookie-consent-btn cookie-consent-btn--secondary js-cookie-manage">Privacy</button>
+    <button type="button" class="cookie-consent-btn cookie-consent-btn--primary js-cookie-accept">Accept all</button>
+  </div>
+</div>
+
+<div class="cookie-consent-modal-backdrop js-cookie-modal-backdrop" style="display:none;"></div>
+<div class="cookie-consent-modal js-cookie-modal" style="display:none;" role="dialog" aria-modal="true" aria-label="Cookie preferences">
+  <div class="cookie-consent-modal__header">
+    <div>
+      <div class="cookie-consent-modal__title">Cookie preferences</div>
+      <div class="cookie-consent-modal__subtitle">Choose which cookies you want to allow. You can change this later.</div>
+    </div>
+    <button type="button" class="cookie-consent-modal__close js-cookie-close" aria-label="Close">
+      <%= icon "x-mark" %>
+    </button>
+  </div>
+
+  <div class="cookie-consent-modal__body">
+    <label class="cookie-consent-row">
+      <input type="checkbox" checked disabled>
+      <div>
+        <div class="cookie-consent-row__label">Strictly necessary</div>
+        <div class="cookie-consent-row__desc">Required for login and core site functionality.</div>
+      </div>
+    </label>
+
+    <label class="cookie-consent-row">
+      <input type="checkbox" class="js-cookie-analytics">
+      <div>
+        <div class="cookie-consent-row__label">Analytics</div>
+        <div class="cookie-consent-row__desc">Helps us understand usage so we can improve the product.</div>
+      </div>
+    </label>
+
+    <label class="cookie-consent-row">
+      <input type="checkbox" class="js-cookie-marketing">
+      <div>
+        <div class="cookie-consent-row__label">Marketing</div>
+        <div class="cookie-consent-row__desc">Used to measure campaign performance (if enabled).</div>
+      </div>
+    </label>
+  </div>
+
+  <div class="cookie-consent-modal__footer">
+    <div class="cookie-consent-modal__links">
+      <%= link_to "Privacy Policy", "https://trust.workplace.io/privacy", target: "_blank", rel: "noopener" %>
+      ·
+      <%= link_to "Cookie Policy", "https://trust.workplace.io/cookies", target: "_blank", rel: "noopener" %>
+    </div>
+    <div class="cookie-consent-modal__actions">
+      <button type="button" class="cookie-consent-btn cookie-consent-btn--secondary js-cookie-save">Save</button>
+      <button type="button" class="cookie-consent-btn cookie-consent-btn--primary js-cookie-accept">Accept all</button>
+    </div>
+  </div>
+</div>
+
+<%= render "shared/cookie_consent_js" %>
+<script>
+(function() {
+  const banner = document.querySelector(".js-cookie-banner");
+  const modal = document.querySelector(".js-cookie-modal");
+  const modalBackdrop = document.querySelector(".js-cookie-modal-backdrop");
+
+  if (!banner || !modal || !modalBackdrop) return;
+  if (!window.WorkplaceConsent) return;
+
+  const btnAccepts = document.querySelectorAll(".js-cookie-accept");
+  const btnReject = document.querySelector(".js-cookie-reject");
+  const btnManage = document.querySelector(".js-cookie-manage");
+  const btnClose = document.querySelector(".js-cookie-close");
+  const btnSave = document.querySelector(".js-cookie-save");
+
+  const cbAnalytics = document.querySelector(".js-cookie-analytics");
+  const cbMarketing = document.querySelector(".js-cookie-marketing");
+
+  function showBanner() { banner.style.display = "flex"; }
+  function hideBanner() { banner.style.display = "none"; }
+
+  function openModal() {
+    const c = window.WorkplaceConsent.read() || { analytics: false, marketing: false };
+    cbAnalytics.checked = !!c.analytics;
+    cbMarketing.checked = !!c.marketing;
+
+    modal.style.display = "block";
+    modalBackdrop.style.display = "block";
+  }
+
+  function closeModal() {
+    modal.style.display = "none";
+    modalBackdrop.style.display = "none";
+  }
+
+  function acceptAll() {
+    window.WorkplaceConsent.write({ analytics: true, marketing: true, functional: true });
+    closeModal();
+    hideBanner();
+  }
+
+  function rejectNonEssential() {
+    window.WorkplaceConsent.write({ analytics: false, marketing: false, functional: true });
+    closeModal();
+    hideBanner();
+  }
+
+  function savePrefs() {
+    window.WorkplaceConsent.write({
+      analytics: cbAnalytics.checked,
+      marketing: cbMarketing.checked,
+      functional: true
+    });
+    closeModal();
+    hideBanner();
+  }
+
+  // initial state
+  const existing = window.WorkplaceConsent.read();
+  const canUseExisting = window.WorkplaceConsent.canUse(existing);
+
+  if (!canUseExisting) {
+    showBanner();
+  } else {
+    window.WorkplaceConsent.expose(existing);
+  }
+
+  btnAccepts.forEach((b) => b.addEventListener("click", acceptAll));
+  btnReject?.addEventListener("click", rejectNonEssential);
+  btnManage?.addEventListener("click", openModal);
+
+  btnClose?.addEventListener("click", closeModal);
+  modalBackdrop.addEventListener("click", closeModal);
+  btnSave?.addEventListener("click", savePrefs);
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeModal();
+  });
+})();
+</script>
+
+<% if flash[:alert].present? %>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      if (window.showToast) window.showToast("<%= j flash[:alert] %>", null, true);
+    });
+  </script>
+<% end %>
+
+<script>
+(function() {
+  const modal     = document.querySelector(".js-email-auth-modal");
+  const backdrop  = document.querySelector(".js-email-auth-backdrop");
+  const openBtn   = document.querySelector(".js-email-auth-open");
+  const closeBtn  = document.querySelector(".js-email-auth-close");
+
+  if (!modal || !backdrop || !openBtn) return;
+
+  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+  const titleEl = modal.querySelector(".js-email-auth-title");
+  const descEl  = modal.querySelector(".js-email-auth-desc");
+
+  const emailStep    = modal.querySelector(".js-step-email");
+  const passStep     = modal.querySelector(".js-step-password");
+  const signupStep   = modal.querySelector(".js-step-signup");
+
+  const emailInput   = modal.querySelector(".js-email-auth-email");
+  const passInput    = modal.querySelector(".js-email-auth-password");
+  const firstInput   = modal.querySelector(".js-email-auth-first");
+  const lastInput    = modal.querySelector(".js-email-auth-last");
+  const signupPass   = modal.querySelector(".js-email-auth-pass");
+  const signupPass2  = modal.querySelector(".js-email-auth-pass2");
+
+  const nextBtn      = modal.querySelector(".js-email-auth-next");
+  const signinBtn    = modal.querySelector(".js-email-auth-signin");
+  const signupBtn    = modal.querySelector(".js-email-auth-signup");
+
+  // bind ALL cancel buttons (one per step)
+  document.querySelectorAll(".js-email-auth-cancel").forEach((el) => {
+    el.addEventListener("click", closeModal);
+  });
+
+  function toastError(msg) {
+    if (window.showToast) return window.showToast(msg, null, true);
+    alert(msg);
+  }
+
+  function toastOk(msg) {
+    if (window.showToast) return window.showToast(msg);
+  }
+
+  function setModeSignIn() {
+    if (titleEl) titleEl.textContent = "Sign in with Email";
+    if (descEl)  descEl.textContent  = "Enter your email to continue.";
+  }
+
+  function setModeRegister() {
+    if (titleEl) titleEl.textContent = "Create your account";
+    if (descEl)  descEl.textContent  = "This email isn’t registered yet. Add your details to create an account.";
+  }
+
+  // ---- error border helpers ----
+  const ERROR_CLASS = "devise-input-error";
+
+  function clearFieldError(el) {
+    if (!el) return;
+    el.classList.remove(ERROR_CLASS);
+  }
+
+  function setFieldError(el) {
+    if (!el) return;
+    el.classList.add(ERROR_CLASS);
+  }
+
+  function clearAllFieldErrors() {
+    [emailInput, passInput, firstInput, lastInput, signupPass, signupPass2].forEach(clearFieldError);
+  }
+
+  // Clear red border when user changes a field
+  [
+    emailInput,
+    passInput,
+    firstInput,
+    lastInput,
+    signupPass,
+    signupPass2
+  ].forEach((el) => {
+    if (!el) return;
+    el.addEventListener("input", () => clearFieldError(el));
+    el.addEventListener("change", () => clearFieldError(el));
+  });
+
+  function showStep(step) {
+    clearAllFieldErrors();
+
+    emailStep.style.display  = (step === "email") ? "block" : "none";
+    passStep.style.display   = (step === "password") ? "block" : "none";
+    signupStep.style.display = (step === "signup") ? "block" : "none";
+  }
+
+  function openModal() {
+    modal.style.display = "block";
+    backdrop.style.display = "block";
+
+    clearAllFieldErrors();
+    setModeSignIn();
+    showStep("email");
+
+    passInput.value = "";
+    firstInput.value = "";
+    lastInput.value = "";
+    signupPass.value = "";
+    signupPass2.value = "";
+
+    setTimeout(() => emailInput?.focus(), 0);
+  }
+
+  function closeModal() {
+    modal.style.display = "none";
+    backdrop.style.display = "none";
+    clearAllFieldErrors();
+  }
+
+  openBtn.addEventListener("click", openModal);
+  backdrop.addEventListener("click", closeModal);
+  closeBtn?.addEventListener("click", closeModal);
+
+  async function postJson(url, payload) {
+    const resp = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {})
+      },
+      credentials: "same-origin",
+      body: JSON.stringify(payload)
+    });
+    const data = await resp.json().catch(() => ({}));
+    return { resp, data };
+  }
+
+  // Helpers to mark specific fields based on message / context
+  function markEmailError(msg) {
+    setFieldError(emailInput);
+    toastError(msg);
+    emailInput?.focus();
+  }
+
+  function markPasswordError(msg) {
+    setFieldError(passInput);
+    toastError(msg);
+    passInput?.focus();
+  }
+
+  function markSignupError(msg, fieldKey) {
+    if (fieldKey === "first") setFieldError(firstInput);
+    if (fieldKey === "last")  setFieldError(lastInput);
+    if (fieldKey === "pass")  setFieldError(signupPass);
+    if (fieldKey === "pass2") setFieldError(signupPass2);
+
+    toastError(msg);
+
+    const focusEl =
+      fieldKey === "first" ? firstInput :
+      fieldKey === "last"  ? lastInput :
+      fieldKey === "pass"  ? signupPass :
+      fieldKey === "pass2" ? signupPass2 :
+      null;
+
+    focusEl?.focus();
+  }
+
+  nextBtn.addEventListener("click", async () => {
+    const email = (emailInput.value || "").trim();
+    if (!email) return markEmailError("Enter your email.");
+
+    nextBtn.classList.add("is-loading");
+
+    try {
+      const { resp, data } = await postJson("/auth/email/lookup", { email });
+
+      if (!resp.ok || !data.ok) {
+        return markEmailError(data.error || "Unable to continue.");
+      }
+
+      // ✅ Compatibility:
+      // - old: "continue" -> password step
+      // - new: "password" -> password step
+      if (data.status === "continue" || data.status === "password" || !data.status) {
+        setModeSignIn();
+        showStep("password");
+        setTimeout(() => passInput?.focus(), 0);
+        return;
+      }
+
+      // ✅ New controller returns "unknown" for non-existent emails.
+      // Treat it as signup.
+      if (data.status === "signup" || data.status === "unknown") {
+        setModeRegister();
+        showStep("signup");
+        setTimeout(() => firstInput?.focus(), 0);
+        return;
+      }
+
+      // ✅ SSO-only users: show a notice and stop (or you can add an SSO step later)
+      if (data.status === "sso" || data.status === "use_provider") {
+        toastError(data.message || "This account uses Single Sign On. Please sign in with your provider.");
+        closeModal();
+        return;
+      }
+
+      markEmailError(data.error || "Unable to continue.");
+
+    } catch (e) {
+      markEmailError("Network error.");
+    } finally {
+      nextBtn.classList.remove("is-loading");
+    }
+  });
+
+  signinBtn.addEventListener("click", async () => {
+    const email = (emailInput.value || "").trim();
+    const password = passInput.value || "";
+
+    if (!password) return markPasswordError("Enter your password.");
+
+    signinBtn.classList.add("is-loading");
+
+    try {
+      const { resp, data } = await postJson("/auth/email/password_sign_in", { email, password });
+
+      if (!resp.ok || !data.ok) {
+        const msg = (data.error || "Sign in failed.").toString();
+        const m = msg.toLowerCase();
+
+        // Always mark password for invalid-credentials errors
+        if (m.includes("invalid email or password") || m.includes("invalid")) {
+          setFieldError(passInput);
+          toastError(msg);
+          passInput?.focus();
+          return;
+        }
+
+        // Default: mark password; do not attempt provider-specific hints
+        setFieldError(passInput);
+        toastError(msg);
+        passInput?.focus();
+        return;
+      }
+
+      toastOk("Signed in.");
+      window.location.assign(data.redirect_url || "/dashboard");
+    } catch (e) {
+      markPasswordError("Network error.");
+    } finally {
+      signinBtn.classList.remove("is-loading");
+    }
+  });
+
+  signupBtn.addEventListener("click", async () => {
+    const email = (emailInput.value || "").trim();
+    const first_name = (firstInput.value || "").trim();
+    const last_name  = (lastInput.value || "").trim();
+    const password   = signupPass.value || "";
+    const password_confirmation = signupPass2.value || "";
+
+    if (!first_name) return markSignupError("First name is required.", "first");
+    if (!last_name)  return markSignupError("Last name is required.", "last");
+    if (!password)   return markSignupError("Password is required.", "pass");
+    if (password !== password_confirmation) return markSignupError("Passwords do not match.", "pass2");
+
+    signupBtn.classList.add("is-loading");
+
+    try {
+      const { resp, data } = await postJson("/auth/email/sign_up", {
+        email, first_name, last_name, password, password_confirmation
+      });
+
+      if (!resp.ok || !data.ok) {
+        const msg = data.error || "Sign up failed.";
+
+        const m = msg.toLowerCase();
+        if (m.includes("first")) return markSignupError(msg, "first");
+        if (m.includes("last"))  return markSignupError(msg, "last");
+        if (m.includes("password")) {
+          if (m.includes("match") || m.includes("confirm")) return markSignupError(msg, "pass2");
+          return markSignupError(msg, "pass");
+        }
+        if (m.includes("email")) return markEmailError(msg);
+
+        toastError(msg);
+        return;
+      }
+
+      toastOk("Account created.");
+      window.location.assign(data.redirect_url || "/dashboard");
+    } catch (e) {
+      toastError("Network error.");
+    } finally {
+      signupBtn.classList.remove("is-loading");
+    }
+  });
+
+  // Enter key behavior
+  modal.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+
+    if (emailStep.style.display !== "none") return nextBtn.click();
+    if (passStep.style.display !== "none")  return signinBtn.click();
+    if (signupStep.style.display !== "none") return signupBtn.click();
+  });
+})();
+</script>

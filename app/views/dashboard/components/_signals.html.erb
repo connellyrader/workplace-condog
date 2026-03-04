@@ -1,0 +1,62 @@
+<div class="signals-viewport">
+  <ul class="signals">
+    <%# --- Precompute min/max logit_margin for this batch --- %>
+    <% ratios = @last100.map { |v| v.logit_margin }.compact.map(&:to_f) %>
+    <% min_logit = ratios.min %>
+    <% max_logit = ratios.max %>
+
+    <%# Fill with "zero" bars so list is always 100 long %>
+    <% (@last100.size...100).each do %>
+      <li class="zero"
+          style="--m:0"
+          data-title="No signal"
+          data-description="No data available"
+          data-trend="none"></li>
+    <% end %>
+
+    <% @last100.each do |v| %>
+      <% positive = v.score.to_f > 0 %>
+
+      <%# Channel label (only show #name for explicitly public channels) %>
+      <% ch = v.message&.channel %>
+      <% is_public = (ch&.kind.to_s == "public_channel") %>
+
+      <% ch_name =
+           if is_public && ch&.name.present?
+             "##{ch.name}"
+           else
+             "a private channel"
+           end
+      %>
+
+      <%# --- Normalize logit_margin -> magnitude 1..5 --- %>
+      <% ratio = v.logit_margin.to_f rescue nil %>
+
+      <% m =
+        if ratio && min_logit && max_logit && max_logit != min_logit
+          norm = (ratio - min_logit) / (max_logit - min_logit) # 0..1-ish
+          norm = [[norm, 0.0].max, 1.0].min                    # clamp 0..1
+          raw  = 1 + norm * 4                                  # 1..5
+          val  = raw.round
+          [[val, 1].max, 5].min                                # clamp 1..5
+        else
+          3                                                    # safe middle height
+        end
+      %>
+
+      <%# --- Build analyzer-style sentence --- %>
+      <% dir_word     = positive ? "positive" : "negative" %>
+      <% metric_name  = v.signal_category.submetric.metric.name.to_s.downcase %>
+      <% sc_name      = v.signal_category.name.to_s.downcase %>
+      <%# description  = "Someone in #{ch_name} showed #{dir_word} signs of #{metric_name} related to #{sc_name} on #{v.message.posted_at.in_time_zone('Eastern Time (US & Canada)').strftime('%b %-d %-I:%M%p %Z')}." %>
+      <% description  = "Someone in #{ch_name} showed #{dir_word} signs of #{metric_name} related to #{sc_name} on #{v.message.posted_at.in_time_zone('Eastern Time (US & Canada)').strftime('%b %-d')}." %>
+
+      <li class="<%= positive ? 'pos' : 'neg' %>"
+          style="--m:<%= m %>"
+          data-title="<%= v.signal_category.name %>"
+          data-description="<%= description %>"
+          data-trend="<%= positive ? 'up' : 'down' %>">
+      </li>
+    <% end %>
+  </ul>
+</div>

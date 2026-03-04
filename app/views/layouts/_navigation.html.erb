@@ -1,0 +1,343 @@
+<% if user_signed_in? %>
+  <div class="navigation">
+    <div class="navigation-top">
+      <div class="navigation-workspace-button">
+        <%
+          # Initials: "Acme Co" => "AC", "Workplace" => "W"
+          workspace_initials =
+            @active_workspace.name
+              .to_s
+              .split(/\s+/)
+              .reject(&:blank?)
+              .first(2)
+              .map { |w| w[0] }
+              .join
+              .upcase
+
+          workspace_icon_url =
+            if @active_workspace.icon.attached?
+              url_for(@active_workspace.icon.variant(:thumb))
+            end
+        %>
+
+        <div class="navigation-workspace-button-icon js-workspace-nav-icon"
+             data-workspace-token="<%= @active_workspace.signed_id(purpose: 'workspace_switch') %>"
+             style="<%= "background-image: url('#{workspace_icon_url}');" if workspace_icon_url.present? %>">
+          <% unless workspace_icon_url.present? %>
+            <%= workspace_initials %>
+          <% end %>
+        </div>
+
+        <div class="navigation-workspace-button-name"><%= @active_workspace.name %></div>
+        <%= icon "chevron-down", class_name: "navigation-workspace-button-chevron" %>
+      </div>
+
+      <%= icon "sidebar", class_name: "navigation-toggle" %>
+    </div>
+
+    <%= link_to dashboard_path, class: "navigation-link" do %>
+      <%= icon "home", class_name: "navigation-icon" %>
+      <span>Dashboard</span>
+    <% end %>
+
+    <%= link_to settings_path, class: "navigation-link" do %>
+      <%= icon "cog-6", class_name: "navigation-icon" %>
+      <span>Settings</span>
+    <% end %>
+
+    <% if current_user&.admin? %>
+      <%= link_to admin_path, class: "navigation-link" do %>
+        <%= icon "shield2", class_name: "navigation-icon" %>
+        <span>Admin</span>
+      <% end %>
+    <% end %>
+
+    <% if masquerading? %>
+      <%= button_to admin_stop_masquerade_path, method: :delete, class: "navigation-link", form_class: "navigation-inline-form" do %>
+        <%= icon "left-arrow", class_name: "navigation-icon" %>
+        <span>Return to Admin</span>
+      <% end %>
+    <% end %>
+
+    <div class="navigation-footer">
+
+      <%
+        # Show the "Connect" pill only if the current user has NOT connected
+        # a usable token for ANY integration in this workspace.
+        user_has_connected_token =
+          current_user.integration_users
+            .joins(:integration)
+            .where(integrations: { workspace_id: @active_workspace.id })
+            .where(
+              <<~SQL.squish
+                (integrations.kind = 'slack' AND (integration_users.slack_history_token IS NOT NULL OR integration_users.slack_refresh_token IS NOT NULL))
+                OR
+                (integrations.kind = 'microsoft_teams' AND integration_users.ms_refresh_token IS NOT NULL)
+              SQL
+            )
+            .exists?
+      %>
+
+      <% unless user_has_connected_token %>
+        <%= link_to user_integrate_path,
+                    class: "navigation-integration-connect",
+                    title: "Connect integration",
+                    aria: { label: "Connect integration" } do %>
+          <%= icon "warning", class_name: "navigation-integration-connect-warning-icon" %>
+          <span class="navigation-integration-connect-text">Connect</span>
+          <%= icon "chevron-right", class_name: "navigation-integration-connect-chevron-icon" %>
+        <% end %>
+      <% end %>
+
+
+      <%
+        iu = current_user.integration_users
+                         .detect { |x| x.integration&.workspace_id == @active_workspace&.id }
+        avatar_url = iu&.avatar_url.presence
+      %>
+
+      <%= link_to settings_profile_path, class: "navigation-link-footer" do %>
+        <div class="navigation-footer-avatar"
+             style="<%= "background-image: url('#{avatar_url}');" if avatar_url %>">
+          <% unless avatar_url %>
+            <%= icon "user" %>
+          <% end %>
+        </div>
+
+        <div class="navigation-footer-meta">
+          <div class="navigation-footer-name"><%= current_user.full_name %></div>
+          <div class="navigation-footer-email"><%= current_user.email %></div>
+        </div>
+
+        <div class="navigation-footer-kebab">
+          <%= icon "elipsis-vertical" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="navigation-top-dropdown">
+    <div class="navigation-top-dropdown-heading">Workspaces</div>
+
+    <% if current_user.partner? %>
+      <%= link_to partner_dashboard_path,
+                  class: "navigation-top-dropdown-workspace",
+                  data: { workspace_id: "partner" } do %>
+        <div class="navigation-top-dropdown-icon">P</div>
+        <span class="navigation-top-dropdown-name">Partner dashboard</span>
+      <% end %>
+    <% end %>
+
+    <% available_workspaces.each do |workspace| %>
+      <% is_active = (workspace.id == @active_workspace.id) %>
+
+      <%
+        ws_initials =
+          workspace.name
+            .to_s
+            .split(/\s+/)
+            .reject(&:blank?)
+            .first(2)
+            .map { |w| w[0] }
+            .join
+            .upcase
+
+        ws_icon_url =
+          if workspace.icon.attached?
+            url_for(workspace.icon.variant(:thumb))
+          end
+      %>
+
+      <%= link_to switch_workspace_token_path(workspace.signed_id(purpose: "workspace_switch")),
+                  method: :post,
+                  class: "navigation-top-dropdown-workspace #{'navigation-top-dropdown-workspace--active' if is_active}" do %>
+
+        <div class="navigation-top-dropdown-icon js-workspace-nav-icon"
+             data-workspace-token="<%= workspace.signed_id(purpose: 'workspace_switch') %>"
+             style="<%= "background-image: url('#{ws_icon_url}');" if ws_icon_url.present? %>">
+          <% unless ws_icon_url.present? %>
+            <%= ws_initials %>
+          <% end %>
+        </div>
+
+        <span class="navigation-top-dropdown-name"><%= workspace.name %></span>
+      <% end %>
+    <% end %>
+
+    <div class="navigation-top-dropdown-line"></div>
+
+    <%= link_to settings_path, class: "navigation-top-dropdown-link" do %>
+      <%= icon "cog-6" %> Settings
+    <% end %>
+
+    <%= link_to "#", class: "navigation-top-dropdown-link js-new-workspace-link" do %>
+      <%= icon "plus" %> Create new workspace
+    <% end %>
+
+    <%= link_to "mailto:support@workplace.io", class: "navigation-top-dropdown-link" do %>
+      <%= icon "support" %> Contact support
+    <% end %>
+
+    <div class="navigation-top-dropdown-line"></div>
+
+    <%= link_to destroy_user_session_path, method: :delete, class: "navigation-top-dropdown-link" do %>
+      <%= icon "logout" %> Logout
+    <% end %>
+  </div>
+
+  <div class="navigation-new-workspace-modal" data-open-on-load="<%= flash[:open_new_workspace_modal].present? ? '1' : '0' %>">
+    <div class="navigation-new-workspace-modal-close"><%= icon "x-mark" %></div>
+    <div class="navigation-new-workspace-modal-heading">Create new workspace</div>
+    <div class="navigation-new-workspace-modal-line"></div>
+
+    <%= form_with model: Workspace.new,
+                  url: workspaces_path,
+                  method: :post,
+                  local: true,
+                  html: { class: "navigation-new-workspace-form" } do |f| %>
+
+      <div class="navigation-new-workspace-modal-label">Workspace name</div>
+      <%= f.text_field :name,
+            value: flash[:new_workspace_name],
+            placeholder: "i.e. Acme Co.",
+            class: "navigation-new-workspace-modal-field js-new-workspace-name",
+            autocomplete: "off" %>
+
+      <%= f.submit "Create workspace", class: "navigation-new-workspace-modal-button" %>
+    <% end %>
+  </div>
+
+  <div class="backdrop" aria-hidden="true"></div>
+
+  <script>
+    $(function() {
+      var $dropdown        = $('.navigation-top-dropdown');
+      var $workspaceButton = $('.navigation-workspace-button');
+      var $newWorkspace    = $('.js-new-workspace-link');
+      var $modal           = $('.navigation-new-workspace-modal');
+      var $backdrop        = $('.backdrop');
+      var $modalClose      = $('.navigation-new-workspace-modal-close');
+
+      // New workspace form bits
+      var $form      = $('.navigation-new-workspace-form');
+      var $nameInput = $('.js-new-workspace-name');
+
+      function closeModalAndBackdrop() {
+        $modal.hide();
+        $dropdown.stop(true, true).slideUp(150);
+        $workspaceButton.removeClass('is-open');
+
+        // Clear validation state when closing
+        $nameInput.removeClass('is-invalid');
+
+        $backdrop
+          .removeClass('backdrop--workspace-modal')
+          .removeClass('backdrop--workspace-modal-visible');
+      }
+
+      function emitToastError(message) {
+        // Use your app's toast if available; otherwise fallback.
+        if (window.showToast) return window.showToast(message, "error");
+        if (window.toast)     return window.toast(message, "error");
+        alert(message);
+      }
+
+      function markInvalid() {
+        $nameInput.addClass('is-invalid');
+      }
+
+      function clearInvalid() {
+        $nameInput.removeClass('is-invalid');
+      }
+
+      // Toggle dropdown on workspace button click
+      $workspaceButton.on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        $dropdown.stop(true, true).slideToggle(150);
+        $workspaceButton.toggleClass('is-open');
+      });
+
+      // Open "new workspace" modal from dropdown
+      $newWorkspace.on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        $dropdown.stop(true, true).slideUp(150);
+        $workspaceButton.removeClass('is-open');
+
+        // Reset field state when opening
+        clearInvalid();
+
+        $modal.show();
+
+        $backdrop
+          .addClass('backdrop--workspace-modal')
+          .addClass('backdrop--workspace-modal-visible');
+
+        // Focus input for faster UX
+        setTimeout(function() { $nameInput.focus(); }, 0);
+      });
+
+      // Clicking backdrop closes modal/dropdown
+      $backdrop.on('click', function() {
+        closeModalAndBackdrop();
+      });
+
+      // Clicking X closes modal/dropdown
+      $modalClose.on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        closeModalAndBackdrop();
+      });
+
+      // Close dropdown when clicking outside (but don't close modal)
+      $(document).on('click', function(e) {
+        if (!$(e.target).closest('.navigation-top-dropdown, .navigation-workspace-button, .navigation-new-workspace-modal').length) {
+          $dropdown.stop(true, true).slideUp(150);
+          $workspaceButton.removeClass('is-open');
+        }
+      });
+
+      // Clear red border as soon as the user types
+      $nameInput.on('input', function() {
+        clearInvalid();
+      });
+
+      // Prevent blank submit; toast + red border
+      $form.on('submit', function(e) {
+        var raw  = ($nameInput.val() || '');
+        var name = raw.trim();
+
+        if (!name.length) {
+          e.preventDefault();
+          markInvalid();
+          emitToastError("Workspace name cannot be blank.");
+          $nameInput.focus();
+          return false;
+        }
+
+        // Normalize whitespace client-side
+        $nameInput.val(name.replace(/\s+/g, ' '));
+      });
+
+      // Auto-open modal after backend validation failure redirect
+      // Requires: data-open-on-load="1" set on .navigation-new-workspace-modal
+      if (($modal.data('open-on-load') || '0').toString() === '1') {
+        $modal.show();
+
+        $backdrop
+          .addClass('backdrop--workspace-modal')
+          .addClass('backdrop--workspace-modal-visible');
+
+        // Mark invalid if it came back blank
+        var currentVal = ($nameInput.val() || '').trim();
+        if (!currentVal.length) markInvalid();
+
+        setTimeout(function() { $nameInput.focus(); }, 0);
+      }
+    });
+  </script>
+
+<% end %>

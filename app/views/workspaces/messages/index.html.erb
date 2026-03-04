@@ -1,0 +1,36 @@
+<!-- app/views/workspaces/messages/index.html.erb -->
+<div class="workspace-messages">
+
+  <% if @channels.empty? %>
+    <p class="text-muted">
+      You haven’t saved any messages in this workspace yet.
+    </p>
+  <% else %>
+    <% @channels.each do |channel| %>
+      <section class="channel-section mb-5">
+        <h2 class="channel-header">Channel: <%= channel.external_channel_id %></h2>
+
+        <div class="message-list p-3 rounded">
+          <% channel.messages
+                    .order(:posted_at, :slack_ts)
+                    .each do |msg| %>
+
+            <% author = msg.workspace_user.user&.full_name.presence ||
+                        msg.workspace_user.display_name ||
+                        msg.workspace_user.slack_user_id %>
+
+            <div class="message-item mb-3">
+              <div class="message-author">
+                <%= author %>
+                <span class="message-time">
+                  <%= msg.posted_at.strftime("%b %-d, %Y %l:%M %P") %>
+                </span>
+              </div>
+              <div class="message-text"><%= msg.text %></div>
+            </div>
+          <% end %>
+        </div>
+      </section>
+    <% end %>
+  <% end %>
+</div>

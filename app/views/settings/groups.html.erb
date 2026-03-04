@@ -1,0 +1,86 @@
+<%= render "settings/topbar" %>
+<%= render "settings/navigation" %>
+
+<div class="settings-main">
+
+  <div class="settings-topbar">
+    <div class="settings-topbar-left">
+      <div class="settings-main-heading">Groups</div>
+      <div class="settings-main-subheading">
+        Groups let you slice your culture data and dashboards. Add people to functional teams, locations, demographics, or any structure that fits your business to get more insight from your culture graph.
+      </div>
+    </div>
+    <div class="settings-topbar-button js-group-create-trigger">Add Group</div>
+  </div>
+
+  <div class="settings-section-boxed">
+    <% groups = @groups || @active_workspace.groups.to_a %>
+
+    <% groups.each_with_index do |group, i| %>
+      <div class="settings-group">
+        <div class="settings-group-icon"><%= icon "users" %></div>
+
+        <div class="settings-group-middle">
+          <div class="settings-group-middle-title">
+            <%= group.name %>
+          </div>
+          <div class="settings-group-middle-subtitle">
+            <%= group.integration_users.count %> Members
+          </div>
+        </div>
+
+        <% if group.integration_users.count < 3 %>
+          <span class="settings-info-tooltip"
+                data-tooltip="This group needs at least 3 members before it will be visible on your dashboard to protect the anonymity of its members.">
+            <%= icon "warning", class_name: "settings-group-warning" %>
+          </span>
+        <% end %>
+
+        <div class="settings-group-right">
+          <div class="settings-group-right-created">
+            Created <%= group.created_at.strftime("%B %d, %Y") %>
+          </div>
+
+          <%= link_to settings_group_path(group),
+                      class: "settings-group-right-manage-button" do %>
+            Manage
+          <% end %>
+        </div>
+      </div>
+
+      <% if groups.size > 1 && i < groups.size - 1 %>
+        <div class="settings-group-line"></div>
+      <% end %>
+    <% end %>
+  </div>
+
+  <% if @unassigned_total.to_i > 0 %>
+    <div class="settings-invite-strip">
+      <% if @unassigned_preview.any? %>
+        <div class="settings-invite-avatars">
+          <% @unassigned_preview.each do |member| %>
+            <% avatar_url = member.avatar_url.presence %>
+            <div class="settings-invite-avatar"
+                 style="<%= "background-image: url('#{avatar_url}')" if avatar_url %>">
+              <% unless avatar_url %>
+                <%= icon "user" %>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+
+      <div class="settings-invite-text">
+        <%= "+#{@unassigned_total} more" %>
+        <%= @unassigned_total == 1 ? "person that is" : "people that are" %> not included in your culture measurements.
+        <div class="settings-invite-link js-group-create-trigger"
+             data-member-ids="<%= @unassigned_ids.join(',') %>">
+          Add <%= @unassigned_total %> to a Group
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+</div>
+
+<%= render "settings/group_modal" %>

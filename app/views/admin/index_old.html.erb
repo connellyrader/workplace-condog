@@ -1,0 +1,60 @@
+  <%= render partial: "admin/menu" %>
+
+  <main class="main-content">
+    <header>
+      <h1>Dashboard Overview</h1>
+    </header>
+
+    <section class="stats-cards">
+      <div class="card">
+        <h3>Total Users</h3>
+        <p><%= @total_users %></p>
+      </div>
+      <div class="card">
+        <h3>New Users (7 days)</h3>
+        <p><%= @recent_users %></p>
+      </div>
+      <div class="card">
+        <h3>Active Tests</h3>
+        <p><%= ModelTest.count %></p>
+      </div>
+    </section>
+
+    <section class="content-section">
+      <h2>Recent Model Tests</h2>
+      <input type="text" id="searchInput" placeholder="Search tests...">
+      <table id="testsTable">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Created At</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% ModelTest.order(created_at: :desc).limit(10).each do |test| %>
+            <tr>
+              <td><%= test.name %></td>
+              <td><%= test.test_type %></td>
+              <td><%= test.created_at.strftime('%Y-%m-%d') %></td>
+              <td><span class="status-label"><%= test.test_type %></span></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+<script>
+  const searchInput = document.getElementById("searchInput");
+  const tableRows = document.querySelectorAll("#testsTable tbody tr");
+
+  searchInput.addEventListener("input", () => {
+    const query = searchInput.value.toLowerCase();
+    tableRows.forEach(row => {
+      const testName = row.cells[0].textContent.toLowerCase();
+      row.style.display = testName.includes(query) ? "" : "none";
+    });
+  });
+</script>

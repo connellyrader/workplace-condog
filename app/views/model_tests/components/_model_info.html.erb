@@ -1,0 +1,41 @@
+<article class="mts-card">
+  <h3 class="mts-title">Model Information</h3>
+  <table class="mts-table">
+    <tbody>
+      <tr>
+        <th>Name</th>
+        <td>
+          <%= @model&.name || "—" %>
+          <%# Link to models page (list), since there is no Model show route %>
+          <span> · </span><%= link_to "All Models", admin_models_path, class: "mo-link" %>
+        </td>
+      </tr>
+
+      <tr>
+        <th>Description</th>
+        <td>
+          <% if @model&.description.present? %>
+            <details class="mo-desc">
+              <summary><%= truncate(@model.description, length: 80) %></summary>
+              <div class="mo-desc-body"><%= simple_format(@model.description) %></div>
+            </details>
+          <% else %>
+            —
+          <% end %>
+        </td>
+      </tr>
+
+      <tr><th>Status</th><td><span class="mo-badge mo-badge--ok"><%= @model&.status || "—" %></span></td></tr>
+      <tr><th>Deployment</th><td><%= @model&.deployment_type || "—" %></td></tr>
+      <tr><th>Instance Type</th><td><%= @model&.aws_instance&.instance_type || "—" %></td></tr>
+      <tr>
+        <th>Hourly Rate</th>
+        <td>
+          <% price = @model&.aws_instance_id && AwsInstance.where(id: @model.aws_instance_id).pick(:hourly_price) %>
+          <%= price ? number_to_currency(price/100.0) + "/hr" : "—" %>
+        </td>
+      </tr>
+      <tr><th>HF Model ID</th><td><%= @model&.hf_model_id || "—" %></td></tr>
+    </tbody>
+  </table>
+</article>

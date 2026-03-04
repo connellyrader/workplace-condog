@@ -1,0 +1,312 @@
+<%= form_with url: settings_create_group_path,
+              method: :post,
+              local: true,
+              id: "group-form",
+              data: { turbo: false } do %>
+
+  <div class="invite-modal js-group-modal">
+    <div class="invite-modal-heading">
+      <div class="invite-modal-heading-left">
+        <div class="invite-modal-title js-group-modal-title">Create Group</div>
+        <div class="invite-modal-subtitle">
+          People you add here will be grouped together for culture insights and coverage in your dashboards.
+        </div>
+      </div>
+      <div class="invite-modal-heading-close js-group-modal-close">
+        <%= icon "x-mark" %>
+      </div>
+    </div>
+
+    <!-- Group name -->
+    <div style="margin-top:16px;">
+      <input type="text"
+             name="group[name]"
+             class="invite-modal-search"
+             placeholder="Group name"
+             id="group-name-input"
+             autocomplete="off">
+    </div>
+
+    <div class="invite-modal-section-top">
+      <div class="invite-modal-section-top-left">
+        Members (<span class="js-group-selected-count">0</span>/<%= @modal_ungrouped_total %>)
+      </div>
+      <div class="invite-modal-section-top-right js-group-select-toggle">Select All</div>
+    </div>
+
+    <div class="invite-modal-search-wrapper">
+      <input class="invite-modal-search js-group-search" placeholder="Search by name or email...">
+      <button type="button"
+              class="invite-modal-search-clear js-group-search-clear"
+              aria-label="Clear search">
+        Clear
+      </button>
+    </div>
+
+    <div class="invite-modal-people js-group-people"
+         data-group-people-url="<%= settings_group_users_path %>">
+      <%= render "settings/group_users",
+                 ungrouped_users: @modal_users,
+                 search_query: nil %>
+    </div>
+
+    <div class="invite-modal-footer">
+      <div class="invite-modal-cancel js-group-modal-close">Cancel</div>
+      <div class="invite-modal-send js-group-modal-submit">Create Group</div>
+    </div>
+
+    <%= hidden_field_tag "group[user_ids]", "",
+                         id: "group-selected-ids" %>
+  </div>
+
+<% end %>
+
+<div class="invite-modal-backdrop js-group-modal-backdrop"></div>
+
+<script>
+  document.addEventListener("turbo:load", initGroupModal);
+
+  function initGroupModal() {
+    var modal          = document.querySelector(".js-group-modal");
+    var backdrop       = document.querySelector(".js-group-modal-backdrop");
+    var createTriggers = document.querySelectorAll(".js-group-create-trigger");
+    var submitBtn      = document.querySelector(".js-group-modal-submit");
+
+    if (!modal || !backdrop) return;
+
+    var peopleContainer = modal.querySelector(".js-group-people");
+    var selectToggle    = modal.querySelector(".js-group-select-toggle");
+    var searchInput     = modal.querySelector(".js-group-search");
+    var clearBtn        = modal.querySelector(".js-group-search-clear");
+    var selectedCountEl = modal.querySelector(".js-group-selected-count");
+    var nameInput       = document.getElementById("group-name-input");
+    var hiddenInput     = document.getElementById("group-selected-ids");
+    var form            = document.getElementById("group-form");
+
+    if (!peopleContainer || !selectToggle || !searchInput || !hiddenInput || !form) return;
+
+    // top-right X + bottom Cancel both have this class
+    var closers = document.querySelectorAll(".js-group-modal-close");
+
+    var selectedIds = new Set();
+    var searchTimer = null;
+
+    function hideModal() {
+      modal.style.display    = "none";
+      backdrop.style.display = "none";
+    }
+
+    function showCreateModal(trigger) {
+      if (nameInput) nameInput.value = "";
+
+      selectedIds.clear();
+
+      if (trigger && trigger.dataset.memberIds) {
+        trigger.dataset.memberIds.split(",").forEach(function(id) {
+          id = id.trim();
+          if (id) selectedIds.add(id);
+        });
+      }
+
+      applySelectionStateToRows();
+      updateSelectedUI();
+      updateSearchClearVisibility();
+      performSearch(searchInput ? searchInput.value : "");
+
+      modal.style.display    = "flex";
+      backdrop.style.display = "block";
+    }
+
+    // selection helpers (unchanged) ...
+
+    function isRowChecked(row) {
+      var btn = row.querySelector(".invite-modal-person-add");
+      return btn && btn.classList.contains("checked");
+    }
+
+    function setRowChecked(row, checked) {
+      var btn = row.querySelector(".invite-modal-person-add");
+      if (!btn) return;
+
+      if (checked) btn.classList.add("checked");
+      else         btn.classList.remove("checked");
+
+      var id = row.getAttribute("data-user-id");
+      if (!id) return;
+
+      if (checked) selectedIds.add(id);
+      else         selectedIds.delete(id);
+    }
+
+    function toggleRow(row) {
+      setRowChecked(row, !isRowChecked(row));
+      updateSelectedUI();
+    }
+
+    function updateSelectedCount() {
+      if (selectedCountEl) selectedCountEl.textContent = String(selectedIds.size);
+    }
+
+    function updateSelectToggleLabel() {
+      if (!selectToggle) return;
+
+      var rows = peopleContainer.querySelectorAll(".invite-modal-person");
+      if (rows.length === 0) {
+        selectToggle.textContent = "Select All";
+        return;
+      }
+
+      var allChecked = true;
+      rows.forEach(function(row) {
+        if (!isRowChecked(row)) allChecked = false;
+      });
+
+      selectToggle.textContent = allChecked ? "Deselect All" : "Select All";
+    }
+
+    function updateSelectedUI() {
+      updateSelectedCount();
+      updateSelectToggleLabel();
+    }
+
+    function applySelectionStateToRows() {
+      var rows = peopleContainer.querySelectorAll(".invite-modal-person");
+      rows.forEach(function(row) {
+        var id  = row.getAttribute("data-user-id");
+        var btn = row.querySelector(".invite-modal-person-add");
+        if (!btn) return;
+
+        if (id && selectedIds.has(id)) btn.classList.add("checked");
+        else                           btn.classList.remove("checked");
+      });
+      updateSelectedUI();
+    }
+
+    function updateSearchClearVisibility() {
+      if (!clearBtn || !searchInput) return;
+      clearBtn.style.display = searchInput.value.trim().length > 0 ? "inline-flex" : "none";
+    }
+
+    function performSearch(query) {
+      var url = peopleContainer.getAttribute("data-group-people-url");
+      if (!url || typeof $ === "undefined") return;
+
+      $.get(url, { q: query }, function(html) {
+        peopleContainer.innerHTML = html;
+        applySelectionStateToRows();
+      });
+    }
+
+    // wiring
+
+    createTriggers.forEach(function(trigger) {
+      trigger.addEventListener("click", function() {
+        showCreateModal(trigger);
+      });
+    });
+
+    // X + Cancel all close
+    closers.forEach(function(el) {
+      el.addEventListener("click", hideModal);
+    });
+
+    backdrop.addEventListener("click", hideModal);
+    document.addEventListener("keydown", function(event) {
+      if (event.key === "Escape" || event.key === "Esc") hideModal();
+    });
+
+    peopleContainer.addEventListener("click", function(event) {
+      var row = event.target.closest(".invite-modal-person");
+      if (!row || !peopleContainer.contains(row)) return;
+      toggleRow(row);
+    });
+
+    selectToggle.addEventListener("click", function() {
+      var rows = peopleContainer.querySelectorAll(".invite-modal-person");
+      if (rows.length === 0) return;
+
+      var allChecked = true;
+      rows.forEach(function(row) {
+        if (!isRowChecked(row)) allChecked = false;
+      });
+
+      rows.forEach(function(row) {
+        setRowChecked(row, !allChecked);
+      });
+
+      updateSelectedUI();
+    });
+
+    searchInput.addEventListener("input", function() {
+      if (searchTimer) clearTimeout(searchTimer);
+      updateSearchClearVisibility();
+      searchTimer = setTimeout(function() {
+        performSearch(searchInput.value);
+      }, 250);
+    });
+
+    if (clearBtn) {
+      clearBtn.addEventListener("click", function() {
+        searchInput.value = "";
+        updateSearchClearVisibility();
+        performSearch("");
+      });
+    }
+
+    if (submitBtn) {
+      submitBtn.addEventListener("click", function() {
+        var name = nameInput ? nameInput.value.trim() : "";
+        var selectedCount = selectedIds.size;
+
+        if (!name) {
+          if (typeof notice === "function") {
+            notice("Please enter a group name.", { confirmLabel: "OK" });
+          } else {
+            alert("Please enter a group name.");
+          }
+          return;
+        }
+
+        function doSubmit() {
+          hiddenInput.value = Array.from(selectedIds).join(",");
+          form.submit();
+        }
+
+        if (selectedCount === 0) {
+          var msg0   = "Create a group with no members? You can add people later.";
+          var label0 = "Create group anyway";
+
+          if (typeof notice === "function") {
+            notice(msg0, { confirmLabel: label0, cancelLabel: "Cancel" }).then(function(ok) {
+              if (!ok) return;
+              doSubmit();
+            });
+          } else {
+            if (window.confirm(msg0)) doSubmit();
+          }
+          return;
+        }
+
+        if (selectedCount > 0 && selectedCount < 3) {
+          var msg1   = "Groups with fewer than 3 people won’t appear on your dashboard to protect anonymity. Continue anyway?";
+          var label1 = "Create group anyway";
+
+          if (typeof notice === "function") {
+            notice(msg1, { confirmLabel: label1, cancelLabel: "Back" }).then(function(ok) {
+              if (!ok) return;
+              doSubmit();
+            });
+          } else {
+            if (window.confirm(msg1)) doSubmit();
+          }
+          return;
+        }
+
+        doSubmit();
+      });
+    }
+
+    updateSelectedUI();
+    updateSearchClearVisibility();
+  }
+</script>

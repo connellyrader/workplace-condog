@@ -1,0 +1,127 @@
+<% content_for :page_title do %>
+  Insights Engine Console
+<% end %>
+
+<% content_for :page_subtitle do %>
+  
+<% end %>
+
+<details class="admin-section" open>
+  <summary class="admin-section-header">
+    <h3>Templates (Rules) Snapshot</h3>
+    <span class="pp-muted"><%= @templates.size %> enabled</span>
+  </summary>
+  <div class="admin-table-wrapper">
+    <table class="pp-table admin-templates-table">
+      <thead>
+        <tr>
+          <th>Key</th>
+          <th>Driver</th>
+          <th>Scope</th>
+          <th>Window / Baseline</th>
+          <th>Thresholds</th>
+          <th>Adaptive mins</th>
+          <th>Cooldown / Max</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @templates.each do |t| %>
+          <tr>
+            <td class="admin-key-cell">
+              <details>
+                <summary><code><%= t.key %></code></summary>
+                <div class="admin-template-details">
+                  <p><%= t.description %></p>
+                  <details class="admin-sub-details">
+                    <summary>System prompt</summary>
+                    <pre><%= t.system_prompt.presence || "(none)" %></pre>
+                  </details>
+                  <details class="admin-sub-details">
+                    <summary>Metadata</summary>
+                    <pre><%= JSON.pretty_generate(t.metadata || {}) %></pre>
+                  </details>
+                </div>
+              </details>
+            </td>
+            <td><%= t.driver_type %></td>
+            <td><%= t.subject_scopes %></td>
+            <td><%= "#{t.window_days}d / #{t.baseline_days}d" %></td>
+            <td>
+              <div>Rate ≥ <%= t.min_current_rate %></div>
+              <div>Δ ≥ <%= t.min_delta_rate %></div>
+              <% if t.min_z_score.present? %>
+                <div>Z ≥ <%= t.min_z_score %></div>
+              <% end %>
+            </td>
+            <td>
+              <div>Window floor: <%= (t.metadata || {})["min_window_floor"] || t.min_window_detections %></div>
+              <div>Baseline floor: <%= (t.metadata || {})["min_baseline_floor"] || t.min_baseline_detections %></div>
+              <div>Expected fraction: <%= (t.metadata || {})["min_window_expected_fraction"] || 0.35 %></div>
+            </td>
+            <td>
+              <div>Cooldown: <%= t.cooldown_days %>d</div>
+              <div>Max/window: <%= t.max_per_subject_per_window || "–" %></div>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</details>
+
+<details class="admin-section" open>
+  <summary class="admin-section-header">
+    <h3>Recent Insights (persisted)</h3>
+    <span class="pp-muted">Last 20 by window end</span>
+  </summary>
+  <div class="admin-table-wrapper">
+    <table class="pp-table admin-insights-table">
+      <thead>
+        <tr>
+          <th>Window end</th>
+          <th>Subject</th>
+          <th>Template</th>
+          <th>Kind / Polarity</th>
+          <th>Severity</th>
+          <th>State</th>
+          <th>Author</th>
+          <th>Posted</th>
+          <th>Message</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @recent_insights.each do |insight| %>
+          <% msg_info = insight_message_info(insight) %>
+          <tr>
+            <td><%= insight.window_end_at ? l(insight.window_end_at, format: :short) : l(insight.created_at, format: :short) %></td>
+            <td><%= subject_label(insight.subject) %></td>
+            <td><%= insight.trigger_template&.key || "–" %></td>
+            <td><%= "#{insight.kind}/#{insight.polarity}" %></td>
+            <td><%= number_with_precision(insight.severity.to_f, precision: 2) %></td>
+            <td><%= insight.state %></td>
+            <td><%= msg_info[:author].presence || "–" %></td>
+            <td><%= msg_info[:posted_at] ? l(msg_info[:posted_at], format: :short) : "–" %></td>
+            <td class="pp-ellipsize"><%= truncate(msg_info[:text].to_s, length: 80) %></td>
+          </tr>
+          <tr class="admin-row-expand">
+            <td colspan="9">
+              <details>
+                <summary>View payload</summary>
+                <div class="admin-detail-block">
+                  <h4><%= insight.summary_title.presence || "(no title)" %></h4>
+                  <p><%= simple_format(insight.summary_body.presence || "(no body)") %></p>
+                  <div class="admin-detail-subsection">
+                    <strong>Data payload</strong>
+                    <pre><%= JSON.pretty_generate(insight.data_payload || {}) %></pre>
+                  </div>
+                </div>
+              </details>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</details>
+
+<%# Notification Preview & Evidence temporarily removed %>

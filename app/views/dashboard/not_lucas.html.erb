@@ -1,0 +1,54 @@
+<link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
+
+<style>
+  .not-lucas-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    background: #f1f5f9;
+  }
+
+  .not-lucas-box {
+    background: #fff;
+    padding: 3rem 4rem;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+    text-align: center;
+    max-width: min(700px, 80vw);
+  }
+
+  .not-lucas-box h1 {
+    font-family:  "Permanent Marker";
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: #111827;
+    margin: 0 0 2rem;
+    line-height: 1.2;
+  }
+
+  .retry-btn {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #fff;
+    background: #2563eb;
+    text-decoration: none;
+    box-shadow: 0 4px 10px rgba(37,99,235,0.3);
+    transition: background 0.2s ease, transform 0.15s ease;
+  }
+  .retry-btn:hover {
+    background: #1d4ed8;
+    transform: translateY(-1px);
+  }
+  .retry-btn:active {
+    transform: translateY(1px);
+  }
+</style>
+
+<div class="not-lucas-wrapper">
+  <div class="not-lucas-box">
+    <h1><%= @tagline %></h1>
+    <%= link_to "Retry", root_path, class: "retry-btn" %>
+  </div>
+</div>

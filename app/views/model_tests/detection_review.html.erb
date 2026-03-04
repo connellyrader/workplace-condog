@@ -1,0 +1,149 @@
+<section class="hdr-container" style="padding-bottom:200px;">
+  <!-- Header / Breadcrumb -->
+  <div class="hdr-breadcrumb">
+    <%= link_to "Dashboard", admin_path, class: "hdr-crumb" %>
+    <span class="hdr-sep">/</span>
+    <%= link_to "Model Tests", model_tests_path, class: "hdr-crumb" %>
+    <span class="hdr-sep">/</span>
+    <%= link_to (@model_test.name.presence || "Test ##{@model_test.id}"), model_test_path(@model_test), class: "hdr-crumb" %>
+    <span class="hdr-sep">/</span>
+    <span class="hdr-current">Detection <%= @detection.id %></span>
+  </div>
+
+  <div class="hdr-grid">
+    <!-- Left: Current message & taxonomy -->
+    <article class="hdr-card">
+      <div class="hdr-title-wrap">
+        <h2 class="hdr-title">Detection Review <span style="font-size:18px; color:#9aa7b5;">(<%= "#{@total_reviewed} of #{@total_reviews_remaining}" %>)</span></h2>
+        <div class="hdr-badges">
+          <% if @detection.indicator_type.present? %>
+            <span class="hdr-badge <%= @detection.indicator_type == 'positive' ? 'hdr-badge--pos' : 'hdr-badge--neg' %>">
+              <%= @detection.indicator_type %>
+            </span>
+          <% end %>
+          <span class="hdr-badge hdr-badge--score"><span style="font-size:24px;"><%= @detection.score.to_f.round(2) %></span></span>
+        </div>
+      </div>
+
+      <div class="hdr-meta">
+        <div><strong>Model Test:</strong> <%= @model_test.name.presence || "Test ##{@model_test.id}" %></div>
+        <div><strong>Model:</strong> <%= @model&.name || "—" %></div>
+        <div><strong>Workspace:</strong> <%= @workspace&.name || "—" %></div>
+      </div>
+
+      <div class="hdr-taxonomy">
+        <div class="hdr-tax-item"><span>Metric</span><strong><%= @taxonomy[:metric] || "—" %></strong></div>
+        <div class="hdr-tax-item"><span>Submetric</span><strong><%= @taxonomy[:submetric] || "—" %></strong></div>
+        <div class="hdr-tax-item"><span>Category</span><strong><%= @taxonomy[:category] || "—" %></strong></div>
+        <div class="hdr-tax-item"><span>Subcategory</span><strong><%= @taxonomy[:subcategory] || "—" %></strong></div>
+      </div>
+
+      <div class="hdr-ctx-item">
+        <div class="hdr-ctx-head">
+          <span class="hdr-ctx-author">Reasoning:</span>
+        </div>
+        <div class="hdr-ctx-body"><%= simple_format(@detection.description) %></div>
+      </div>
+    </article>
+
+    
+  </div>
+
+  <!-- Context: detected message -->
+  <article class="hdr-card">
+    <h3 class="hdr-subtitle">Analyzed Message</h3>
+    <ol class="hdr-context">
+      <li class="hdr-ctx-item">
+        <div class="hdr-ctx-head">
+          <span class="hdr-ctx-author"><%= @message.workspace_user&.display_name || "Unknown user" %></span>
+          <span class="hdr-ctx-time"><%= @message.posted_at ? l(@message.posted_at, format: :short) : "—" %></span>
+        </div>
+        <div class="hdr-ctx-body"><%= simple_format(@model_test.replace_slack_ids_with_names(@message.text)) %></div>
+      </li>
+    </ol>
+  </article>
+
+  <!-- Context: previous messages -->
+  <article class="hdr-card">
+    <h3 class="hdr-subtitle">Previous Messages in Context (<%= @previous_messages.size %>)</h3>
+    <ol class="hdr-context">
+      <% @previous_messages.each do |pm| %>
+        <li class="hdr-ctx-item">
+          <div class="hdr-ctx-head">
+            <span class="hdr-ctx-author"><%= pm.workspace_user&.display_name || "Unknown user" %></span>
+            <span class="hdr-ctx-time"><%= pm.posted_at ? l(pm.posted_at, format: :short) : "—" %></span>
+          </div>
+          <div class="hdr-ctx-body"><%= simple_format(@model_test.replace_slack_ids_with_names(pm.text)) %></div>
+        </li>
+      <% end %>
+    </ol>
+  </article>
+
+  <!-- Right: Scoring instructions -->
+  <article class="hdr-card">
+    <h3 class="hdr-subtitle">Scoring Instructions</h3>
+    <div class="hdr-mono"><%= @scoring_instructions.present? ? simple_format(@scoring_instructions) : "No instructions provided." %></div>
+
+    <% if @output_instructions.present? %>
+      <h3 class="hdr-subtitle" style="margin-top:14px;">Output Instructions</h3>
+      <div class="hdr-mono"><%= simple_format(@output_instructions) %></div>
+    <% end %>
+  </article>
+</section>
+
+<!-- Floating assessment bar -->
+<div class="hdr-fab" role="form" aria-label="Human Assessment Bar">
+  <div class="hdr-fab-left">
+    <div class="hdr-fab-title">Your Assessment</div>
+    <div class="hdr-fab-note">Set a 0–10 score for this detection</div>
+  </div>
+  <div class="hdr-fab-center">
+    <input id="hdr-score" class="hdr-range" type="range" min="0" max="10" step="1" value="5" />
+    <div class="hdr-scale">
+      <span>0</span><span>2</span><span>4</span><span>6</span><span>8</span><span>10</span>
+    </div>
+  </div>
+  <div class="hdr-fab-right">
+    <div class="hdr-fab-value" id="hdr-score-val">5</div>
+    <%= button_to "Save Review",
+                  submit_detection_review_path,
+                  method: :post,
+                  params: { detection_id: @detection.id, quality_score: nil },   # nil; JS will replace
+                  form: { id: "hdr-submit-form", style: "display:none" } %>
+    <button id="hdr-save" class="hdr-fab-btn" type="button">Save</button>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const range = document.getElementById('hdr-score');
+    const out   = document.getElementById('hdr-score-val');
+    const btn   = document.getElementById('hdr-save');
+    const form  = document.getElementById('hdr-submit-form');
+
+    function setVal(v){ out.textContent = v; }
+    setVal(range.value);
+
+    range.addEventListener('input', () => setVal(range.value));
+
+    btn.addEventListener('click', () => {
+      // inject current value into hidden submit params
+      const input = document.createElement('input');
+      input.type  = 'hidden';
+      input.name  = 'quality_score';
+      input.value = range.value;
+      form.appendChild(input);
+      form.submit();
+    });
+
+    // Keyboard shortcuts: 0..9 -> set score; Enter -> save
+    document.addEventListener('keydown', (e) => {
+      if (e.key >= '0' && e.key <= '9') {
+        range.value = e.key;
+        setVal(e.key);
+      } else if (e.key === 'Enter') {
+        btn.click();
+      }
+    });
+  })();
+</script>

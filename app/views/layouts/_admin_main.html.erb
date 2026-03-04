@@ -1,0 +1,22 @@
+<div class="main">
+  <div class="content">
+    <div class="content-inner admin-content">
+      <div class="admin-page-header">
+        <div>
+          <div class="admin-page-eyebrow">Admin</div>
+          <h1 class="admin-page-title"><%= content_for?(:page_title) ? yield(:page_title) : "Dashboard" %></h1>
+          <% if content_for?(:page_subtitle) %>
+            <p class="admin-page-subtitle"><%= yield(:page_subtitle) %></p>
+          <% end %>
+        </div>
+        <% if content_for?(:page_actions) %>
+          <div class="admin-page-actions"><%= yield(:page_actions) %></div>
+        <% end %>
+      </div>
+
+      <div class="partner-container admin-container">
+        <%= yield %>
+      </div>
+    </div>
+  </div>
+</div>

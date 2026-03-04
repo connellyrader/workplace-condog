@@ -1,0 +1,25 @@
+<!-- app/views/onboarding/_members.html.erb -->
+<div class="onboarding-members">
+  <% if users.any? %>
+    <% users.each do |u| %>
+      <% uid   = u.id.to_s %>
+      <% name  = u.real_name.presence || "Unknown" %>
+      <% title = (u.title.presence || u.role.presence || "").to_s.humanize %>
+      <% avatar = u.avatar_url.presence || image_path('blank.png') %>
+      <% checked = selected_ids.include?(uid) %>
+
+      <div class="onboarding-member" data-user-id="<%= uid %>">
+        <div class="onboarding-member-avatar" style="background-image: url('<%= avatar %>')"></div>
+        <div class="onboarding-member-info">
+          <div class="onboarding-member-name"><%= name %></div>
+          <div class="onboarding-member-title"><%= title %></div>
+        </div>
+        <div class="onboarding-member-button <%= 'checked' if checked %>">
+          <%= checked ? icon('check') : icon('plus') %>
+        </div>
+      </div>
+    <% end %>
+  <% else %>
+    <div class="onboarding-members-empty">No users found.</div>
+  <% end %>
+</div>
