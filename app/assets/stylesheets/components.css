@@ -867,6 +867,17 @@
     transform: rotate(calc(-90deg + var(--pos) * 1.8deg));
   }
 
+  @keyframes gauge-tooltip-in {
+    from {
+      opacity: 0;
+      filter: blur(6px);
+    }
+    to {
+      opacity: 1;
+      filter: blur(0);
+    }
+  }
+
   .gauge-tooltip{
     position: absolute;
     z-index: 10000;
@@ -882,14 +893,16 @@
     top: 170px;
     left: 50%;
     transform: translateX(-50%);
-    display: none;
+    opacity: 0;
+    filter: blur(6px);
+    pointer-events: none;
     min-height: 100px;
     box-shadow: 0px 8px 20px 1px rgba(0, 0, 0, 0.1);
-
   }
 
-    .gauge:hover .gauge-tooltip {
-      display: block;
+    .gauge-tooltip.is-visible {
+      animation: gauge-tooltip-in 0.25s ease forwards;
+      pointer-events: auto;
     }
 
     .gauge-tooltip-title{
@@ -962,6 +975,11 @@
       box-shadow: 0px 4px 20px 0px rgba(0, 0, 0, 0.08);
       border-radius: 26px;
       position: relative;
+      transition: box-shadow 0.2s ease;
+    }
+
+    .dashboard-box-grid > a:hover .dashboard-box{
+      box-shadow: 0px 4px 20px 2px rgba(0, 0, 0, 0.16);
     }
 
       .dashboard-box-title{

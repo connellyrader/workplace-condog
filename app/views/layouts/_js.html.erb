@@ -139,18 +139,33 @@
   document.addEventListener("DOMContentLoaded", initSettingsTooltips);
   document.addEventListener("turbo:load", initSettingsTooltips);
 
-  // Gauge "About your score" tooltip: use position:fixed so it floats over content
-  document.addEventListener('mouseover', function (e) {
-    var gauge = e.target.closest && e.target.closest('.gauge');
-    if (!gauge) return;
-    if (e.relatedTarget && gauge.contains(e.relatedTarget)) return;
-    var tooltip = gauge.querySelector('.gauge-tooltip');
+  // Gauge "About your score" tooltip: position fixed + JS-controlled visibility for reliable fade-in animation
+  function positionGaugeTooltip(gauge) {
+    var tooltip = gauge && gauge.querySelector('.gauge-tooltip');
     if (!tooltip) return;
     var rect = gauge.getBoundingClientRect();
     tooltip.style.position = 'fixed';
     tooltip.style.left = (rect.left + rect.width / 2) + 'px';
     tooltip.style.top = (rect.bottom + 8) + 'px';
     tooltip.style.transform = 'translateX(-50%)';
+  }
+
+  document.addEventListener('mouseover', function (e) {
+    var gauge = e.target.closest && e.target.closest('.gauge');
+    if (!gauge) return;
+    if (e.relatedTarget && gauge.contains(e.relatedTarget)) return;
+    var tooltip = gauge.querySelector('.gauge-tooltip');
+    if (!tooltip) return;
+    positionGaugeTooltip(gauge);
+    tooltip.classList.add('is-visible');
+  });
+
+  document.addEventListener('mouseout', function (e) {
+    var gauge = e.target.closest && e.target.closest('.gauge');
+    if (!gauge) return;
+    if (e.relatedTarget && gauge.contains(e.relatedTarget)) return;
+    var tooltip = gauge.querySelector('.gauge-tooltip');
+    if (tooltip) tooltip.classList.remove('is-visible');
   });
 
   function initSettingsTooltips() {
