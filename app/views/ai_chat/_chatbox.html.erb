@@ -36,8 +36,12 @@
     </button>
 
     <form class="ai-chat__composer">
-      <textarea rows="2" class="ai-chat__input" placeholder="Ask Clara anything about your culture..."
-                data-ai-chat-widget-target="input"></textarea>
+      <div class="ai-chat__input-wrap">
+        <textarea rows="2" class="ai-chat__input" placeholder=""
+                  aria-label="Ask Clara about your team culture"
+                  data-ai-chat-widget-target="input"></textarea>
+        <span class="ai-chat__placeholder-cycler" aria-hidden="true"></span>
+      </div>
       <button type="submit"
         class="ai-chat__send"
         data-ai-chat-widget-target="sendBtn">

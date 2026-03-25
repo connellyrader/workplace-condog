@@ -40,6 +40,7 @@
     this.threadEl           = qs(root,'[data-ai-chat-widget-target="thread"]')           || qs(root, ".ai-chat__thread");
     this.inputEl            = qs(root,'[data-ai-chat-widget-target="input"]')            || qs(root, ".ai-chat__input");
     this.sendBtnEl          = qs(root,'[data-ai-chat-widget-target="sendBtn"]')          || qs(root, ".ai-chat__send");
+    this.placeholderCyclerEl = qs(root, ".ai-chat__placeholder-cycler");
     this.scrollBtnEl        = qs(root, ".ai-chat__scroll-bottom");
     this.composerForm       = qs(root, ".ai-chat__composer") || qs(root, "form");
 
@@ -83,6 +84,83 @@
     this.showScrollToBottom(false);
   };
   AiChatWidget.prototype.scrollToBottom = function(){ this._scroll(); };
+
+  /* ---- cycling placeholder (main chat composer only) ---- */
+  AiChatWidget.prototype._stopPlaceholderCycle = function(){
+    if (this._placeholderTimer) {
+      clearTimeout(this._placeholderTimer);
+      this._placeholderTimer = null;
+    }
+    if (this.placeholderCyclerEl) {
+      this.placeholderCyclerEl.classList.remove("ai-chat__placeholder-cycler--exit");
+      this.placeholderCyclerEl.classList.remove("ai-chat__placeholder-cycler--snap-out");
+    }
+  };
+
+  AiChatWidget.prototype._placeholderCyclerVisible = function(){
+    return this.inputEl && !this.inputEl.value.trim() && document.activeElement !== this.inputEl;
+  };
+
+  AiChatWidget.prototype._schedulePlaceholderAdvance = function(){
+    var self = this;
+    if (!this.placeholderCyclerEl) return;
+    if (this._placeholderTimer) clearTimeout(this._placeholderTimer);
+    if (!this._placeholderCyclerVisible()) return;
+    this._placeholderTimer = setTimeout(function(){
+      self._placeholderTimer = null;
+      if (!self._placeholderCyclerVisible()) return;
+      self._advancePlaceholderPhrase();
+    }, 3000);
+  };
+
+  AiChatWidget.prototype._advancePlaceholderPhrase = function(){
+    var self = this;
+    var el = this.placeholderCyclerEl;
+    if (!el || !this._placeholderPhrases || !this._placeholderPhrases.length) return;
+    if (!this._placeholderCyclerVisible()) {
+      this._schedulePlaceholderAdvance();
+      return;
+    }
+
+    var settled = false;
+    var finish = function(){
+      if (settled) return;
+      settled = true;
+      el.removeEventListener("transitionend", onEnd);
+      if (!el.parentNode || !self.placeholderCyclerEl) return;
+
+      el.classList.add("ai-chat__placeholder-cycler--snap-out");
+      el.classList.remove("ai-chat__placeholder-cycler--exit");
+      self._placeholderIndex = (self._placeholderIndex + 1) % self._placeholderPhrases.length;
+      el.textContent = self._placeholderPhrases[self._placeholderIndex];
+      void el.offsetWidth;
+      el.classList.remove("ai-chat__placeholder-cycler--snap-out");
+
+      self._schedulePlaceholderAdvance();
+    };
+
+    var onEnd = function(e){
+      if (!e || (e.propertyName !== "opacity" && e.propertyName !== "filter")) return;
+      finish();
+    };
+
+    el.addEventListener("transitionend", onEnd);
+    el.classList.add("ai-chat__placeholder-cycler--exit");
+    setTimeout(finish, 480);
+  };
+
+  AiChatWidget.prototype._syncPlaceholderCycler = function(){
+    if (!this.placeholderCyclerEl || !this.inputEl) return;
+    var empty = !this.inputEl.value.trim();
+    var focused = document.activeElement === this.inputEl;
+    var show = empty && !focused;
+    this.placeholderCyclerEl.classList.toggle("is-hidden", !show);
+    if (!show) {
+      this._stopPlaceholderCycle();
+    } else if (!this._placeholderTimer) {
+      this._schedulePlaceholderAdvance();
+    }
+  };
 
   /* ---- lifecycle ---- */
   AiChatWidget.prototype.init = function(){
@@ -142,6 +220,34 @@
       this.inputEl.addEventListener("focus", this._updateSendReady);
       this.inputEl.addEventListener("blur", this._updateSendReady);
       this._updateSendReady();
+
+      if (this.placeholderCyclerEl) {
+        var selfPh = this;
+        this._placeholderPhrases = [
+          "How is team morale trending...",
+          "What drives engagement here...",
+          "Compare groups on alignment...",
+          "Explain this week's culture shift...",
+          "Which metrics changed most...",
+          "What's hurting our alignment...",
+          "Summarize recent culture signals...",
+          "Why did execution risk rise...",
+          "Show psychological safety trends...",
+          "What improved since last month...",
+          "How stressed is the team...",
+          "Where is conflict showing up..."
+        ];
+        this._placeholderIndex = 0;
+        this._placeholderTimer = null;
+        this.placeholderCyclerEl.textContent = this._placeholderPhrases[0];
+        this._onPlaceholderCyclerVisibility = function(){
+          selfPh._syncPlaceholderCycler();
+        };
+        this.inputEl.addEventListener("focus", this._onPlaceholderCyclerVisibility);
+        this.inputEl.addEventListener("blur", this._onPlaceholderCyclerVisibility);
+        this.inputEl.addEventListener("input", this._onPlaceholderCyclerVisibility);
+        this._syncPlaceholderCycler();
+      }
     }
 
     if (this.menuBtns && this.menuBtns.length){
@@ -199,6 +305,13 @@
   };
 
   AiChatWidget.prototype.destroy = function(){
+    this._stopPlaceholderCycle && this._stopPlaceholderCycle();
+    if (this.inputEl && this._onPlaceholderCyclerVisibility) {
+      this.inputEl.removeEventListener("focus", this._onPlaceholderCyclerVisibility);
+      this.inputEl.removeEventListener("blur", this._onPlaceholderCyclerVisibility);
+      this.inputEl.removeEventListener("input", this._onPlaceholderCyclerVisibility);
+    }
+
     if (this.subscription && this.subscription.unsubscribe) this.subscription.unsubscribe();
     if (this.composerForm && this._onSubmit) this.composerForm.removeEventListener("submit", this._onSubmit);
 
