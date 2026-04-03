@@ -47,7 +47,9 @@
     this._streamingActive   = false;
 
     /* persistent UI */
-    this.menuBtns           = qsa(root, ".ai-chat__menu");  // multiple triggers supported
+    this.sidebarToggleBtns  = qsa(root, ".ai-chat__menu-topbar-toggle");
+    this.sidebarCloseBtn    = qs(root, ".ai-chat__sidebar-close");
+    this.topbarNewBtn       = qs(root, ".ai-chat__topbar-new");
     this.scrimEl            = qs(root, ".ai-chat__scrim");
 
     /* optional legacy buttons */
@@ -250,10 +252,22 @@
       }
     }
 
-    if (this.menuBtns && this.menuBtns.length){
-      var selfMenu = this;
-      this._onMenu = function(e){ if(e&&e.preventDefault) e.preventDefault(); selfMenu.setSidebarOpen(!selfMenu.isSidebarOpen()); };
-      this.menuBtns.forEach(function(btn){ btn.addEventListener("click", selfMenu._onMenu); });
+    var selfMenu = this;
+    if (this.sidebarToggleBtns && this.sidebarToggleBtns.length){
+      this._onSidebarToggle = function(e){ if(e&&e.preventDefault) e.preventDefault(); selfMenu.setSidebarOpen(!selfMenu.isSidebarOpen()); };
+      this.sidebarToggleBtns.forEach(function(btn){ btn.addEventListener("click", selfMenu._onSidebarToggle); });
+    }
+    if (this.sidebarCloseBtn){
+      this._onSidebarClose = function(e){ if(e&&e.preventDefault) e.preventDefault(); selfMenu.setSidebarOpen(false); };
+      this.sidebarCloseBtn.addEventListener("click", this._onSidebarClose);
+    }
+    if (this.topbarNewBtn){
+      this._onTopbarNew = function(e){
+        if(e&&e.preventDefault) e.preventDefault();
+        selfMenu.createConversation && selfMenu.createConversation();
+        selfMenu.setSidebarOpen(false);
+      };
+      this.topbarNewBtn.addEventListener("click", this._onTopbarNew);
     }
 
     if (this.scrimEl){
@@ -268,7 +282,7 @@
     }
     if (this.newBtn){
       var selfNew = this;
-      this._onNew = function(e){ if(e&&e.preventDefault) e.preventDefault(); selfNew.createConversation && selfNew.createConversation(); selfScrim.setSidebarOpen(false); };
+      this._onNew = function(e){ if(e&&e.preventDefault) e.preventDefault(); selfNew.createConversation && selfNew.createConversation(); selfNew.setSidebarOpen(false); };
       this.newBtn.addEventListener("click", this._onNew);
     }
 
@@ -316,7 +330,11 @@
     if (this.composerForm && this._onSubmit) this.composerForm.removeEventListener("submit", this._onSubmit);
 
     if (this.inputEl && this._onInputKeydown) {this.inputEl.removeEventListener("keydown", this._onInputKeydown);}
-    if (this.menuBtns && this._onMenu) { this.menuBtns.forEach(function(btn){ btn.removeEventListener("click", this._onMenu); }, this); }
+    if (this.sidebarToggleBtns && this._onSidebarToggle) {
+      this.sidebarToggleBtns.forEach(function(btn){ btn.removeEventListener("click", this._onSidebarToggle); }, this);
+    }
+    if (this.sidebarCloseBtn && this._onSidebarClose) this.sidebarCloseBtn.removeEventListener("click", this._onSidebarClose);
+    if (this.topbarNewBtn && this._onTopbarNew) this.topbarNewBtn.removeEventListener("click", this._onTopbarNew);
     if (this.scrimEl && this._onScrim) this.scrimEl.removeEventListener("click", this._onScrim);
     if (this.hamburgerBtn && this._onToggle) this.hamburgerBtn.removeEventListener("click", this._onToggle);
     if (this.newBtn && this._onNew) this.newBtn.removeEventListener("click", this._onNew);
@@ -332,9 +350,12 @@
   AiChatWidget.prototype.setSidebarOpen = function(open){
     this.sidebarOpen = !!open;
     this.root.classList.toggle("ai-chat--sidebar-open", this.sidebarOpen);
-    if (this.menuBtns && this.menuBtns.length){
-      var expanded = String(this.sidebarOpen);
-      this.menuBtns.forEach(function(btn){ btn.setAttribute("aria-expanded", expanded); });
+    var expanded = String(this.sidebarOpen);
+    if (this.sidebarToggleBtns && this.sidebarToggleBtns.length){
+      this.sidebarToggleBtns.forEach(function(btn){ btn.setAttribute("aria-expanded", expanded); });
+    }
+    if (this.sidebarCloseBtn){
+      this.sidebarCloseBtn.setAttribute("aria-expanded", expanded);
     }
   };
   AiChatWidget.prototype.toggleSidebar = function(e){ if (e && e.preventDefault) e.preventDefault(); this.setSidebarOpen(!this.isSidebarOpen()); };

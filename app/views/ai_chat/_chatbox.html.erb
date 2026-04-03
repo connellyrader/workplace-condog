@@ -9,9 +9,11 @@
   <!-- Persistent topbar -->
   <div class="ai-chat__topbar">
     <div class="ai-chat__topbar-close"><%= icon 'x-mark' %></div>
-    <div class="ai-chat__topbar-title">CLARA <div class="ai-chat__topbar-version"><%= @version %></div></div>
-    <button class="ai-chat__menu" aria-label="Open conversations" aria-expanded="false"><%= icon "elipsis-vertical" %></button>
-    <!--div class="ai-chat__topbar-actions">empty for now</div-->
+    <button type="button" class="ai-chat__menu ai-chat__menu-alt ai-chat__menu-topbar-toggle" aria-label="Open conversations" aria-expanded="false"><%= icon "sidebar" %></button>
+    <div class="ai-chat__topbar-start">
+      <div class="ai-chat__topbar-title">CLARA <div class="ai-chat__topbar-version"><%= @version %></div></div>
+    </div>
+    <button type="button" class="ai-chat__menu ai-chat__topbar-new" aria-label="Start new chat with Clara"><%= icon "pencil-square" %></button>
   </div>
 
   <!-- Scrim behind the floating sidebar -->
@@ -20,7 +22,7 @@
   <!-- Floating sidebar -->
   <div class="ai-chat__sidebar" role="dialog" aria-label="Conversations">
     <div class="ai-chat__sidebar-header">
-      <button class="ai-chat__menu ai-chat__menu-alt" aria-label="Open conversations" aria-expanded="false"><%= icon "sidebar" %></button>
+      <button type="button" class="ai-chat__menu ai-chat__menu-alt ai-chat__sidebar-close" aria-label="Close conversations" aria-expanded="false"><%= icon "x-mark" %></button>
     </div>
     <a class="ai-chat__new"><%= icon "pencil-square" %>New Chat</a>
     <a class="ai-chat__new ai-chat__new--secondary" href="<%= clara_docs_path %>"><%= icon "info" %>CLARA Docs</a>
