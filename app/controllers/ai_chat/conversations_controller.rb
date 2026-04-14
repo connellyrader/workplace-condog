@@ -3,6 +3,12 @@ class AiChat::ConversationsController < ApplicationController
   before_action :authenticate_user!
   before_action :set_conversation, only: [:show, :update, :destroy]
 
+  # Full-screen chat shell (default signed-in home).
+  def home
+    @chat_primary_layout = true
+    @version = "v26.040"
+  end
+
   def index
     @conversations = conversation_scope.recent_first
     respond_to do |fmt|

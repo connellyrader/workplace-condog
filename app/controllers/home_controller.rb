@@ -3,8 +3,8 @@ class HomeController < ApplicationController
   #
   # Rules:
   # - Unauthed: go to login.
-  # - Partner users default to partner dashboard until they explicitly switch to a client workspace.
-  # - Non-partners default to customer dashboard.
+  # - Partner users in partner_mode default to the partner dashboard.
+  # - Everyone else defaults to the full-screen Assistant (Clara) home.
   def root
     return redirect_to(new_user_session_path) unless current_user
 
@@ -12,6 +12,6 @@ class HomeController < ApplicationController
       return redirect_to partner_dashboard_path
     end
 
-    redirect_to dashboard_path
+    redirect_to clara_home_path
   end
 end

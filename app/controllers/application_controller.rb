@@ -22,7 +22,7 @@ class ApplicationController < ActionController::Base
   before_action :configure_permitted_parameters, if: :devise_controller?
 
   helper_method :teams_admin_consent_url
-  helper_method :show_chat_panel?, :show_analyze_panel?
+  helper_method :show_chat_panel?, :show_analyze_panel?, :right_rail_visible?, :chat_primary_layout?
   helper_method :encrypt_admin_state
   helper_method :workspace_admin?
   helper_method :available_workspaces
@@ -503,8 +503,9 @@ class ApplicationController < ActionController::Base
 
   # app/controllers/application_controller.rb
   def set_right_panel_flags
-    @show_chat_panel    = false
-    @show_analyze_panel = false
+    @show_chat_panel       = false
+    @show_analyze_panel    = false
+    @right_rail_visible    = false
 
     return unless user_signed_in? && @active_workspace
 
@@ -519,10 +520,12 @@ class ApplicationController < ActionController::Base
     # Never show analyzer/chat panel states when workspace has no integrations yet.
     return unless has_integrations
 
-    @show_chat_panel    = any_analyze_complete || max_days_analyzed >= 30
-    @show_analyze_panel = !@show_chat_panel
+    # CLARA lives in full-screen /clara — right rail is analyze onboarding only.
+    eligible_for_chat = any_analyze_complete || max_days_analyzed >= 30
+    @show_chat_panel    = false
+    @show_analyze_panel = !eligible_for_chat
+    @right_rail_visible = @show_chat_panel || @show_analyze_panel
   end
-
 
   def show_chat_panel?
     @show_chat_panel
@@ -530,6 +533,14 @@ class ApplicationController < ActionController::Base
 
   def show_analyze_panel?
     @show_analyze_panel
+  end
+
+  def right_rail_visible?
+    !!@right_rail_visible
+  end
+
+  def chat_primary_layout?
+    !!@chat_primary_layout
   end
 
   def teams_admin_state_encryptor

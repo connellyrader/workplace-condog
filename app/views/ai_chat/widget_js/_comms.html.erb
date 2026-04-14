@@ -14,10 +14,21 @@
     if(!res.ok) throw new Error("Failed to open conversation");
     var data = await res.json();
 
+    if (this.updateConversationTitle) this.updateConversationTitle(data.title);
+
     if (this.threadEl) {
       this.threadEl.innerHTML = "";
       var self = this;
-      (data.messages || []).forEach(function(m){
+      var msgs = data.messages || [];
+      var ds = this.root && this.root.dataset || {};
+
+      // In home layout, if the conversation starts with a user message,
+      // prepend the intro greeting (it's not persisted server-side)
+      if (ds.aiChatWidgetLayoutValue === "home" && msgs.length && msgs[0].role === "user") {
+        self.appendMessageBubble("assistant", "Hey! I\u2019m your Workplace assistant. What would you like to call me?");
+      }
+
+      msgs.forEach(function(m){
         var bubble = self.appendMessageBubble(m.role, m.content);
         self.processInlineMarkers && self.processInlineMarkers(bubble);
 
@@ -29,10 +40,23 @@
         }
       });
 
-      if (!data.messages || !data.messages.length) {
+      // Track conversations that have had dummy messages
+      self._dummyConvos = self._dummyConvos || {};
+      if (!msgs.length && !self._dummyConvos[id]) {
         this.renderEmptyIntro && this.renderEmptyIntro();
       } else {
         this.clearEmptyIntro && this.clearEmptyIntro();
+        // Restore dummy messages if they exist
+        if (!msgs.length && self._dummyConvos[id]) {
+          self._dummyConvos[id].forEach(function(m){
+            var bubble = self.appendMessageBubble(m.role, "");
+            var msgEl = bubble && bubble.querySelector(".ai-msg");
+            if (msgEl) {
+              var html = ""; try { html = global.__renderMarkdown ? global.__renderMarkdown(m.content) : ""; } catch(_){}
+              if (html && html.trim()) msgEl.innerHTML = html; else msgEl.textContent = m.content;
+            }
+          });
+        }
       }
     }
 
@@ -108,6 +132,9 @@
             }
             // re-render list highlighting the current row
             self.renderConversationList();
+            if (self.currentConversationId === id && self.updateConversationTitle) {
+              self.updateConversationTitle(title);
+            }
             return;
           }
 
@@ -144,6 +171,8 @@
               self.flushMarkdown(bDone);
               // 2) Replace {{block:ID}} with slots and insert queued inline widgets
               self.processInlineMarkers && self.processInlineMarkers(bDone);
+              // 3) Staggered blur-in reveal
+              self._revealMsg && self._revealMsg(bDone);
             }
 
             if (self.setComposerEnabled) self.setComposerEnabled(true);
@@ -168,7 +197,7 @@
     var content = this.inputEl.value.trim();
     if (!content) return;
 
-    // Hide intro once user starts a real thread
+    // Hide intro / landing once user starts a real thread
     this.clearEmptyIntro && this.clearEmptyIntro();
 
     // 🔹 Disable composer + add loading state
@@ -187,13 +216,75 @@
     var pending = this.appendMessageBubble("assistant", "");
     this.showSpinner && this.showSpinner(pending, "Thinking…");
 
+    // ── Dummy response mode (no LLM needed) ──
+    var dummyMode = true;
+    if (dummyMode) {
+      var self = this;
+
+      // Only set the title on the very first message in this conversation
+      var isFirstMessage = !(self._dummyConvos && self._dummyConvos[self.currentConversationId] && self._dummyConvos[self.currentConversationId].length);
+      if (isFirstMessage) {
+        var dummyTitle = content.length > 40 ? content.substring(0, 40) + "…" : content;
+        if (self.updateConversationTitle) self.updateConversationTitle(dummyTitle);
+        if (self.currentConversationId && Array.isArray(self.conversations)) {
+          for (var ci = 0; ci < self.conversations.length; ci++) {
+            if (self.conversations[ci].id === self.currentConversationId) {
+              self.conversations[ci].title = dummyTitle;
+              break;
+            }
+          }
+          self.renderConversationList && self.renderConversationList();
+        }
+      }
+
+      /* Show analyzing bar on first follow-up message */
+      if (!isFirstMessage && !self._analyzingBar) {
+        self.showAnalyzingBar && self.showAnalyzingBar();
+      }
+
+      var dummyResponses = [
+        "Great question! Based on the team's recent activity, engagement has been trending upward over the past two weeks. The biggest contributors have been the **weekly standups** and the new **async check-in** process that was introduced last month.\n\nHere are a few highlights:\n\n- **Participation rate** is up 12% compared to last period\n- **Response time** on team threads has improved by 18%\n- **Sentiment scores** remain steady at 7.8/10\n\nWould you like me to dig deeper into any of these areas?",
+        "Looking at the data, here's what stands out:\n\n1. **Monday mornings** tend to have the highest collaboration activity\n2. **Cross-team interactions** have increased by 23% since the reorg\n3. There's a noticeable dip in engagement on Fridays after 2pm\n\nThe overall trend is positive. Your team seems to be finding a good rhythm with the new workflow.",
+        "Sure thing! Here's a quick summary of the key metrics:\n\n| Metric | This Period | Last Period | Change |\n|--------|-----------|------------|--------|\n| Engagement Score | 82% | 76% | +6% |\n| Active Contributors | 24 | 19 | +5 |\n| Avg Response Time | 2.4h | 3.1h | -0.7h |\n| Sentiment | 7.8 | 7.5 | +0.3 |\n\nLet me know if you'd like to explore any of these in more detail.",
+        "That's a really interesting observation. From what I can see, the team dynamic shifted notably after the **Q3 planning session**. A few things that might explain it:\n\n- New team members have been actively participating in discussions\n- The introduction of **themed meeting days** reduced context-switching\n- Management has been more visible in channels, which tends to boost engagement\n\nI'd recommend keeping an eye on the burnout indicators though — high engagement is great, but sustained intensity can sometimes lead to fatigue."
+      ];
+      var reply = dummyResponses[Math.floor(Math.random() * dummyResponses.length)];
+
+      // Store dummy messages for this conversation so they persist on nav
+      self._dummyConvos = self._dummyConvos || {};
+      if (!self._dummyConvos[self.currentConversationId]) {
+        self._dummyConvos[self.currentConversationId] = [];
+      }
+      self._dummyConvos[self.currentConversationId].push({ role: "user", content: content });
+
+      setTimeout(function(){
+        self.removeSpinner && self.removeSpinner(pending);
+        var msg = pending && pending.querySelector(".ai-msg");
+        if (msg) {
+          var html = ""; try { html = global.__renderMarkdown ? global.__renderMarkdown(reply) : ""; } catch(_){}
+          if (html && html.trim()) msg.innerHTML = html; else msg.textContent = reply;
+        }
+        // Staggered blur-in reveal
+        self._revealMsg && self._revealMsg(pending);
+        // Store the assistant reply too
+        self._dummyConvos[self.currentConversationId].push({ role: "assistant", content: reply });
+
+        if (self.setComposerEnabled) self.setComposerEnabled(true);
+        else if (self.sendBtnEl) self.sendBtnEl.disabled = false;
+        self._scroll && self._scroll();
+      }, 3000);
+      this.scrollToBottom && this.scrollToBottom();
+      return;
+    }
+    // ── End dummy response mode ──
+
     var payload = {
       content: content,
       options: { timeframe: "last_14_days" }
     };
 
     this.subscription.perform("send_message", payload);
-    // no auto-scroll on send
+    this.scrollToBottom && this.scrollToBottom();
   };
 
   /* ---- async delete conversation ---- */
@@ -325,12 +416,154 @@
     if (!this.threadEl) return;
     var el = this.threadEl.querySelector(".ai-chat__intro");
     if (el && el.parentNode) el.parentNode.removeChild(el);
+    var empties = this.threadEl.querySelectorAll("[data-intro-empty='1']");
+    Array.prototype.forEach.call(empties, function(b){
+      if (b && b.parentNode) b.parentNode.removeChild(b);
+    });
+    // Also clean up the landing page
+    var mainEl = this.root && this.root.querySelector(".ai-chat__main");
+    if (mainEl && mainEl.classList.contains("ai-chat__main--landing")) {
+      var composer = mainEl.querySelector(".ai-chat__composer");
+
+      // FLIP animation: capture composer's current position before DOM change
+      var firstRect = composer ? composer.getBoundingClientRect() : null;
+
+      // Move composer back to its original position (end of main)
+      if (composer && composer.parentNode !== mainEl) {
+        mainEl.appendChild(composer);
+      }
+      // Restore placeholder
+      if (this.inputEl && this._origPlaceholder != null) {
+        this.inputEl.placeholder = this._origPlaceholder;
+      }
+      // Remove landing elements
+      var landing = mainEl.querySelector(".ai-chat__landing");
+      if (landing && landing.parentNode) landing.parentNode.removeChild(landing);
+
+      // Remove landing state so layout resolves to final position
+      mainEl.classList.remove("ai-chat__main--landing");
+
+      // FLIP: calculate delta and animate composer from old pos to new
+      if (composer && firstRect) {
+        var lastRect = composer.getBoundingClientRect();
+        var dy = firstRect.top - lastRect.top;
+        var dx = firstRect.left - lastRect.left;
+
+        if (Math.abs(dy) > 5 || Math.abs(dx) > 5) {
+          composer.style.transform = "translate(" + dx + "px, " + dy + "px)";
+          composer.style.transition = "none";
+          // Force reflow so the transform is applied before we animate
+          composer.offsetHeight;
+          composer.style.transition = "transform 0.45s cubic-bezier(0.16, 1, 0.3, 1)";
+          composer.style.transform = "translate(0, 0)";
+
+          composer.addEventListener("transitionend", function cleanup(e){
+            if (e.propertyName === "transform") {
+              composer.style.transform = "";
+              composer.style.transition = "";
+              composer.removeEventListener("transitionend", cleanup);
+            }
+          });
+        }
+      }
+
+      // Fade in the thread area
+      mainEl.classList.add("ai-chat__main--landing-exit");
+      setTimeout(function(){
+        mainEl.classList.remove("ai-chat__main--landing-exit");
+      }, 500);
+    }
   };
 
   W.prototype.renderEmptyIntro = function(){
     if (!this.threadEl) return;
 
     this.clearEmptyIntro();
+
+    var ds = this.root.dataset || {};
+    if (ds.aiChatWidgetLayoutValue === "home") {
+      var self = this;
+      var mainEl = this.root.querySelector(".ai-chat__main");
+      if (!mainEl) return;
+
+      // Show landing state
+      mainEl.classList.add("ai-chat__main--landing");
+
+      // Set topbar title to model name on landing
+      if (self.titleEl) self.titleEl.textContent = "CLARA v26.040";
+
+      // Build landing container with heading
+      var landing = document.createElement("div");
+      landing.className = "ai-chat__landing";
+
+      var heading = document.createElement("h1");
+      heading.className = "ai-chat__landing-heading";
+      heading.textContent = "What can I do for you?";
+      landing.appendChild(heading);
+
+      // Move the real composer into the landing div
+      var composer = mainEl.querySelector(".ai-chat__composer");
+      if (composer) {
+        landing.appendChild(composer);
+      }
+
+      // Swap placeholder text
+      if (self.inputEl) {
+        self._origPlaceholder = self.inputEl.placeholder;
+        self.inputEl.placeholder = "Assign a task or ask anything...";
+      }
+
+      // Examples section
+      var examples = [
+        { title: "Analyze engagement", desc: "Review engagement trends across your teams and identify the areas that need the most attention" },
+        { title: "Research a topic", desc: "Explore topics like psychological safety, burnout, or alignment across your organization" },
+        { title: "Draft a team update", desc: "Turn culture signals and recent data into a clear, concise update for leadership" }
+      ];
+
+      var exWrap = document.createElement("div");
+      exWrap.className = "ai-chat__landing-examples";
+
+      var exHeading = document.createElement("div");
+      exHeading.className = "ai-chat__landing-examples-heading";
+      exHeading.textContent = "Get started with some examples";
+      exWrap.appendChild(exHeading);
+
+      var exGrid = document.createElement("div");
+      exGrid.className = "ai-chat__landing-examples-grid";
+
+      examples.forEach(function(ex){
+        var card = document.createElement("button");
+        card.type = "button";
+        card.className = "ai-chat__landing-example-card";
+        var t = document.createElement("div");
+        t.className = "ai-chat__landing-example-title";
+        t.textContent = ex.title;
+        var d = document.createElement("div");
+        d.className = "ai-chat__landing-example-desc";
+        d.textContent = ex.desc;
+        card.appendChild(t);
+        card.appendChild(d);
+
+        card.addEventListener("click", function(){
+          if (self.inputEl) {
+            self.inputEl.value = ex.title + ". " + ex.desc;
+            self.inputEl.dispatchEvent(new Event("input", { bubbles: true }));
+            self.inputEl.focus();
+          }
+        });
+
+        exGrid.appendChild(card);
+      });
+
+      exWrap.appendChild(exGrid);
+      landing.appendChild(exWrap);
+
+      // Insert landing before thread-wrap
+      var threadWrap = mainEl.querySelector(".ai-chat__thread-wrap");
+      mainEl.insertBefore(landing, threadWrap);
+
+      return;
+    }
 
     function pickRandom(arr, n){
       // Fisher–Yates shuffle copy, then take n

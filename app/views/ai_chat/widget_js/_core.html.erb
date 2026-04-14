@@ -36,7 +36,11 @@
     this.createUrl = ds.aiChatWidgetCreateUrlValue || ds.createUrl;
     this.cableUrl  = ds.aiChatWidgetCableUrlValue  || ds.cableUrl || "/cable";
 
-    this.conversationListEl = qs(root,'[data-ai-chat-widget-target="conversationList"]') || qs(root, ".ai-chat__list");
+    if (ds.aiChatWidgetConversationListSelectorValue) {
+      this.conversationListEl = document.querySelector(ds.aiChatWidgetConversationListSelectorValue);
+    } else {
+      this.conversationListEl = qs(root,'[data-ai-chat-widget-target="conversationList"]') || qs(root, ".ai-chat__list");
+    }
     this.threadEl           = qs(root,'[data-ai-chat-widget-target="thread"]')           || qs(root, ".ai-chat__thread");
     this.inputEl            = qs(root,'[data-ai-chat-widget-target="input"]')            || qs(root, ".ai-chat__input");
     this.sendBtnEl          = qs(root,'[data-ai-chat-widget-target="sendBtn"]')          || qs(root, ".ai-chat__send");
@@ -51,6 +55,8 @@
     this.sidebarCloseBtn    = qs(root, ".ai-chat__sidebar-close");
     this.topbarNewBtn       = qs(root, ".ai-chat__topbar-new");
     this.scrimEl            = qs(root, ".ai-chat__scrim");
+    this.titleEl            = qs(root, '[data-ai-chat-widget-target="conversationTitle"]');
+    this._navNewBtns       = [];
 
     /* optional legacy buttons */
     this.hamburgerBtn       = qs(root, ".ai-chat__hamburger");
@@ -58,9 +64,15 @@
   }
 
   /* ---- scrolling ---- */
+  AiChatWidget.prototype._scrollContainer = function(){
+    if (!this.threadEl) return null;
+    var wrap = this.threadEl.parentElement;
+    return (wrap && wrap.classList.contains("ai-chat__thread-wrap")) ? wrap : this.threadEl;
+  };
+
   AiChatWidget.prototype.isNearBottom = function(){
-    if (!this.threadEl) return true;
-    var el = this.threadEl;
+    var el = this._scrollContainer();
+    if (!el) return true;
     var threshold = 48;
     return (el.scrollHeight - (el.scrollTop + el.clientHeight)) <= threshold;
   };
@@ -81,8 +93,9 @@
   };
 
   AiChatWidget.prototype._scroll = function(){
-    if (!this.threadEl) return;
-    this.threadEl.scrollTop = this.threadEl.scrollHeight;
+    var el = this._scrollContainer();
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
     this.showScrollToBottom(false);
   };
   AiChatWidget.prototype.scrollToBottom = function(){ this._scroll(); };
@@ -270,6 +283,17 @@
       this.topbarNewBtn.addEventListener("click", this._onTopbarNew);
     }
 
+    var selfNavNew = this;
+    this._onNavNew = function(e){
+      if (e && e.preventDefault) e.preventDefault();
+      selfNavNew.createConversation && selfNavNew.createConversation();
+      selfNavNew.setSidebarOpen && selfNavNew.setSidebarOpen(false);
+    };
+    qsa(document, ".js-clara-nav-new").forEach(function(btn){
+      btn.addEventListener("click", selfNavNew._onNavNew);
+      selfNavNew._navNewBtns.push(btn);
+    });
+
     if (this.scrimEl){
       var selfScrim = this;
       this._onScrim = function(e){ if(e&&e.preventDefault) e.preventDefault(); selfScrim.setSidebarOpen(false); };
@@ -287,10 +311,11 @@
     }
 
     // Scroll tracking + jump-to-bottom
-    if (this.threadEl) {
+    var scrollTarget = this._scrollContainer && this._scrollContainer();
+    if (scrollTarget) {
       var selfScroll = this;
       this._onThreadScroll = function(){ selfScroll._updateStickyState && selfScroll._updateStickyState(); };
-      this.threadEl.addEventListener("scroll", this._onThreadScroll, { passive: true });
+      scrollTarget.addEventListener("scroll", this._onThreadScroll, { passive: true });
     }
     if (this.scrollBtnEl) {
       var selfJump = this;
@@ -335,6 +360,11 @@
     }
     if (this.sidebarCloseBtn && this._onSidebarClose) this.sidebarCloseBtn.removeEventListener("click", this._onSidebarClose);
     if (this.topbarNewBtn && this._onTopbarNew) this.topbarNewBtn.removeEventListener("click", this._onTopbarNew);
+    var selfDn = this;
+    if (this._onNavNew && this._navNewBtns && this._navNewBtns.length) {
+      this._navNewBtns.forEach(function(btn){ btn.removeEventListener("click", selfDn._onNavNew); });
+      this._navNewBtns = [];
+    }
     if (this.scrimEl && this._onScrim) this.scrimEl.removeEventListener("click", this._onScrim);
     if (this.hamburgerBtn && this._onToggle) this.hamburgerBtn.removeEventListener("click", this._onToggle);
     if (this.newBtn && this._onNew) this.newBtn.removeEventListener("click", this._onNew);
@@ -362,17 +392,32 @@
   AiChatWidget.prototype.closeSidebar  = function(e){ if (e && e.preventDefault) e.preventDefault(); this.setSidebarOpen(false); };
 
   /* ---- REST ---- */
+  AiChatWidget.prototype.updateConversationTitle = function(title){
+    if (!this.titleEl) return;
+    var t = (title || "").toString().trim();
+    this.titleEl.textContent = t || " ";
+  };
+
   AiChatWidget.prototype.loadConversations = async function(){
     var res = await fetch(this.listUrl, { headers: { "Accept":"application/json" } });
     if(!res.ok) throw new Error("Failed to load conversations");
     this.conversations = await res.json();
+    if (this.conversations && this.conversations.length) {
+      this._introTitleConsumed = true;
+    }
     this.renderConversationList();
     if (this.conversations.length) { this.openConversation && this.openConversation(this.conversations[0].id); }
     else { await this.createConversation(); }
   };
 
   AiChatWidget.prototype.createConversation = async function(){
-    var payload = { title: "New conversation" };
+    var isHome = (this.root.dataset.aiChatWidgetLayoutValue === "home");
+    var title = "New conversation";
+    if (isHome && !this._introTitleConsumed) {
+      title = "Introduce yourself";
+      this._introTitleConsumed = true;
+    }
+    var payload = { title: title };
 
     var res = await fetch(this.createUrl, {
       method: "POST",
@@ -482,6 +527,50 @@
     Array.prototype.forEach.call(btns, function(b){ b.setAttribute("aria-expanded","false"); });
   };
 
+  /* ---- Unicode braille spinners (from unicode-animations) ---- */
+  AiChatWidget._brailleSpinners = {
+    braille:      { frames: ["\u280B","\u2819","\u2839","\u2838","\u283C","\u2834","\u2826","\u2827","\u2807","\u280F"], interval: 80 },
+
+
+    orbit:        { frames: (function(){
+      var W=2,H=4,path=[[0,0],[0,1],[1,1],[2,1],[3,1],[3,0],[2,0],[1,0]],frames=[];
+      function g2b(grid){var rows=grid.length,cols=grid[0]?grid[0].length:0,cc=Math.ceil(cols/2),r="",DOTS=[[1,8],[2,16],[4,32],[64,128]];for(var c=0;c<cc;c++){var code=10240;for(var rr=0;rr<4&&rr<rows;rr++){for(var d=0;d<2;d++){var col=c*2+d;if(col<cols&&grid[rr]&&grid[rr][col])code|=DOTS[rr][d]}}r+=String.fromCodePoint(code)}return r}
+      function mg(r,c){if(r<=0||c<=0)return[];return Array.from({length:r},function(){return Array(c).fill(false)})}
+      for(var i=0;i<path.length;i++){var g=mg(H,W);g[path[i][0]][path[i][1]]=true;var t1=(i-1+path.length)%path.length;g[path[t1][0]][path[t1][1]]=true;frames.push(g2b(g))}return frames;
+    })(), interval: 100 },
+    scan:         { frames: (function(){
+      var W=8,H=4,frames=[],DOTS=[[1,8],[2,16],[4,32],[64,128]];
+      function g2b(grid){var rows=grid.length,cols=grid[0]?grid[0].length:0,cc=Math.ceil(cols/2),r="";for(var c=0;c<cc;c++){var code=10240;for(var rr=0;rr<4&&rr<rows;rr++){for(var d=0;d<2;d++){var col=c*2+d;if(col<cols&&grid[rr]&&grid[rr][col])code|=DOTS[rr][d]}}r+=String.fromCodePoint(code)}return r}
+      function mg(r,c){return Array.from({length:r},function(){return Array(c).fill(false)})}
+      for(var pos=-1;pos<W+1;pos++){var g=mg(H,W);for(var r=0;r<H;r++){for(var c=0;c<W;c++){if(c===pos||c===pos-1)g[r][c]=true}}frames.push(g2b(g))}return frames;
+    })(), interval: 70 },
+    diagswipe:    { frames: (function(){
+      var W=4,H=4,frames=[],DOTS=[[1,8],[2,16],[4,32],[64,128]];
+      function g2b(grid){var rows=grid.length,cols=grid[0]?grid[0].length:0,cc=Math.ceil(cols/2),r="";for(var c=0;c<cc;c++){var code=10240;for(var rr=0;rr<4&&rr<rows;rr++){for(var d=0;d<2;d++){var col=c*2+d;if(col<cols&&grid[rr]&&grid[rr][col])code|=DOTS[rr][d]}}r+=String.fromCodePoint(code)}return r}
+      function mg(r,c){return Array.from({length:r},function(){return Array(c).fill(false)})}
+      var maxDiag=W+H-2;
+      for(var d=0;d<=maxDiag;d++){var g=mg(H,W);for(var r=0;r<H;r++){for(var c=0;c<W;c++){if(r+c<=d)g[r][c]=true}}frames.push(g2b(g))}
+      var full=mg(H,W);for(var r=0;r<H;r++)for(var c=0;c<W;c++)full[r][c]=true;frames.push(g2b(full));
+      for(var d=0;d<=maxDiag;d++){var g=mg(H,W);for(var r=0;r<H;r++){for(var c=0;c<W;c++){if(r+c>d)g[r][c]=true}}frames.push(g2b(g))}
+      frames.push(g2b(mg(H,W)));return frames;
+    })(), interval: 60 },
+    breathe:      { frames: (function(){
+      var stages=[[],[[1,0]],[[0,1],[2,0]],[[0,0],[1,1],[3,0]],[[0,0],[1,1],[2,0],[3,1]],[[0,0],[0,1],[1,1],[2,0],[3,1]],[[0,0],[0,1],[1,0],[2,1],[3,0],[3,1]],[[0,0],[0,1],[1,0],[1,1],[2,0],[3,0],[3,1]],[[0,0],[0,1],[1,0],[1,1],[2,0],[2,1],[3,0],[3,1]]];
+      var DOTS=[[1,8],[2,16],[4,32],[64,128]];
+      function g2b(grid){var rows=grid.length,cols=grid[0]?grid[0].length:0,cc=Math.ceil(cols/2),r="";for(var c=0;c<cc;c++){var code=10240;for(var rr=0;rr<4&&rr<rows;rr++){for(var d=0;d<2;d++){var col=c*2+d;if(col<cols&&grid[rr]&&grid[rr][col])code|=DOTS[rr][d]}}r+=String.fromCodePoint(code)}return r}
+      function mg(r,c){return Array.from({length:r},function(){return Array(c).fill(false)})}
+      var seq=stages.concat(stages.slice().reverse().slice(1)),frames=[];
+      for(var i=0;i<seq.length;i++){var g=mg(4,2);for(var j=0;j<seq[i].length;j++){g[seq[i][j][0]][seq[i][j][1]]=true}frames.push(g2b(g))}return frames;
+    })(), interval: 100 }
+  };
+
+  /* Pick a random spinner each time */
+  AiChatWidget._spinnerNames = Object.keys(AiChatWidget._brailleSpinners);
+  AiChatWidget._randomSpinner = function(){
+    var names = AiChatWidget._spinnerNames;
+    return AiChatWidget._brailleSpinners[names[Math.floor(Math.random() * names.length)]];
+  };
+
   /* ---- spinner helpers ---- */
   AiChatWidget.prototype.showSpinner = function(bubble, label){
     var msg = this.ensureMsgContainer(bubble); if (!msg) return;
@@ -490,17 +579,35 @@
     wrap.className = "ai-typing";
     wrap.setAttribute("role","status");
     wrap.setAttribute("aria-live","polite");
-    wrap.innerHTML = '<span class="ai-typing__dot"></span><span class="ai-typing__dot"></span><span class="ai-typing__dot"></span>' +
-                     (label ? ('<span class="ai-typing__label">'+String(label)+'</span>') : '');
+
+    /* Build inner HTML: braille spinner + dots + label */
+    var html = '<span class="ai-typing__braille" aria-hidden="true"></span>' +
+               '<span class="ai-typing__dot"></span><span class="ai-typing__dot"></span><span class="ai-typing__dot"></span>' +
+               (label ? ('<span class="ai-typing__label">'+String(label)+'</span>') : '');
+    wrap.innerHTML = html;
     bubble.dataset.loading = "1";
     msg.appendChild(wrap);
+
+    /* Start braille animation */
+    var brailleEl = wrap.querySelector(".ai-typing__braille");
+    var spinnerData = AiChatWidget._randomSpinner();
+    var frameIdx = 0;
+    brailleEl.textContent = spinnerData.frames[0];
+    var timerId = setInterval(function(){
+      frameIdx = (frameIdx + 1) % spinnerData.frames.length;
+      brailleEl.textContent = spinnerData.frames[frameIdx];
+    }, spinnerData.interval);
+    wrap._brailleTimer = timerId;
   };
   AiChatWidget.prototype.removeSpinner = function(bubble){
     bubble = bubble || this.findLastAssistantBubble();
     if (!bubble) return;
     delete bubble.dataset.loading;
     var t = bubble.querySelector(".ai-typing");
-    if (t && t.parentNode) t.parentNode.removeChild(t);
+    if (t) {
+      if (t._brailleTimer) clearInterval(t._brailleTimer);
+      if (t.parentNode) t.parentNode.removeChild(t);
+    }
   };
   AiChatWidget.prototype.fadeSpinner = function(bubble){
     bubble = bubble || this.findLastAssistantBubble();
@@ -509,9 +616,79 @@
     var t = bubble.querySelector(".ai-typing");
     if (!t) return;
     t.classList.add("ai-typing--fade");
+    var timer = t._brailleTimer;
     setTimeout(function(){
+      if (timer) clearInterval(timer);
       if (t && t.parentNode) t.parentNode.removeChild(t);
     }, 450);
+  };
+
+  /* ---- Analyzing bar (appended above composer input) ---- */
+  AiChatWidget.prototype.showAnalyzingBar = function(){
+    if (this._analyzingBar) return; /* already showing */
+    var inputWrap = this.composerForm && this.composerForm.querySelector(".ai-chat__input-wrap");
+    if (!inputWrap) return;
+
+    var bar = document.createElement("div");
+    bar.className = "ai-chat__analyzing-bar";
+
+    /* Left side: spinner + label */
+    var left = document.createElement("div");
+    left.className = "ai-chat__analyzing-left";
+
+    var spinnerEl = document.createElement("span");
+    spinnerEl.className = "ai-chat__analyzing-spinner";
+    var scanData = AiChatWidget._brailleSpinners.diagswipe;
+    var frameIdx = 0;
+    spinnerEl.textContent = scanData.frames[0];
+    var spinnerTimer = setInterval(function(){
+      frameIdx = (frameIdx + 1) % scanData.frames.length;
+      spinnerEl.textContent = scanData.frames[frameIdx];
+    }, scanData.interval);
+
+    var label = document.createElement("span");
+    label.className = "ai-chat__analyzing-label";
+    label.textContent = "Analyzing Slack messages\u2026";
+
+    left.appendChild(spinnerEl);
+    left.appendChild(label);
+
+    /* Right side: count-up timer */
+    var timerEl = document.createElement("span");
+    timerEl.className = "ai-chat__analyzing-timer";
+    var seconds = 0;
+    function formatTime(s){
+      if (s < 60) return s + "s";
+      return Math.floor(s / 60) + "m " + (s % 60) + "s";
+    }
+    timerEl.textContent = formatTime(seconds);
+    var countTimer = setInterval(function(){
+      seconds++;
+      timerEl.textContent = formatTime(seconds);
+    }, 1000);
+
+    bar.appendChild(left);
+    bar.appendChild(timerEl);
+
+    /* Insert bar as first child of input-wrap (above the textarea) */
+    inputWrap.insertBefore(bar, inputWrap.firstChild);
+
+    this._analyzingBar = bar;
+    this._analyzingBar._spinnerTimer = spinnerTimer;
+    this._analyzingBar._countTimer = countTimer;
+  };
+
+  AiChatWidget.prototype.hideAnalyzingBar = function(){
+    var bar = this._analyzingBar;
+    if (!bar) return;
+    if (bar._spinnerTimer) clearInterval(bar._spinnerTimer);
+    if (bar._countTimer) clearInterval(bar._countTimer);
+    bar.classList.add("ai-chat__analyzing-bar--fade");
+    var self = this;
+    setTimeout(function(){
+      if (bar.parentNode) bar.parentNode.removeChild(bar);
+      self._analyzingBar = null;
+    }, 300);
   };
 
   AiChatWidget.prototype.setComposerEnabled = function(enabled){
@@ -649,6 +826,33 @@
     else { if (msg.__node) msg.__node.nodeValue = md; else msg.textContent = md; }
     msg.__raw = null; msg.__node = null;
     msg.__tailNode = null;
+  };
+
+  /* Staggered blur-in reveal for AI response elements */
+  AiChatWidget.prototype._revealMsg = function(bubble){
+    if (!bubble) return;
+    var msg = bubble.querySelector(".ai-msg");
+    if (!msg) return;
+    var kids = msg.children;
+    if (!kids.length) return;
+    msg.classList.add("ai-msg--reveal");
+    var delay = 0;
+    var step = 50; /* ms between each element */
+    for (var i = 0; i < kids.length; i++) {
+      (function(el, d){
+        setTimeout(function(){
+          el.classList.add("ai-blur-in");
+        }, d);
+      })(kids[i], delay);
+      delay += step;
+    }
+    /* Clean up classes after all animations finish */
+    setTimeout(function(){
+      msg.classList.remove("ai-msg--reveal");
+      for (var j = 0; j < kids.length; j++) {
+        kids[j].classList.remove("ai-blur-in");
+      }
+    }, delay + 400);
   };
 
   AiChatWidget.prototype._computeSafeMarkdownSplit = function (text) {

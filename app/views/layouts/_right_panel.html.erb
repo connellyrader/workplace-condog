@@ -1,13 +1,9 @@
-<% if user_signed_in? && @active_workspace && @show_right_panel && !@show_integration_modal %>
-  <div class="chat <%= 'is-visible' if @show_chat_panel %>" id="right-panel-chat">
-    <%= render 'ai_chat/chatbox' %>
-  </div>
-
+<% if user_signed_in? && @active_workspace && @show_right_panel && !@show_integration_modal && right_rail_visible? %>
   <div class="chat <%= 'is-visible' if @show_analyze_panel %>" id="right-panel-analyze">
     <%= render 'dashboard/components/analyze' %>
   </div>
 
-  <% if @show_right_panel %>
+  <% if @show_right_panel && right_rail_visible? %>
     <div class="right-panel-toggle-button"><%= icon 'chat' %></div>
   <% end %>
 <% end %>
@@ -19,11 +15,10 @@
     function forceOpenAnalyzePanelOnSmallScreens() {
       const isSmall = window.matchMedia(MOBILE_PANEL_BREAKPOINT).matches;
       const analyzeVisible = $('#right-panel-analyze').hasClass('is-visible');
-      const chatVisible = $('#right-panel-chat').hasClass('is-visible');
 
       // If analyzer is the active panel on smaller screens, auto-open it so
       // users can see onboarding/analyze progress without discovering the FAB first.
-      if (isSmall && analyzeVisible && !chatVisible) {
+      if (isSmall && analyzeVisible) {
         $('body').addClass('right-panel-open');
       }
     }

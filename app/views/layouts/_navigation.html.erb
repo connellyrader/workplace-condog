@@ -1,5 +1,5 @@
 <% if user_signed_in? %>
-  <div class="navigation">
+  <div class="navigation <%= 'navigation--clara-home' if @chat_primary_layout %>">
     <div class="navigation-top">
       <div class="navigation-workspace-button">
         <%
@@ -32,17 +32,53 @@
         <%= icon "chevron-down", class_name: "navigation-workspace-button-chevron" %>
       </div>
 
-      <%= icon "sidebar", class_name: "navigation-toggle" %>
+      <%= icon "sidebar", class_name: "navigation-toggle", title: "Collapse sidebar" %>
     </div>
 
-    <%= link_to dashboard_path, class: "navigation-link" do %>
+    <% if @chat_primary_layout %>
+    <div class="navigation-clara-scroll">
+      <button type="button" class="navigation-new-conversation js-clara-nav-new">
+        <%= icon "plus", class_name: "navigation-new-conversation-icon" %>
+        <span>New Conversation</span>
+      </button>
+    <% end %>
+
+    <%= link_to dashboard_path, class: "navigation-link #{'is-active' if current_page?(dashboard_path)}" do %>
       <%= icon "home", class_name: "navigation-icon" %>
       <span>Dashboard</span>
     <% end %>
 
-    <%= link_to settings_path, class: "navigation-link" do %>
-      <%= icon "cog-6", class_name: "navigation-icon" %>
-      <span>Settings</span>
+    <% unless @chat_primary_layout %>
+      <%= link_to clara_home_path, class: "navigation-link #{'is-active' if current_page?(clara_home_path)}" do %>
+        <%= icon "chat", class_name: "navigation-icon" %>
+        <span>Assistant</span>
+      <% end %>
+    <% end %>
+
+    <% if @chat_primary_layout %>
+      <%= link_to "#", class: "navigation-link navigation-link--stub", role: "button", aria: { disabled: true }, data: { turbo: false } do %>
+        <%= icon "pie-chart", class_name: "navigation-icon" %>
+        <span>Reports</span>
+      <% end %>
+      <%= link_to "#", class: "navigation-link navigation-link--stub", role: "button", aria: { disabled: true }, data: { turbo: false } do %>
+        <%= icon "calendar", class_name: "navigation-icon" %>
+        <span>Scheduled</span>
+      <% end %>
+      <%= link_to "#", class: "navigation-link navigation-link--stub", role: "button", aria: { disabled: true }, data: { turbo: false } do %>
+        <%= icon "sparkle", class_name: "navigation-icon" %>
+        <span>Ideas</span>
+      <% end %>
+      <%= link_to "#", class: "navigation-link navigation-link--stub", role: "button", aria: { disabled: true }, data: { turbo: false } do %>
+        <%= icon "column-3", class_name: "navigation-icon" %>
+        <span>Customize</span>
+      <% end %>
+
+      <div class="navigation-conversations-heading">Conversations</div>
+      <div id="navigation-conversation-list"
+           class="navigation-conversation-list"
+           role="list"
+           aria-label="Conversations"></div>
+    </div>
     <% end %>
 
     <% if current_user&.admin? %>
@@ -249,6 +285,10 @@
       function clearInvalid() {
         $nameInput.removeClass('is-invalid');
       }
+
+      $('.navigation-link--stub').on('click', function(e) {
+        e.preventDefault();
+      });
 
       // Toggle dropdown on workspace button click
       $workspaceButton.on('click', function(e) {
