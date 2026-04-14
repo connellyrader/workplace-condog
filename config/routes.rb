@@ -93,6 +93,8 @@ Rails.application.routes.draw do
 
 
 
+  get "clara", to: "ai_chat/conversations#home", as: :clara_home
+
   namespace :ai_chat do
     resources :conversations, only: [:index, :show, :create, :update, :destroy]
     get :sparkline, to: "charts#sparkline"

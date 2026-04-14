@@ -1,7 +1,13 @@
 <div class="main">
-  <div class="content">
-    <div class="content-inner">
+  <% if @chat_primary_layout %>
+    <div class="content content--clara-home">
       <%= yield %>
     </div>
-  </div>
+  <% else %>
+    <div class="content">
+      <div class="content-inner">
+        <%= yield %>
+      </div>
+    </div>
+  <% end %>
 </div>

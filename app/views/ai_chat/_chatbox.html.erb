@@ -1,12 +1,17 @@
 <%= render "ai_chat/js_modules" %>
 
-<div class="ai-chat js-ai-chat-widget"
+<div class="ai-chat js-ai-chat-widget <%= 'ai-chat--primary-layout' if @chat_primary_layout %>"
      data-ai-chat-widget-list-url-value="<%= ai_chat_conversations_path(format: :json) %>"
      data-ai-chat-widget-show-url-value="<%= ai_chat_conversation_path(':id', format: :json) %>"
      data-ai-chat-widget-create-url-value="<%= ai_chat_conversations_path(format: :json) %>"
-     data-ai-chat-widget-cable-url-value="<%= ActionCable.server.config.mount_path || '/cable' %>">
+     data-ai-chat-widget-cable-url-value="<%= ActionCable.server.config.mount_path || '/cable' %>"
+     <% if @chat_primary_layout %>
+     data-ai-chat-widget-layout-value="home"
+     data-ai-chat-widget-conversation-list-selector-value="#navigation-conversation-list"
+     <% end %>>
 
-  <!-- Persistent topbar -->
+  <% unless @chat_primary_layout %>
+  <!-- Persistent topbar (widget mode) -->
   <div class="ai-chat__topbar">
     <div class="ai-chat__topbar-close"><%= icon 'x-mark' %></div>
     <button type="button" class="ai-chat__menu ai-chat__menu-alt ai-chat__menu-topbar-toggle" aria-label="Open conversations" aria-expanded="false"><%= icon "sidebar" %></button>
@@ -15,7 +20,9 @@
     </div>
     <button type="button" class="ai-chat__menu ai-chat__topbar-new" aria-label="Start new chat with Clara"><%= icon "pencil-square" %></button>
   </div>
+  <% end %>
 
+  <% unless @chat_primary_layout %>
   <!-- Scrim behind the floating sidebar -->
   <div class="ai-chat__scrim" aria-hidden="true"></div>
 
@@ -29,31 +36,48 @@
     <div class="ai-chat__list-heading">Chats</div>
     <ul class="ai-chat__list" data-ai-chat-widget-target="conversationList"></ul>
   </div>
+  <% end %>
 
   <!-- Main chat (stays put while sidebar floats above) -->
   <div class="ai-chat__main">
-    <div class="ai-chat__thread" data-ai-chat-widget-target="thread"></div>
+    <% if @chat_primary_layout %>
+    <!-- Topbar inside the white card for primary layout -->
+    <div class="ai-chat__topbar">
+      <div class="ai-chat__topbar-start">
+        <h2 class="ai-chat__topbar-conversation-title" data-ai-chat-widget-target="conversationTitle"> </h2>
+      </div>
+      <div class="ai-chat__topbar-end">
+        <a href="#" class="ai-chat__topbar-btn">Docs</a>
+        <button type="button" class="ai-chat__topbar-btn">Help</button>
+      </div>
+    </div>
+    <% end %>
+    <div class="ai-chat__thread-wrap">
+      <div class="ai-chat__thread" data-ai-chat-widget-target="thread"></div>
+    </div>
     <button type="button" class="ai-chat__scroll-bottom" aria-label="Scroll to bottom" aria-hidden="true">
       <%= icon "down-arrow-narrow" %>
     </button>
 
     <form class="ai-chat__composer">
       <div class="ai-chat__input-wrap">
-        <textarea rows="2" class="ai-chat__input" placeholder=""
-                  aria-label="Ask Clara about your team culture"
+        <textarea rows="2" class="ai-chat__input" placeholder="<%= @chat_primary_layout ? 'Type here...' : '' %>"
+                  aria-label="<%= @chat_primary_layout ? 'Message' : 'Ask Clara about your team culture' %>"
                   data-ai-chat-widget-target="input"></textarea>
+        <% unless @chat_primary_layout %>
         <span class="ai-chat__placeholder-cycler" aria-hidden="true"></span>
+        <% end %>
+        <button type="submit"
+          class="ai-chat__send"
+          data-ai-chat-widget-target="sendBtn">
+            <span class="ai-chat__send-icon ai-chat__send-icon--idle">
+              <%= icon "arrow-up-circle" %>
+            </span>
+            <span class="ai-chat__send-icon ai-chat__send-icon--busy" hidden>
+              <%= icon "clock" %>
+            </span>
+        </button>
       </div>
-      <button type="submit"
-        class="ai-chat__send"
-        data-ai-chat-widget-target="sendBtn">
-          <span class="ai-chat__send-icon ai-chat__send-icon--idle">
-            <%= icon "arrow-up-circle" %>
-          </span>
-          <span class="ai-chat__send-icon ai-chat__send-icon--busy" hidden>
-            <%= icon "clock" %>
-          </span>
-      </button>
     </form>
   </div>
 </div>

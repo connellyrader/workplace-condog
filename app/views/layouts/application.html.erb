@@ -1,13 +1,14 @@
 <!DOCTYPE html>
-<html data-theme="dark">
+<html data-theme="<%= @chat_primary_layout ? 'light' : 'dark' %>">
   <%= render "layouts/header"%>
-  <body data-turbo="false">
+  <body data-turbo="false" class="<%= 'body--clara-home' if @chat_primary_layout %>">
     <% if (@onboarding || devise_controller?) && !(controller_name == 'registrations' && action_name == 'edit') %>
       <div class="<%= @onboarding ? 'onboarding' : 'devise' %>-container">
         <%= yield %>
       </div>
     <% else %>
-      <div class="layout nav-full <%= @show_right_panel && !@show_integration_modal  ? 'chat-open' : 'chat-closed' %>">
+      <% layout_chat_open = @show_right_panel && !@show_integration_modal && right_rail_visible? %>
+      <div class="layout nav-full <%= layout_chat_open ? 'chat-open' : 'chat-closed' %> <%= 'layout--clara-home' if @chat_primary_layout %>">
         <%= render "layouts/navigation" %>
         <%= render "shared/masquerade_banner" %>
 

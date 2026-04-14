@@ -455,7 +455,9 @@
 
             try {
               $('#right-panel-analyze').stop(true, true).fadeOut(150);
-              $('#right-panel-chat').stop(true, true).fadeIn(150);
+              if ($('#right-panel-chat').length) {
+                $('#right-panel-chat').stop(true, true).fadeIn(150);
+              }
             } catch (e) {}
 
             setTimeout(hardReload, 100);
