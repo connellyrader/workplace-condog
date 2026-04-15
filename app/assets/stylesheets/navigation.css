@@ -8,7 +8,7 @@
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
   box-sizing: border-box;
   height:100vh;
   overflow: hidden;
@@ -26,9 +26,9 @@
 .navigation-top{
   display: flex;
   align-items: center;
-  margin-top: 8px;
+  margin-top: 4px;
   height:40px;
-  margin-bottom:8px;
+  margin-bottom:0;
 
   svg{
     margin-left:auto;
@@ -40,14 +40,16 @@
   .navigation-workspace-button{
     flex:1;
     margin-right:20px;
-    height:40px;
-    line-height: 40px;
-    padding:0 8px;
+    padding: 6px 8px;
     border-radius:10px;
     display: flex;
     align-items: center;   /* vertical alignment */
     gap: 8px;
+    font-size: 14px;
+    line-height: 20px;
     cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
   }
 
     .navigation-workspace-button:hover{
@@ -55,19 +57,20 @@
     }
 
     .navigation-workspace-button-icon{
-      width:24px;
-      height:24px;
-      border-radius: 4px;
+      width:20px;
+      height:20px;
+      border-radius: 6px;
       border: 0;
-      line-height: 24px;
+      line-height: 20px;
       text-align: center;
       font-weight: 600;
-      font-size: 9px;
+      font-size: 11px;
       color: var(--slate-700);
       background-color: var(--slate-200);
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
+      flex: 0 0 auto;
     }
 
     .navigation-workspace-button-name{
@@ -93,7 +96,9 @@
 .navigation-link{
   display: flex; align-items: center; gap: 8px;
   width: 100%;
-  height: 40px; padding: 0 11px;
+  padding: 6px 8px;
+  font-size: 14px;
+  line-height: 20px;
   border-radius: 10px;
   text-decoration: none; color: inherit;
 }
@@ -118,7 +123,14 @@
   }
 
   .layout.nav-mini .navigation .navigation-link{
-    padding: 0 11px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .layout.nav-mini .navigation .navigation-link span{
+    display: none;
   }
 
   .layout.nav-mini .navigation-workspace-button{
@@ -155,7 +167,7 @@
   }
 
 .navigation-icon{
-  width: 18px; height: 18px; flex: 0 0 auto;
+  width: 20px; height: 20px; flex: 0 0 auto;
   stroke-width: 2; color: var(--slate-700);
 }
 
@@ -293,13 +305,25 @@
   border-radius:10px;
   border:1px solid var(--slate-200);
   position: fixed;
-  top:72px;
-  left:16px;
+  top:56px;
+  left:12px;
   z-index:41;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(4px);
-  display:none;
+  background: var(--slate-0);
   box-shadow: 0px 8px 8px 0px rgba(54, 54, 54, 0.05);
+  opacity: 0;
+  transform: scale(0.98);
+  transform-origin: top left;
+  transition: opacity 0.12s ease-out, transform 0.12s ease-out, visibility 0s linear 0.12s;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.navigation-top-dropdown.is-open{
+  opacity: 1;
+  transform: scale(1);
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity 0.15s ease-out, transform 0.15s ease-out, visibility 0s linear 0s;
 }
 
 .navigation-workspace-button.is-open{
@@ -307,8 +331,10 @@
 }
 
 /* chevron itself */
-.navigation-workspace-button-chevron{
-  width: 9px;
+.navigation-top svg.navigation-workspace-button-chevron{
+  width: 12px;
+  height: 12px;
+  color: var(--slate-400);
   transition: transform 0.15s ease;
 }
 
@@ -326,46 +352,47 @@
   }
 
   .navigation-top-dropdown-workspace{
-    padding:8px;
+    padding: 6px 8px;
     display: flex;
     gap: 8px;
-    color: var(--slate-400);
+    color: var(--slate-700);
     font-size: 14px;
     font-weight: 500;
-    line-height: 1.2em;
+    line-height: 20px;
     align-items: center;
     cursor:pointer;
-    border-radius: 12px;
+    border-radius: 10px;
   }
 
     .navigation-top-dropdown-workspace:hover{
       background: var(--slate-50);
     }
 
+    .navigation-top-dropdown-workspace--active:hover{
+      background-color: var(--slate-100);
+    }
+
     .navigation-top-dropdown-workspace--active{
       color: var(--slate-700);
       font-weight: 500;
-      background-color: var(--slate-50);
-
-      .navigation-top-dropdown-icon{
-        /*border: 1px solid var(--slate-700);*/
-      }
+      background-color: var(--slate-100);
     }
 
     .navigation-top-dropdown-icon{
-      width: 24px;
-      height: 24px;
-      border-radius: 4px;
+      width: 20px;
+      height: 20px;
+      border-radius: 6px;
       border: 0;
-      line-height: 24px;
+      line-height: 20px;
       text-align: center;
-      font-weight: 700;
-      font-size: 10px;
-      color: var(--slate-500);
-      background-color: var(--slate-100);
+      font-weight: 600;
+      font-size: 11px;
+      color: var(--slate-700);
+      background-color: var(--slate-200);
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
+      flex: 0 0 auto;
     }
 
   .navigation-top-dropdown-name{
@@ -381,21 +408,22 @@
   }
 
   .navigation-top-dropdown-link{
-    height:40px;
-    line-height: 40px;
+    padding: 6px 8px;
     display: flex;
-    gap:8px;
+    gap: 8px;
     color: var(--slate-700);
     font-family: Geist, sans-serif;
     font-size: 14px;
     font-weight: 500;
-    border-radius:4px;
+    line-height: 20px;
+    border-radius: 10px;
     align-items: center;
+    cursor: pointer;
 
     svg{
-      margin-left:10px;
-      height:18px;
-      width:18px;
+      height: 20px;
+      width: 20px;
+      flex: 0 0 auto;
     }
   }
 
@@ -521,7 +549,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 4px;
   overflow-y: auto;
   overflow-x: hidden;
   margin-right: 0;
@@ -534,9 +562,8 @@
   justify-content: flex-start;
   gap: 8px;
   width: 100%;
-  height: 44px;
-  margin: 4px 0 8px;
-  padding: 2px 11px;
+  margin: 0 0 8px;
+  padding: 6px 8px;
   border: 1px solid var(--slate-200);
   border-radius: 10px;
   background: var(--slate-0);
@@ -544,17 +571,20 @@
   font: inherit;
   font-weight: 500;
   font-size: 14px;
+  line-height: 20px;
   cursor: pointer;
-  box-shadow: var(--shadow-soft, 0 0 8px 2px rgba(0,0,0,0.04));
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 2px 6px rgba(0, 0, 0, 0.06);
+  transition: background 0.15s ease, box-shadow 0.15s ease;
 }
 
 .navigation-new-conversation:hover{
-  background: var(--slate-100);
+  background: var(--slate-50);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .navigation-new-conversation-icon{
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   flex: 0 0 auto;
   color: var(--slate-700);
 }
@@ -571,14 +601,14 @@
 .navigation-conversation-list{
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   min-height: 0;
 }
 
 .navigation-conversation-list .ai-chat__list-item{
   border-radius: 10px;
-  padding: 8px 10px;
-  margin: 0 2px;
+  padding: 4px 8px;
+  margin: 0;
 }
 .navigation-conversation-list .ai-chat__list-item.is-active{
   background: var(--slate-100);
@@ -586,16 +616,18 @@
 
 .navigation-conversation-list .ai-chat__list-title{
   font-size: 13px;
+  line-height: 18px;
   max-width: 100%;
 }
 
-.navigation-link--stub{
-  cursor: default;
-  opacity: 0.65;
+.navigation-conversation-list .ai-chat__row-menu{
+  font-size: 14px;
+  padding: 0 4px;
+  line-height: 18px;
 }
 
-.navigation-link--stub:hover{
-  background: transparent;
+.navigation-link--stub{
+  /* Visually identical to active links (click handler prevents navigation) */
 }
 
 /* ---- Clara home mini nav ---- */
@@ -607,8 +639,8 @@
 .layout.nav-mini .navigation--clara-home .navigation-link{
   justify-content: center;
   padding: 0;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
 }
 
 .layout.nav-mini .navigation--clara-home .navigation-link span{
@@ -621,10 +653,10 @@
 }
 
 .layout.nav-mini .navigation-new-conversation{
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   padding: 0;
-  margin: 4px auto 8px;
+  margin: 0 auto 8px;
   justify-content: center;
   border-radius: 10px;
 }

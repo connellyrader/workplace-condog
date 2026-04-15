@@ -3,16 +3,8 @@
     <div class="navigation-top">
       <div class="navigation-workspace-button">
         <%
-          # Initials: "Acme Co" => "AC", "Workplace" => "W"
-          workspace_initials =
-            @active_workspace.name
-              .to_s
-              .split(/\s+/)
-              .reject(&:blank?)
-              .first(2)
-              .map { |w| w[0] }
-              .join
-              .upcase
+          # Initial: first letter of the workspace name (e.g., "Acme Co" => "A")
+          workspace_initials = @active_workspace.name.to_s.strip[0].to_s.upcase
 
           workspace_icon_url =
             if @active_workspace.icon.attached?
@@ -260,7 +252,7 @@
 
       function closeModalAndBackdrop() {
         $modal.hide();
-        $dropdown.stop(true, true).slideUp(150);
+        $dropdown.removeClass('is-open');
         $workspaceButton.removeClass('is-open');
 
         // Clear validation state when closing
@@ -295,7 +287,7 @@
         e.preventDefault();
         e.stopPropagation();
 
-        $dropdown.stop(true, true).slideToggle(150);
+        $dropdown.toggleClass('is-open');
         $workspaceButton.toggleClass('is-open');
       });
 
@@ -304,7 +296,7 @@
         e.preventDefault();
         e.stopPropagation();
 
-        $dropdown.stop(true, true).slideUp(150);
+        $dropdown.removeClass('is-open');
         $workspaceButton.removeClass('is-open');
 
         // Reset field state when opening
@@ -335,7 +327,7 @@
       // Close dropdown when clicking outside (but don't close modal)
       $(document).on('click', function(e) {
         if (!$(e.target).closest('.navigation-top-dropdown, .navigation-workspace-button, .navigation-new-workspace-modal').length) {
-          $dropdown.stop(true, true).slideUp(150);
+          $dropdown.removeClass('is-open');
           $workspaceButton.removeClass('is-open');
         }
       });

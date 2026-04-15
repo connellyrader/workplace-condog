@@ -189,13 +189,19 @@
   /* ---- sending ---- */
   W.prototype.send = async function(e){
     if (e && e.preventDefault) e.preventDefault();
-    if (!this.inputEl || !this.subscription || !this.subscription.perform) return;
+    if (!this.inputEl) return;
 
     // If we're already waiting on a reply, ignore further sends
     if (this.sendBtnEl && this.sendBtnEl.disabled) return;
 
     var content = this.inputEl.value.trim();
     if (!content) return;
+
+    // Lazily create the conversation on first send (user clicked "New Conversation"
+    // which shows the landing but doesn't create anything until they actually send)
+    if (!this.currentConversationId && this.createConversation) {
+      try { await this.createConversation(); } catch (_) { return; }
+    }
 
     // Hide intro / landing once user starts a real thread
     this.clearEmptyIntro && this.clearEmptyIntro();
@@ -243,12 +249,72 @@
       }
 
       var dummyResponses = [
-        "Great question! Based on the team's recent activity, engagement has been trending upward over the past two weeks. The biggest contributors have been the **weekly standups** and the new **async check-in** process that was introduced last month.\n\nHere are a few highlights:\n\n- **Participation rate** is up 12% compared to last period\n- **Response time** on team threads has improved by 18%\n- **Sentiment scores** remain steady at 7.8/10\n\nWould you like me to dig deeper into any of these areas?",
-        "Looking at the data, here's what stands out:\n\n1. **Monday mornings** tend to have the highest collaboration activity\n2. **Cross-team interactions** have increased by 23% since the reorg\n3. There's a noticeable dip in engagement on Fridays after 2pm\n\nThe overall trend is positive. Your team seems to be finding a good rhythm with the new workflow.",
-        "Sure thing! Here's a quick summary of the key metrics:\n\n| Metric | This Period | Last Period | Change |\n|--------|-----------|------------|--------|\n| Engagement Score | 82% | 76% | +6% |\n| Active Contributors | 24 | 19 | +5 |\n| Avg Response Time | 2.4h | 3.1h | -0.7h |\n| Sentiment | 7.8 | 7.5 | +0.3 |\n\nLet me know if you'd like to explore any of these in more detail.",
-        "That's a really interesting observation. From what I can see, the team dynamic shifted notably after the **Q3 planning session**. A few things that might explain it:\n\n- New team members have been actively participating in discussions\n- The introduction of **themed meeting days** reduced context-switching\n- Management has been more visible in channels, which tends to boost engagement\n\nI'd recommend keeping an eye on the burnout indicators though — high engagement is great, but sustained intensity can sometimes lead to fatigue."
+        {
+          text: "Great question! Based on the team's recent activity, engagement has been trending upward over the past two weeks. The biggest contributors have been the **weekly standups** and the new **async check-in** process that was introduced last month.\n\nHere are a few highlights:\n\n- **Participation rate** is up 12% compared to last period\n- **Response time** on team threads has improved by 18%\n- **Sentiment scores** remain steady at 7.8/10\n\nWould you like me to dig deeper into any of these areas?"
+        },
+        {
+          text: "Here's a breakdown of team engagement across the workspace this period:",
+          blocks: [
+            {
+              type: "kpis",
+              title: "Key Metrics — Last 14 Days",
+              items: [
+                { label: "Engagement Score", value: "82%", pos_rate: 0.06 },
+                { label: "Active Contributors", value: "24", pos_rate: 0.26 },
+                { label: "Avg Response Time", value: "2.4h", pos_rate: -0.23 },
+                { label: "Sentiment", value: "7.8", pos_rate: 0.04 }
+              ]
+            },
+            {
+              type: "table",
+              title: "Top Contributors",
+              columns: ["Name", "Messages", "Reactions Given", "Threads Started"],
+              rows: [
+                ["Sarah Chen", "142", "89", "12"],
+                ["Marcus Johnson", "118", "74", "9"],
+                ["Priya Patel", "96", "112", "15"],
+                ["Alex Kim", "87", "65", "7"],
+                ["Jordan Rivera", "73", "58", "11"]
+              ]
+            }
+          ]
+        },
+        {
+          text: "Sure thing! Here's a quick summary of the key metrics:\n\n| Metric | This Period | Last Period | Change |\n|--------|-----------|------------|--------|\n| Engagement Score | 82% | 76% | +6% |\n| Active Contributors | 24 | 19 | +5 |\n| Avg Response Time | 2.4h | 3.1h | -0.7h |\n| Sentiment | 7.8 | 7.5 | +0.3 |\n\nLet me know if you'd like to explore any of these in more detail."
+        },
+        {
+          text: "I've analyzed the Slack activity across **#engineering**, **#design**, and **#product**. Here's what I found:",
+          blocks: [
+            {
+              type: "kpis",
+              items: [
+                { label: "Total Messages", value: "1,247" },
+                { label: "Active Channels", value: "18" },
+                { label: "Avg Daily Active", value: "34" },
+                { label: "Peak Hour", value: "10am" }
+              ]
+            },
+            {
+              type: "callout",
+              text: "**Heads up:** The **#engineering** channel saw a 40% spike in messages last Thursday — likely related to the incident response. Sentiment dipped to 6.2 during that window but has since recovered to 7.9."
+            }
+          ]
+        },
+        {
+          text: "Looking at the data, here's what stands out:\n\n1. **Monday mornings** tend to have the highest collaboration activity\n2. **Cross-team interactions** have increased by 23% since the reorg\n3. There's a noticeable dip in engagement on Fridays after 2pm\n\nThe overall trend is positive. Your team seems to be finding a good rhythm with the new workflow."
+        },
+        {
+          text: "That's a really interesting observation. From what I can see, the team dynamic shifted notably after the **Q3 planning session**. A few things that might explain it:\n\n- New team members have been actively participating in discussions\n- The introduction of **themed meeting days** reduced context-switching\n- Management has been more visible in channels, which tends to boost engagement\n\nI'd recommend keeping an eye on the burnout indicators though — high engagement is great, but sustained intensity can sometimes lead to fatigue."
+        }
       ];
-      var reply = dummyResponses[Math.floor(Math.random() * dummyResponses.length)];
+      // Cycle through responses, never repeating the last one
+      if (typeof self._lastDummyIdx !== "number") self._lastDummyIdx = -1;
+      var idx;
+      do { idx = Math.floor(Math.random() * dummyResponses.length); } while (idx === self._lastDummyIdx && dummyResponses.length > 1);
+      self._lastDummyIdx = idx;
+      var pick = dummyResponses[idx];
+      var reply = pick.text;
+      var replyBlocks = pick.blocks || null;
 
       // Store dummy messages for this conversation so they persist on nav
       self._dummyConvos = self._dummyConvos || {};
@@ -264,6 +330,19 @@
           var html = ""; try { html = global.__renderMarkdown ? global.__renderMarkdown(reply) : ""; } catch(_){}
           if (html && html.trim()) msg.innerHTML = html; else msg.textContent = reply;
         }
+
+        // Render rich blocks (KPI cards, tables, callouts) after text
+        if (replyBlocks && replyBlocks.length && msg) {
+          try {
+            var blocksWrap = document.createElement("div");
+            blocksWrap.className = "ai-blocks";
+            msg.appendChild(blocksWrap);
+            if (self.renderBlocksInto) self.renderBlocksInto(blocksWrap, replyBlocks);
+          } catch (blockErr) {
+            console.warn("[Clara] Block rendering error:", blockErr);
+          }
+        }
+
         // Staggered blur-in reveal
         self._revealMsg && self._revealMsg(pending);
         // Store the assistant reply too
@@ -277,6 +356,9 @@
       return;
     }
     // ── End dummy response mode ──
+
+    // Live mode requires a live subscription
+    if (!this.subscription || !this.subscription.perform) return;
 
     var payload = {
       content: content,

@@ -76,7 +76,12 @@
         var lb   = document.createElement("div"); lb.className   = "ai-kpi__label"; lb.textContent = it.label || "";
         var v    = document.createElement("div"); v.className    = "ai-kpi__value"; v.textContent  = (it.value != null ? it.value : "—");
         var sub  = document.createElement("div"); sub.className  = "ai-kpi__sub";
-        if (typeof it.pos_rate === "number") sub.textContent = "pos_rate " + (it.pos_rate*100).toFixed(1) + "%";
+        if (typeof it.pos_rate === "number") {
+          var arrow = it.pos_rate >= 0 ? "↑" : "↓";
+          var pct = Math.abs(it.pos_rate * 100).toFixed(1) + "%";
+          sub.textContent = arrow + " " + pct;
+          sub.className += it.pos_rate >= 0 ? " ai-kpi__sub--up" : " ai-kpi__sub--down";
+        }
         card.appendChild(lb); card.appendChild(v); card.appendChild(sub);
         grid.appendChild(card);
       });

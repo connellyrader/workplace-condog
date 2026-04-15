@@ -1557,93 +1557,120 @@
         border: 1px solid var(--red-500-hover);
       }
 
-  /* WARNING MODAL: */
+  /* ===== GLOBAL MODAL (used by warning() + notice()) ===== */
 
       .warning-modal{
         position: fixed;
-        z-index:45;
-        width:468px;
-        padding:24px;
-        border-radius:24px;
-        border:1px solid var(--slate-100);
-        background: white;
-        box-shadow: 0 16px 24px 0 rgba(0, 0, 0, 0.1);
-        top: 24px;
+        z-index: 45;
+        width: 400px;
+        max-width: calc(100vw - 32px);
+        padding: 20px;
+        border-radius: 14px;
+        border: 1px solid var(--slate-200);
+        background: var(--slate-0);
+        box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.18),
+                    0 8px 16px -8px rgba(15, 23, 42, 0.08);
+        top: 50%;
         left: 50%;
-        transform: translate(-50%, 0);
-        display: none;  /* 👈 hide by default */
+        transform: translate(-50%, calc(-50% + 4px)) scale(0.98);
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity 0.1s ease-out,
+                    transform 0.1s ease-out,
+                    visibility 0s linear 0.1s;
         box-sizing: border-box;
         overflow: hidden;
       }
 
       .warning-modal.is-open {
-        display: block;
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+        visibility: visible;
+        pointer-events: auto;
+        transition: opacity 0.12s ease-out,
+                    transform 0.12s ease-out,
+                    visibility 0s linear 0s;
       }
 
       .warning-modal-backdrop{
         position: fixed;
         inset: 0;
-        z-index:44;  /* just under the warning modal */
-        background: rgba(0, 0, 0, 0.5);
-        display: none;
+        z-index: 44;
+        background: rgba(15, 23, 42, 0.2);
+        backdrop-filter: blur(2px);
+        -webkit-backdrop-filter: blur(2px);
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity 0.1s ease-out, visibility 0s linear 0.1s;
       }
 
       .warning-modal-backdrop.is-open {
-        display: block;
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        transition: opacity 0.12s ease-out, visibility 0s linear 0s;
       }
 
       .warning-modal-heading{
         display: flex;
         align-items: flex-start;
-        gap:24px;
+        gap: 12px;
       }
 
         .warning-modal-heading-left{
-          flex:1;
+          flex: 1;
+          min-width: 0;
         }
 
           .warning-modal-title{
-            font-size: 22px;
-            font-weight: 500;
-            color:var(--slate-700);
-            letter-spacing: -0.8px;
-            line-height: 1.2em;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--slate-900);
+            line-height: 22px;
+            letter-spacing: -0.2px;
           }
 
           .warning-modal-description{
-            margin-top:8px;
+            margin-top: 6px;
             font-size: 14px;
-            color:var(--slate-400);
-            line-height: 1.4em;
+            color: var(--slate-500);
+            line-height: 20px;
           }
 
         .warning-modal-heading-close{
-          width:40px;
-          height:40px;
+          width: 28px;
+          height: 28px;
+          flex: 0 0 auto;
           display: flex;
           align-items: center;
-          color:var(--slate-700);
-          background: white;
-          border-radius: 12px;
-          border: 1px solid var(--slate-100);
-          box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05);
-          padding:12px;
+          justify-content: center;
+          color: var(--slate-500);
+          background: transparent;
+          border: 0;
+          border-radius: 8px;
+          padding: 0;
+          margin: -4px -4px 0 0;
           cursor: pointer;
+          transition: background 0.15s ease, color 0.15s ease;
         }
 
         .warning-modal-heading-close svg{
-          width:16px;
-          height:16px;
+          width: 16px;
+          height: 16px;
         }
 
         .warning-modal-heading-close:hover{
-          background: var(--slate-50);
+          background: var(--slate-100);
+          color: var(--slate-700);
         }
 
       .warning-modal-footer{
         display: flex;
-        gap: 12px;
-        margin-top: 24px;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 20px;
         flex-shrink: 0;
       }
 
@@ -1651,19 +1678,19 @@
       .warning-modal-cancel,
       .warning-modal-continue,
       .warning-modal-delete{
-        flex: 1;
-        display: flex;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        color:var(--slate-700);
-        border-radius: 12px;
-        border: 1px solid var(--slate-100);
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05);
-        padding:12px;
+        color: var(--slate-700);
+        background: var(--slate-0);
+        border-radius: 10px;
+        border: 1px solid var(--slate-200);
+        padding: 8px 14px;
         cursor: pointer;
-        font-weight: 600;
-        font-size: 13px;
-        line-height: 1.2em;
+        font-weight: 500;
+        font-size: 14px;
+        line-height: 20px;
+        transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
       }
 
       /* Cancel hover */
@@ -1674,25 +1701,25 @@
       /* "Continue" (safe / notice) */
       .warning-modal-continue{
         background: var(--accent);
-        color: white;
+        color: var(--slate-0);
         border: 1px solid var(--accent);
       }
 
       .warning-modal-continue:hover{
         background: var(--accent-hover);
-        border: 1px solid var(--accent-hover);
+        border-color: var(--accent-hover);
       }
 
       /* "Delete" (destructive) */
       .warning-modal-delete{
         background: var(--red-500);
-        color: white;
+        color: var(--slate-0);
         border: 1px solid var(--red-500);
       }
 
       .warning-modal-delete:hover{
         background: var(--red-500-hover);
-        border: 1px solid var(--red-500-hover);
+        border-color: var(--red-500-hover);
       }
 
       .warning-modal-continue.is-loading,
@@ -1712,11 +1739,41 @@
         animation: warning-modal-spin 0.7s linear infinite;
       }
 
+      /* Confirm input (Type DELETE to confirm) */
+      .warning-modal-confirm-wrap{
+        margin-top: 14px;
+      }
+
+      .warning-modal-confirm-label{
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--slate-700);
+        margin-bottom: 6px;
+      }
+
+      .warning-modal-confirm-input{
+        width: 100%;
+        padding: 8px 12px;
+        border-radius: 10px;
+        border: 1px solid var(--slate-200);
+        font-size: 14px;
+        line-height: 20px;
+        color: var(--slate-900);
+        background: var(--slate-0);
+        outline: none;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      }
+
+      .warning-modal-confirm-input:focus{
+        border-color: var(--slate-400);
+        box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.06);
+      }
+
       @keyframes warning-modal-spin {
         to { transform: rotate(360deg); }
       }
 
-/*  END OF WARNINGS */
+/*  END OF GLOBAL MODAL */
 
 
 .settings-section-icon-preview{

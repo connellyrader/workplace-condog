@@ -277,7 +277,7 @@
     if (this.topbarNewBtn){
       this._onTopbarNew = function(e){
         if(e&&e.preventDefault) e.preventDefault();
-        selfMenu.createConversation && selfMenu.createConversation();
+        selfMenu.startNewConversation && selfMenu.startNewConversation();
         selfMenu.setSidebarOpen(false);
       };
       this.topbarNewBtn.addEventListener("click", this._onTopbarNew);
@@ -286,7 +286,7 @@
     var selfNavNew = this;
     this._onNavNew = function(e){
       if (e && e.preventDefault) e.preventDefault();
-      selfNavNew.createConversation && selfNavNew.createConversation();
+      selfNavNew.startNewConversation && selfNavNew.startNewConversation();
       selfNavNew.setSidebarOpen && selfNavNew.setSidebarOpen(false);
     };
     qsa(document, ".js-clara-nav-new").forEach(function(btn){
@@ -306,7 +306,7 @@
     }
     if (this.newBtn){
       var selfNew = this;
-      this._onNew = function(e){ if(e&&e.preventDefault) e.preventDefault(); selfNew.createConversation && selfNew.createConversation(); selfNew.setSidebarOpen(false); };
+      this._onNew = function(e){ if(e&&e.preventDefault) e.preventDefault(); selfNew.startNewConversation && selfNew.startNewConversation(); selfNew.setSidebarOpen(false); };
       this.newBtn.addEventListener("click", this._onNew);
     }
 
@@ -407,7 +407,7 @@
     }
     this.renderConversationList();
     if (this.conversations.length) { this.openConversation && this.openConversation(this.conversations[0].id); }
-    else { await this.createConversation(); }
+    else { this.startNewConversation && this.startNewConversation(); }
   };
 
   AiChatWidget.prototype.createConversation = async function(){
@@ -428,7 +428,27 @@
     var conv = await res.json();
     this.conversations.unshift(conv);
     this.renderConversationList();
-    this.openConversation && this.openConversation(conv.id);
+    if (this.openConversation) await this.openConversation(conv.id);
+  };
+
+  /* Show the landing page without creating a conversation.
+     A real conversation will be created on the user's first send. */
+  AiChatWidget.prototype.startNewConversation = function(){
+    if (this.subscription && this.subscription.unsubscribe) {
+      try { this.subscription.unsubscribe(); } catch(_) {}
+      this.subscription = null;
+    }
+    this.currentConversationId = null;
+    this.renderConversationList();
+
+    if (this.threadEl) this.threadEl.innerHTML = "";
+
+    this._streamingActive = false;
+    if (this.hideAnalyzingBar) this.hideAnalyzingBar();
+    if (this.renderEmptyIntro) this.renderEmptyIntro();
+
+    this._scroll && this._scroll();
+    if (this.showScrollToBottom) this.showScrollToBottom(false);
   };
 
   /* rows with kebab (⋯) + popover (Delete) */
@@ -715,15 +735,8 @@
         this._idlePlaceholder = this.inputEl.getAttribute("placeholder") || "";
       }
 
-      var busyPlaceholder = "Clara is thinking…";
-
       this.inputEl.disabled = disabled;
-
-      if (disabled) {
-        this.inputEl.setAttribute("placeholder", busyPlaceholder);
-      } else {
-        this.inputEl.setAttribute("placeholder", this._idlePlaceholder);
-      }
+      this.inputEl.setAttribute("placeholder", this._idlePlaceholder);
     }
   };
 
@@ -732,6 +745,36 @@
   };
 
   /* ---- bubbles & helpers (unchanged except token hides spinner) ---- */
+  /* SVG markup for message actions (injected via ERB) */
+  AiChatWidget._actionIcons = {
+    share:      <%= raw icon("share", size: 16, class_name: "ai-msg-action__icon").to_json %>,
+    copy:       <%= raw icon("copy", size: 16, class_name: "ai-msg-action__icon").to_json %>,
+    thumbUp:    <%= raw icon("thumb-up", size: 16, class_name: "ai-msg-action__icon").to_json %>,
+    thumbDown:  <%= raw icon("thumb-down", size: 16, class_name: "ai-msg-action__icon").to_json %>
+  };
+
+  AiChatWidget.prototype._buildMsgActions = function(){
+    var actions = [
+      { key: "share",     label: "Share",         icon: AiChatWidget._actionIcons.share },
+      { key: "copy",      label: "Copy",          icon: AiChatWidget._actionIcons.copy },
+      { key: "thumbUp",   label: "Good response", icon: AiChatWidget._actionIcons.thumbUp },
+      { key: "thumbDown", label: "Bad response",  icon: AiChatWidget._actionIcons.thumbDown }
+    ];
+    var wrap = document.createElement("div");
+    wrap.className = "ai-msg-actions";
+    for (var i = 0; i < actions.length; i++) {
+      var a = actions[i];
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "ai-msg-action";
+      btn.dataset.action = a.key;
+      btn.setAttribute("aria-label", a.label);
+      btn.innerHTML = a.icon + '<span class="ai-msg-action__tooltip">' + a.label + '</span>';
+      wrap.appendChild(btn);
+    }
+    return wrap;
+  };
+
   AiChatWidget.prototype.appendMessageBubble = function(role, text){
     if (!this.threadEl) return null;
     var bubble = document.createElement("div");
@@ -744,6 +787,10 @@
     }
     var blocks = document.createElement("div"); blocks.className = "ai-blocks";
     bubble.appendChild(msg); bubble.appendChild(blocks);
+    /* Action bar (hover-reveal) for assistant messages only */
+    if (role === "assistant") {
+      bubble.appendChild(this._buildMsgActions());
+    }
     this.threadEl.appendChild(bubble);
     // no auto-scroll on append
     return bubble;
