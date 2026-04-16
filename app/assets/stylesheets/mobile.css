@@ -88,7 +88,7 @@
 }
 
 @media (max-width: 768px){
-  /* Grid always reserves the mini gutter (icons only) */
+  /* Grid reserves the mini gutter (icons only) by default */
   .layout{
     grid-template-columns: var(--nav-mini-w, 60px) 1fr;
     grid-template-areas: "nav main";
@@ -98,53 +98,94 @@
     min-height: 100dvh;
     overflow: visible;
   }
+  .layout.chat-open{
+    --chat-w: 0px;
+  }
 
-  /* Main content: reduce padding + avoid cramped fixed-height scroll areas on mobile */
-  .content{ padding: 6px; }
+  /* Main content: keep outer padding + border-radius matching desktop;
+     only relax the fixed-height scroll behavior so content flows naturally */
   .content-inner{
-    padding: 16px;
-    border-radius: 16px;
     height: auto;
-    min-height: calc(100dvh - 12px);
+    min-height: calc(100dvh - 16px);
     overflow: visible;
   }
 
-  /* Mini presentation (default on mobile) */
+  /* ============================================================
+     DEFAULT MOBILE NAV (collapsed mini — mirrors .layout.nav-mini clara-home)
+     ============================================================ */
   .navigation{
-    position: relative; inset: auto; width: auto;
-    transform: none; z-index: 1; transition: none;
-    padding: 16px 8px 16px 18px;
+    position: relative;
+    inset: auto;
+    width: auto;
+    padding: 16px 6px;
+    align-items: center;
+    transform: none;
+    z-index: 1;
+    transition: none;
   }
 
+  .pp-logo{ display: none; }
+
+  /* Hide workspace dropdown button in mini — let .navigation-top keep its
+     default 40px row + 4px top margin so spacing mirrors desktop nav-mini */
+  .navigation-workspace-button{ display: none; }
+
+  /* Nav links: 32x32 icon-only */
   .navigation-link{
-    justify-content: center; gap: 0; padding: 0;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    justify-content: center;
+    gap: 0;
   }
   .navigation-link span,
   .navigation-link .bubble{ display: none; }
-  .pp-logo {display: none;}
 
-  /* Keep Connect CTA icon-only in thin mobile nav */
-  .navigation-integration-connect {
-    width: 36px;
-    height: 36px;
+  /* New conversation button: 32x32 icon-only */
+  .navigation-new-conversation{
+    width: 32px;
+    height: 32px;
     padding: 0;
-    border-radius: 12px;
+    justify-content: center;
+    margin: 0 auto 8px;
+    gap: 0;
+  }
+  .navigation-new-conversation span{ display: none; }
+
+  /* Hide conversations list entirely in mini state */
+  .navigation-clara-scroll{ overflow: hidden; }
+  .navigation-conversations-heading,
+  .navigation-conversation-list{ display: none; }
+
+  /* Integration Connect CTA: 40x40 icon */
+  .navigation-integration-connect{
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: 10px;
     justify-content: center;
     margin: 0 auto 12px;
     gap: 0;
   }
   .navigation-integration-connect-text,
-  .navigation-integration-connect-chevron-icon{
-    display: none;
-  }
+  .navigation-integration-connect-chevron-icon{ display: none; }
   .navigation-integration-connect-warning-icon{
-    width: 22px;
-    height: 22px;
+    width: 18px;
+    height: 18px;
     margin: 0;
   }
 
-  /* In thin nav, center fallback avatar SVG perfectly */
+  /* Footer avatar: just the 32x32 circle, no name/email/kebab */
+  .navigation-link-footer{
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    justify-content: center;
+    margin: 0 auto;
+  }
   .navigation-footer-avatar{
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -153,60 +194,88 @@
     display: block;
     margin: 0;
   }
+  .navigation-footer-meta,
+  .navigation-footer-kebab{ display: none; }
 
-  .settings-navigation {
-    width:72px;
+  /* Settings nav mini */
+  .settings-navigation{
+    width: 72px;
     border-right: 1px solid var(--slate-100);
-    margin-right:24px;
-    padding-right:0;
+    margin-right: 24px;
+    padding-right: 0;
   }
-
-
   .settings-main{
     width: calc(100% - 100px);
   }
+  .settings-navigation-link{ width: 40px; }
+  .settings-navigation-link span{ display: none; }
 
-  .settings-navigation-link{
-    width:40px;
+  /* ============================================================
+     DRAWER OPEN: slide-in overlay with full nav
+     ============================================================ */
+  @keyframes mobile-drawer-slide-in {
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(0); }
   }
 
-  .settings-navigation-link span {
-     display: none;      /* hide labels */
-   }
-
-  .navigation-workspace-button{
-    display: none;
-  }
-
-
-  /* Neutralize .nav-full on mobile: keep mini unless drawer is open */
-  .layout.nav-full .navigation{
-    position: relative; inset: auto; width: auto;
-    transform: none; z-index: 1;
-    background: transparent; border-right: 0;
-    padding: 16px 8px 16px 18px;
-    transition: none;
-  }
-
-  /* Full overlay drawer only when .drawer-open is present */
   .layout.drawer-open .navigation{
-    position: fixed; inset: 0 auto 0 0; z-index: 40;
-    width: calc(min(80vw, 240px));
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(240px, 86vw);
+    height: 100vh;
+    z-index: 40;
     background: var(--slate-0);
     border-right: 1px solid var(--slate-200);
-    padding: 16px;                       /* reset padding */
-    transform: translateX(0);
-    transition: transform .22s ease;
+    padding: 16px;
+    align-items: stretch;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+    overflow-y: auto;
+    animation: mobile-drawer-slide-in 0.22s ease-out;
+  }
+
+  /* Top row: workspace button visible, toggle aligned right */
+  .layout.drawer-open .navigation-top{
+    height: 40px;
+    margin-top: 4px;
     justify-content: flex-start;
   }
+  .layout.drawer-open .navigation-workspace-button{
+    display: flex;
+  }
+  .layout.drawer-open .navigation-toggle{
+    margin: 0 0 0 auto;
+  }
+
+  /* Nav links: full-width with labels */
   .layout.drawer-open .navigation-link{
-    justify-content: flex-start; gap: 8px; padding: 0 11px;
+    width: 100%;
+    height: auto;
+    padding: 6px 8px;
+    justify-content: flex-start;
+    gap: 8px;
   }
   .layout.drawer-open .navigation-link span{ display: inline; }
   .layout.drawer-open .navigation-link .bubble{ display: inline-flex; }
-  .layout.drawer-open .pp-logo{ display: inline-block; }
 
-  /* In drawer-open (full nav), show full Connect CTA again */
+  /* New conversation button: full width */
+  .layout.drawer-open .navigation-new-conversation{
+    width: 100%;
+    height: auto;
+    padding: 6px 8px;
+    justify-content: flex-start;
+    margin: 0 0 8px 0;
+    gap: 8px;
+  }
+  .layout.drawer-open .navigation-new-conversation span{ display: inline; }
+
+  /* Conversations list visible */
+  .layout.drawer-open .navigation-clara-scroll{ overflow-y: auto; }
+  .layout.drawer-open .navigation-conversations-heading{ display: block; }
+  .layout.drawer-open .navigation-conversation-list{ display: flex; }
+
+  /* Integration Connect: full pill */
   .layout.drawer-open .navigation-integration-connect{
     width: auto;
     height: auto;
@@ -225,46 +294,42 @@
     height: 18px;
   }
 
-
-  .layout.drawer-open .backdrop{
-    opacity: 1; pointer-events: auto;
+  /* Footer: full user row */
+  .layout.drawer-open .navigation-link-footer{
+    width: 100%;
+    height: auto;
+    padding: 0;
+    justify-content: flex-start;
+    margin: 0;
   }
-
-  .layout.drawer-open .navigation-workspace-button{
+  .layout.drawer-open .navigation-footer-avatar{
+    width: 34px;
+    height: 34px;
+  }
+  .layout.drawer-open .navigation-footer-meta{
+    display: block;
+  }
+  .layout.drawer-open .navigation-footer-kebab{
     display: flex;
   }
 
-  .layout.drawer-open .navigation-toggle{
-    margin: 8px 0 12px auto;       /* top-right */
+  /* Backdrop: shown only in drawer-open */
+  .layout.drawer-open .backdrop{
+    opacity: 1;
+    pointer-events: auto;
   }
 
-  .layout.chat-open{
-    --chat-w: 0px;
-  }
-
+  /* Other page-level mobile tweaks */
   .dashboard-last-100-container{
-    display: block  !important;
-    width:100% !important;
-    margin-left:0  !important;
-    margin-top:24px  !important;
+    display: block !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-top: 24px !important;
   }
-
-  #gauge-container{
-    width:100% !important;
-  }
-
-  .gauge{
-    margin-left: calc((100% - 250px)/2) !important;
-  }
-
-  .recent-insights{
-    width:100%;
-    margin-right:0;
-  }
-
-  .framework-container{
-    width:100%;
-  }
+  #gauge-container{ width: 100% !important; }
+  .gauge{ margin-left: calc((100% - 250px)/2) !important; }
+  .recent-insights{ width: 100%; margin-right: 0; }
+  .framework-container{ width: 100%; }
 }
 
 @media (max-width: 576px){
@@ -273,12 +338,9 @@
     display:none;
   }
 
-  /* Tighter main padding on phones */
-  .content{ padding: 4px; }
+  /* Keep outer padding matching desktop on phones too */
   .content-inner{
-    padding: 12px;
-    border-radius: 14px;
-    min-height: calc(100dvh - 8px);
+    min-height: calc(100dvh - 16px);
   }
 
   /* Keep long tables usable */

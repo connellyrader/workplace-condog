@@ -558,12 +558,6 @@
       function mg(r,c){if(r<=0||c<=0)return[];return Array.from({length:r},function(){return Array(c).fill(false)})}
       for(var i=0;i<path.length;i++){var g=mg(H,W);g[path[i][0]][path[i][1]]=true;var t1=(i-1+path.length)%path.length;g[path[t1][0]][path[t1][1]]=true;frames.push(g2b(g))}return frames;
     })(), interval: 100 },
-    scan:         { frames: (function(){
-      var W=8,H=4,frames=[],DOTS=[[1,8],[2,16],[4,32],[64,128]];
-      function g2b(grid){var rows=grid.length,cols=grid[0]?grid[0].length:0,cc=Math.ceil(cols/2),r="";for(var c=0;c<cc;c++){var code=10240;for(var rr=0;rr<4&&rr<rows;rr++){for(var d=0;d<2;d++){var col=c*2+d;if(col<cols&&grid[rr]&&grid[rr][col])code|=DOTS[rr][d]}}r+=String.fromCodePoint(code)}return r}
-      function mg(r,c){return Array.from({length:r},function(){return Array(c).fill(false)})}
-      for(var pos=-1;pos<W+1;pos++){var g=mg(H,W);for(var r=0;r<H;r++){for(var c=0;c<W;c++){if(c===pos||c===pos-1)g[r][c]=true}}frames.push(g2b(g))}return frames;
-    })(), interval: 70 },
     diagswipe:    { frames: (function(){
       var W=4,H=4,frames=[],DOTS=[[1,8],[2,16],[4,32],[64,128]];
       function g2b(grid){var rows=grid.length,cols=grid[0]?grid[0].length:0,cc=Math.ceil(cols/2),r="";for(var c=0;c<cc;c++){var code=10240;for(var rr=0;rr<4&&rr<rows;rr++){for(var d=0;d<2;d++){var col=c*2+d;if(col<cols&&grid[rr]&&grid[rr][col])code|=DOTS[rr][d]}}r+=String.fromCodePoint(code)}return r}
@@ -584,8 +578,10 @@
     })(), interval: 100 }
   };
 
-  /* Pick a random spinner each time */
-  AiChatWidget._spinnerNames = Object.keys(AiChatWidget._brailleSpinners);
+  /* Pick a random spinner each time. Only includes single-braille-character
+     (2 columns wide) spinners. Wider spinners like `diagswipe` are still
+     defined for other UIs (e.g. the analyzing bar) but excluded from the pool. */
+  AiChatWidget._spinnerNames = ["braille", "orbit", "breathe"];
   AiChatWidget._randomSpinner = function(){
     var names = AiChatWidget._spinnerNames;
     return AiChatWidget._brailleSpinners[names[Math.floor(Math.random() * names.length)]];
@@ -603,7 +599,7 @@
     /* Build inner HTML: braille spinner + dots + label */
     var html = '<span class="ai-typing__braille" aria-hidden="true"></span>' +
                '<span class="ai-typing__dot"></span><span class="ai-typing__dot"></span><span class="ai-typing__dot"></span>' +
-               (label ? ('<span class="ai-typing__label">'+String(label)+'</span>') : '');
+               (label ? ('<span class="ai-typing__label ai-typing__label--shimmer">'+String(label)+'</span>') : '');
     wrap.innerHTML = html;
     bubble.dataset.loading = "1";
     msg.appendChild(wrap);
@@ -751,6 +747,254 @@
     copy:       <%= raw icon("copy", size: 16, class_name: "ai-msg-action__icon").to_json %>,
     thumbUp:    <%= raw icon("thumb-up", size: 16, class_name: "ai-msg-action__icon").to_json %>,
     thumbDown:  <%= raw icon("thumb-down", size: 16, class_name: "ai-msg-action__icon").to_json %>
+  };
+
+  /* Icons used inside the "Thought for X seconds" drawer (reasoning steps) */
+  AiChatWidget._thoughtIcons = {
+    chevronRight: <%= raw icon("chevron-right", size: 14, class_name: "ai-thought-summary__chevron").to_json %>,
+    database:     <%= raw icon("database", size: 16, class_name: "ai-thought-step__icon").to_json %>,
+    chat:         <%= raw icon("chat", size: 16, class_name: "ai-thought-step__icon").to_json %>,
+    pieChart:     <%= raw icon("pie-chart", size: 16, class_name: "ai-thought-step__icon").to_json %>,
+    users:        <%= raw icon("users", size: 16, class_name: "ai-thought-step__icon").to_json %>,
+    listBullet:   <%= raw icon("list-bullet", size: 16, class_name: "ai-thought-step__icon").to_json %>,
+    sparkle:      <%= raw icon("sparkle", size: 16, class_name: "ai-thought-step__icon").to_json %>,
+    activity:     <%= raw icon("activity", size: 16, class_name: "ai-thought-step__icon").to_json %>
+  };
+
+  /* ---------------------------------------------------------------
+     Scripted onboarding flow (prototype)
+     ---------------------------------------------------------------
+     Activated only for a conversation whose title matches
+     AiChatWidget.ONBOARDING_TITLE. Each user message advances the
+     state machine by one step. All other conversations fall through
+     to the normal dummy flow. */
+  AiChatWidget.ONBOARDING_TITLE = "Get started with Workplace";
+
+  AiChatWidget._onboardingScript = [
+    // After user message #1 — they provided a name
+    {
+      text: "Alright, Clara it is — I'll answer to that from here on. Now, what kind of personality would you like me to have? I can be **warm and casual**, **direct and no-nonsense**, or **thoughtful and measured**. Your call.",
+      thoughtSeq: [
+        { type: "reasoning", text: "The user just told me what they want to call me — I'll adopt that and acknowledge it." },
+        { type: "reasoning", text: "Next I should figure out their preferred communication style." }
+      ]
+    },
+
+    // After user message #2 — they picked a personality
+    {
+      text: "Love that. Before I start poking around, tell me a bit about what you do. What's your role at the company, and who do you work with most day-to-day?",
+      thoughtSeq: [
+        { type: "reasoning", text: "Locking in the personality preference so future responses match." },
+        { type: "reasoning", text: "I should learn about their role so I can cater responses to their specific workflow." }
+      ]
+    },
+
+    // After user message #3 — they described their role (we prototype as "VP of HR")
+    {
+      text: "A VP of Human Resources leading people across the org — that context helps a lot. I'll lean into team health, retention signals, and cross-group dynamics when I surface insights for you, and I'll keep things practical for someone juggling a lot of people work.\n\nOne more thing to get us going: does your team mostly collaborate in **Slack** or **Microsoft Teams**?",
+      thoughtSeq: [
+        { type: "reasoning", text: "They're a VP of HR with a lot of people under them — I'll prioritize team-level and org-health insights." },
+        { type: "reasoning", text: "Now I need to know which collaboration tool to plug into — Slack or Teams." }
+      ]
+    },
+
+    // After user message #4 — they said Slack
+    {
+      text: "Got it — Slack. To pick up on the signals I need to analyze team culture, I'll need to connect to your Slack workspace. I only read message metadata by default (not the message contents themselves) and you can disconnect anytime from Settings. Want me to set that up now?",
+      thoughtSeq: [
+        { type: "reasoning", text: "Slack is the primary tool — good, that's my strongest integration." },
+        { type: "reasoning", text: "I should briefly explain what connecting involves so they feel comfortable before asking for the OAuth." }
+      ]
+    },
+
+    // After user message #5 — they said yes
+    {
+      text: "Awesome. Let me see which Slack workspaces you're already signed into in this browser so this is just a couple of clicks.\n\nI found 2 workspaces you're signed into:",
+      blocks: [
+        {
+          type: "action",
+          actionKind: "connect_slack",
+          workspaces: [
+            { name: "Acme Corp", domain: "acme.slack.com", members: 142 },
+            { name: "Side Project Co", domain: "sideproject.slack.com", members: 12 }
+          ],
+          cta: "Connect workspace"
+        }
+      ],
+      thoughtSeq: [
+        { type: "tool", icon: "sparkle", label: "Checking Slack OAuth session" },
+        { type: "reasoning", text: "Looks like there are two workspaces signed into this browser." },
+        { type: "tool", icon: "users", label: "Fetching workspace membership counts" },
+        { type: "reasoning", text: "Now I'll surface these so they can pick which one to connect." }
+      ]
+    },
+
+    // After user message #6 — they've "connected" via OAuth (prototype: any message)
+    // Starts the Analyzing Slack messages bar and queues a follow-up message
+    // explaining what I can do while data syncs.
+    {
+      text: "Nice — you're connected to **Acme Corp**. It'll take a little while for me to pull in all the signal data from your team's recent activity. You'll see that running in the background at the bottom of the screen.",
+      startAnalyzingBar: true,
+      followUp: {
+        delayMs: 2500,
+        text: "In the meantime, I can tell you a bit about how I actually read your team's signals — things like the tone of conversations, context between people, signs of toxicity, alignment gaps, and more. Want a quick rundown of how that works?"
+      }
+    },
+
+    // After user message #7 — they said yes to the rundown
+    {
+      text: "Here's the quick version. Every conversation your team has leaves a trail of **signals**, and I read those signals (not the message contents by default) to build a picture of how your org is actually functioning.\n\nSome of the things I'm listening for:\n\n- **Tone & sentiment** — how people are actually feeling, not just what they type. Frustration, enthusiasm, burnout — all have distinct patterns.\n- **Context & relationships** — who talks to whom, how often, and how that changes over time. Sudden silence between two teams usually means something.\n- **Toxicity** — passive-aggressive language, dismissiveness, personal attacks. I flag these early so you can intervene before they spread.\n- **Alignment** — are people pulling in the same direction? I watch for signs of conflicting priorities, unclear goals, or siloed decisions.\n- **Engagement** — participation, responsiveness, willingness to speak up. These tell you whether people feel safe and invested.\n\nOnce the sync finishes, you'll be able to ask me things like *\"how is morale on the product team?\"* or *\"where are we seeing the most tension right now?\"* and I'll answer with specifics, not vibes.\n\nFeel free to keep asking questions here or poke around the dashboard while I finish syncing."
+    }
+  ];
+
+  /* Narrative "reasoning" lines the agent walks through (shown with a bullet dot)
+     interleaved with concrete "tool" calls (shown with an icon).
+     In the real app these will reflect the actual agent trace; for now we pick
+     a random sequence to populate the drawer. */
+  AiChatWidget._thoughtSequences = [
+    [
+      { type: "reasoning", text: "Let me look at how engagement has been trending across your teams." },
+      { type: "tool", icon: "database", label: "Querying workspace metrics" },
+      { type: "reasoning", text: "Now I'll dig into the recent Slack activity to see where sentiment is shifting." },
+      { type: "tool", icon: "chat", label: "Scanning recent conversations" },
+      { type: "reasoning", text: "Let me synthesize these findings into a clear summary." }
+    ],
+    [
+      { type: "reasoning", text: "I'll start by segmenting the workspace members by team and role." },
+      { type: "tool", icon: "users", label: "Loading team structure" },
+      { type: "reasoning", text: "Next, let me pull the engagement signals for each group and compare them." },
+      { type: "tool", icon: "pieChart", label: "Aggregating engagement signals" }
+    ],
+    [
+      { type: "reasoning", text: "Let me review the recent detections across your core metrics." },
+      { type: "tool", icon: "listBullet", label: "Filtering relevant insight categories" },
+      { type: "reasoning", text: "I'll compare these against the baseline from the previous 30 days to spot any drift." },
+      { type: "tool", icon: "activity", label: "Comparing against historical trends" },
+      { type: "reasoning", text: "Putting together the most meaningful takeaways now." }
+    ],
+    [
+      { type: "reasoning", text: "I'll pull the submetric breakdowns for a more detailed picture." },
+      { type: "tool", icon: "database", label: "Fetching submetric data" },
+      { type: "tool", icon: "chat", label: "Identifying sentiment shifts" },
+      { type: "reasoning", text: "Let me map these signals back to the specific teams driving the change." }
+    ],
+    [
+      { type: "reasoning", text: "Let me first check the benchmark baselines for context." },
+      { type: "tool", icon: "activity", label: "Checking benchmark baselines" },
+      { type: "reasoning", text: "Now I'll look at the top-line engagement score and the recent trajectory." },
+      { type: "tool", icon: "pieChart", label: "Computing score deltas" },
+      { type: "reasoning", text: "Drafting a response that highlights the biggest movers." }
+    ]
+  ];
+
+  /* Pick a random thought sequence for this turn. Exposed so the same sequence
+     can be used both for the live label cycling AND the final drawer. */
+  AiChatWidget.prototype._pickThoughtSequence = function(){
+    var sequences = AiChatWidget._thoughtSequences;
+    return sequences[Math.floor(Math.random() * sequences.length)];
+  };
+
+  /* While the spinner is active, cycle the "Thinking…" label through the
+     sequence of reasoning / tool lines with a subtle blur-fade between each. */
+  AiChatWidget.prototype._scheduleThoughtProgress = function(pending, sequence, thinkMs){
+    if (!pending || !sequence || !sequence.length) return [];
+    var labelEl = pending.querySelector(".ai-typing__label");
+    if (!labelEl) return [];
+
+    var phrases = sequence.map(function(s){
+      return s.type === "tool" ? s.label : s.text;
+    });
+
+    // Leave a small tail so the spinner isn't removed mid-fade
+    var cycleMs = Math.max(800, thinkMs - 300);
+    var perPhrase = cycleMs / (phrases.length + 1); // phase 0 = "Thinking…"
+
+    // If each phase would be too short (below the fade time), truncate phrases
+    var MIN_PER_PHASE = 450;
+    if (perPhrase < MIN_PER_PHASE) {
+      var maxPhases = Math.max(0, Math.floor(cycleMs / MIN_PER_PHASE) - 1);
+      phrases = phrases.slice(0, maxPhases);
+      perPhrase = phrases.length ? cycleMs / (phrases.length + 1) : cycleMs;
+    }
+
+    var FADE_MS = 180;
+    var timers = [];
+
+    phrases.forEach(function(text, idx){
+      var at = perPhrase * (idx + 1); // skip phase 0
+      timers.push(setTimeout(function(){
+        if (!labelEl.isConnected) return;
+        labelEl.classList.add("ai-typing__label--fading");
+        setTimeout(function(){
+          if (!labelEl.isConnected) return;
+          labelEl.textContent = text;
+          // Drop the shimmer once we've moved past "Thinking…"
+          labelEl.classList.remove("ai-typing__label--shimmer");
+          labelEl.classList.remove("ai-typing__label--fading");
+        }, FADE_MS);
+      }, at));
+    });
+
+    return timers;
+  };
+
+  /* Build the "Thought for X seconds" block with an expandable drawer
+     showing the reasoning steps the agent went through.
+     If `seq` is provided, it will be used instead of picking a new random one. */
+  AiChatWidget.prototype._buildThoughtBlock = function(seconds, promptText, seq){
+    var wrap = document.createElement("div");
+    wrap.className = "ai-thought";
+
+    var summary = document.createElement("button");
+    summary.type = "button";
+    summary.className = "ai-thought-summary";
+    summary.setAttribute("aria-expanded", "false");
+
+    var label = document.createElement("span");
+    label.className = "ai-thought-summary__text";
+    label.textContent = "Thought for " + seconds + " second" + (seconds === 1 ? "" : "s");
+
+    summary.appendChild(label);
+    summary.insertAdjacentHTML("beforeend", AiChatWidget._thoughtIcons.chevronRight);
+
+    // Use the sequence that was already cycled through the spinner label
+    // (passed in), or fall back to a fresh random pick.
+    if (!seq) seq = this._pickThoughtSequence();
+
+    var drawer = document.createElement("div");
+    drawer.className = "ai-thought-drawer";
+
+    seq.forEach(function(s){
+      var row = document.createElement("div");
+      row.className = "ai-thought-step ai-thought-step--" + s.type;
+
+      if (s.type === "tool") {
+        row.insertAdjacentHTML("beforeend", AiChatWidget._thoughtIcons[s.icon] || "");
+        var toolTxt = document.createElement("span");
+        toolTxt.className = "ai-thought-step__label";
+        toolTxt.textContent = s.label;
+        row.appendChild(toolTxt);
+      } else {
+        // reasoning: bullet dot + narrative text
+        var dot = document.createElement("span");
+        dot.className = "ai-thought-step__dot";
+        row.appendChild(dot);
+        var txt = document.createElement("span");
+        txt.className = "ai-thought-step__text";
+        txt.textContent = s.text;
+        row.appendChild(txt);
+      }
+      drawer.appendChild(row);
+    });
+
+    summary.addEventListener("click", function(){
+      var open = wrap.classList.toggle("is-open");
+      summary.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+
+    wrap.appendChild(summary);
+    wrap.appendChild(drawer);
+    return wrap;
   };
 
   AiChatWidget.prototype._buildMsgActions = function(){

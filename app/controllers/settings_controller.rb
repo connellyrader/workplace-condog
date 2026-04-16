@@ -7,7 +7,7 @@ class SettingsController < ApplicationController
   # Integrations: allow non-admin users to connect their own tokens
   # Notifications: user-level settings allowed
   before_action :require_workspace_admin!,
-                except: [:integrations, :disconnect_integration, :notifications, :update_notifications, :cookie_settings, :privacy]
+                except: [:integrations, :disconnect_integration, :notifications, :update_notifications, :cookie_settings]
 
 
   before_action :require_workspace_owner!, only: [:destroy_workspace]

@@ -227,9 +227,25 @@
     if (dummyMode) {
       var self = this;
 
+      // Detect the scripted onboarding conversation by its title.
+      // When active, user messages walk through AiChatWidget._onboardingScript
+      // instead of getting random dummy responses.
+      var currentConv = null;
+      if (self.conversations && self.currentConversationId) {
+        for (var _ci = 0; _ci < self.conversations.length; _ci++) {
+          if (self.conversations[_ci].id === self.currentConversationId) {
+            currentConv = self.conversations[_ci];
+            break;
+          }
+        }
+      }
+      var isScripted = !!(currentConv && AiChatWidget.ONBOARDING_TITLE &&
+                          currentConv.title === AiChatWidget.ONBOARDING_TITLE);
+
       // Only set the title on the very first message in this conversation
+      // (but never rename the scripted onboarding conversation).
       var isFirstMessage = !(self._dummyConvos && self._dummyConvos[self.currentConversationId] && self._dummyConvos[self.currentConversationId].length);
-      if (isFirstMessage) {
+      if (isFirstMessage && !isScripted) {
         var dummyTitle = content.length > 40 ? content.substring(0, 40) + "…" : content;
         if (self.updateConversationTitle) self.updateConversationTitle(dummyTitle);
         if (self.currentConversationId && Array.isArray(self.conversations)) {
@@ -243,8 +259,8 @@
         }
       }
 
-      /* Show analyzing bar on first follow-up message */
-      if (!isFirstMessage && !self._analyzingBar) {
+      /* Show analyzing bar on first follow-up message (but not in scripted mode) */
+      if (!isFirstMessage && !isScripted && !self._analyzingBar) {
         self.showAnalyzingBar && self.showAnalyzingBar();
       }
 
@@ -307,28 +323,92 @@
           text: "That's a really interesting observation. From what I can see, the team dynamic shifted notably after the **Q3 planning session**. A few things that might explain it:\n\n- New team members have been actively participating in discussions\n- The introduction of **themed meeting days** reduced context-switching\n- Management has been more visible in channels, which tends to boost engagement\n\nI'd recommend keeping an eye on the burnout indicators though — high engagement is great, but sustained intensity can sometimes lead to fatigue."
         }
       ];
-      // Cycle through responses, never repeating the last one
-      if (typeof self._lastDummyIdx !== "number") self._lastDummyIdx = -1;
-      var idx;
-      do { idx = Math.floor(Math.random() * dummyResponses.length); } while (idx === self._lastDummyIdx && dummyResponses.length > 1);
-      self._lastDummyIdx = idx;
-      var pick = dummyResponses[idx];
-      var reply = pick.text;
-      var replyBlocks = pick.blocks || null;
-
-      // Store dummy messages for this conversation so they persist on nav
+      // Store dummy messages for this conversation so they persist on nav.
+      // We push BEFORE picking the response so script indexing is correct
+      // (the Nth user message maps to script step N-1).
       self._dummyConvos = self._dummyConvos || {};
       if (!self._dummyConvos[self.currentConversationId]) {
         self._dummyConvos[self.currentConversationId] = [];
       }
       self._dummyConvos[self.currentConversationId].push({ role: "user", content: content });
 
+      var pick;
+      var scriptedThoughtSeq = null;
+
+      if (isScripted) {
+        // Count user messages so far (this one included) to determine script state
+        var userMsgCount = 0;
+        var convStore = self._dummyConvos[self.currentConversationId] || [];
+        for (var um = 0; um < convStore.length; um++) {
+          if (convStore[um].role === "user") userMsgCount++;
+        }
+
+        var scriptStep = AiChatWidget._onboardingScript[userMsgCount - 1];
+        if (scriptStep) {
+          pick = { text: scriptStep.text, blocks: scriptStep.blocks || null };
+          scriptedThoughtSeq = scriptStep.thoughtSeq || null;
+          // stash side-effect flags for the post-render step
+          var _scriptStartAnalyzing = !!scriptStep.startAnalyzingBar;
+          var _scriptFollowUp       = scriptStep.followUp || null;
+        } else {
+          // Script exhausted — graceful fallback so the chat keeps working.
+          pick = {
+            text: "We're all set. You can ask me about anything from here — try something like \"how is engagement looking across the team this week?\""
+          };
+        }
+      } else {
+        // Random pick from the regular dummy pool, never repeating the last one
+        if (typeof self._lastDummyIdx !== "number") self._lastDummyIdx = -1;
+        var idx;
+        do { idx = Math.floor(Math.random() * dummyResponses.length); } while (idx === self._lastDummyIdx && dummyResponses.length > 1);
+        self._lastDummyIdx = idx;
+        pick = dummyResponses[idx];
+      }
+
+      var reply = pick.text;
+      var replyBlocks = pick.blocks || null;
+
+      // Thinking time:
+      //   Scripted onboarding chat: short 2–4s with a plain "Thinking…" (no
+      //     reasoning drawer or phrase cycling — feels more like a chat).
+      //   Everything else: the usual 6–12s with reasoning progression.
+      var thinkSeconds, thinkMs;
+      if (isScripted) {
+        thinkSeconds = Math.floor(Math.random() * 3) + 2; // 2..4
+        thinkMs = thinkSeconds * 1000;
+      } else {
+        thinkSeconds = Math.floor(Math.random() * 7) + 6; // 6..12
+        thinkMs = thinkSeconds * 1000;
+      }
+
+      // Only schedule the reasoning phrase cycling in non-scripted mode.
+      // Scripted onboarding keeps the shimmering "Thinking…" the whole time.
+      var thoughtSeq = null;
+      if (!isScripted) {
+        thoughtSeq = scriptedThoughtSeq ||
+                     (self._pickThoughtSequence ? self._pickThoughtSequence() : null);
+        if (thoughtSeq && self._scheduleThoughtProgress) {
+          self._scheduleThoughtProgress(pending, thoughtSeq, thinkMs);
+        }
+      }
+
       setTimeout(function(){
         self.removeSpinner && self.removeSpinner(pending);
         var msg = pending && pending.querySelector(".ai-msg");
+
+        // Insert "Thought for X seconds" summary + reasoning drawer above content.
+        // Skipped in the scripted onboarding chat — that chat feels more like a
+        // conversation, so we don't dress it up with reasoning UI.
         if (msg) {
+          if (!isScripted && self._buildThoughtBlock) {
+            msg.appendChild(self._buildThoughtBlock(thinkSeconds, content, thoughtSeq));
+          }
+
           var html = ""; try { html = global.__renderMarkdown ? global.__renderMarkdown(reply) : ""; } catch(_){}
-          if (html && html.trim()) msg.innerHTML = html; else msg.textContent = reply;
+          var body = document.createElement("div");
+          body.className = "ai-msg__body";
+          if (html && html.trim()) body.innerHTML = html; else body.textContent = reply;
+          msg.appendChild(body);
         }
 
         // Render rich blocks (KPI cards, tables, callouts) after text
@@ -351,7 +431,53 @@
         if (self.setComposerEnabled) self.setComposerEnabled(true);
         else if (self.sendBtnEl) self.sendBtnEl.disabled = false;
         self._scroll && self._scroll();
-      }, 3000);
+
+        // Re-focus the input so the user can keep typing without clicking back.
+        if (self.inputEl && typeof self.inputEl.focus === "function") {
+          self.inputEl.focus({ preventScroll: true });
+        }
+
+        // Scripted side-effects: kick off the analyzing bar and/or queue an
+        // automatic follow-up assistant message.
+        if (isScripted) {
+          if (_scriptStartAnalyzing && self.showAnalyzingBar) {
+            self.showAnalyzingBar();
+          }
+
+          if (_scriptFollowUp) {
+            setTimeout(function(){
+              if (!self.appendMessageBubble) return;
+              var fu = self.appendMessageBubble("assistant", "");
+              self.showSpinner && self.showSpinner(fu, "Thinking…");
+              // Make sure the new thinking bubble is visible above the
+              // analyzing bar + gradient at the bottom of the composer.
+              self.scrollToBottom && self.scrollToBottom();
+              self._scroll && self._scroll();
+
+              var fuThinkMs = 1600; // short beat before the follow-up arrives
+
+              setTimeout(function(){
+                self.removeSpinner && self.removeSpinner(fu);
+                var fuMsg = fu && fu.querySelector(".ai-msg");
+                if (fuMsg) {
+                  var fuHtml = "";
+                  try { fuHtml = global.__renderMarkdown ? global.__renderMarkdown(_scriptFollowUp.text) : ""; } catch(_){}
+                  var fuBody = document.createElement("div");
+                  fuBody.className = "ai-msg__body";
+                  if (fuHtml && fuHtml.trim()) fuBody.innerHTML = fuHtml; else fuBody.textContent = _scriptFollowUp.text;
+                  fuMsg.appendChild(fuBody);
+                }
+                self._revealMsg && self._revealMsg(fu);
+                self._dummyConvos[self.currentConversationId].push({ role: "assistant", content: _scriptFollowUp.text });
+                self._scroll && self._scroll();
+                if (self.inputEl && typeof self.inputEl.focus === "function") {
+                  self.inputEl.focus({ preventScroll: true });
+                }
+              }, fuThinkMs);
+            }, _scriptFollowUp.delayMs || 2500);
+          }
+        }
+      }, thinkMs);
       this.scrollToBottom && this.scrollToBottom();
       return;
     }

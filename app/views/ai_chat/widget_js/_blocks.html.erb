@@ -14,6 +14,7 @@
         case "chart":   renderChart(b);   break;   // legacy image chart
         case "bullets": renderBullets(b); break;
         case "callout": renderCallout(b); break;
+        case "action":  renderAction(b);  break;   // actionable card (e.g. Connect Slack)
       }
     });
 
@@ -170,6 +171,90 @@
       div.className = "ai-callout";
       div.innerHTML = global.__renderMarkdown ? global.__renderMarkdown(block.text || "") : (block.text || "");
       body.appendChild(div);
+    }
+
+    /* Renders an actionable card — e.g. "Connect to Slack" with a list of
+       available workspaces and a primary CTA button. The actual click handler
+       is attached here but currently just emits a toast/console log; the real
+       OAuth hookup can be wired later. */
+    function renderAction(block){
+      var wrap = makeBlock("action");
+
+      var card = document.createElement("div");
+      card.className = "ai-action-card";
+
+      // Header row — icon + title/subtitle
+      if (block.title || block.subtitle) {
+        var header = document.createElement("div");
+        header.className = "ai-action-card__header";
+
+        var iconEl = document.createElement("div");
+        iconEl.className = "ai-action-card__icon ai-action-card__icon--" + (block.actionKind || "default");
+        header.appendChild(iconEl);
+
+        var headerText = document.createElement("div");
+        headerText.className = "ai-action-card__header-text";
+        if (block.title) {
+          var t = document.createElement("div");
+          t.className = "ai-action-card__title";
+          t.textContent = block.title;
+          headerText.appendChild(t);
+        }
+        if (block.subtitle) {
+          var s = document.createElement("div");
+          s.className = "ai-action-card__subtitle";
+          s.textContent = block.subtitle;
+          headerText.appendChild(s);
+        }
+        header.appendChild(headerText);
+        card.appendChild(header);
+      }
+
+      // Optional workspace list
+      if (Array.isArray(block.workspaces) && block.workspaces.length) {
+        var list = document.createElement("div");
+        list.className = "ai-action-card__workspaces";
+        block.workspaces.forEach(function(ws){
+          var row = document.createElement("button");
+          row.type = "button";
+          row.className = "ai-action-card__workspace";
+
+          var avatar = document.createElement("div");
+          avatar.className = "ai-action-card__workspace-avatar";
+          avatar.textContent = (ws.name || "?").charAt(0).toUpperCase();
+          row.appendChild(avatar);
+
+          var meta = document.createElement("div");
+          meta.className = "ai-action-card__workspace-meta";
+          var n = document.createElement("div");
+          n.className = "ai-action-card__workspace-name";
+          n.textContent = ws.name || "";
+          var d = document.createElement("div");
+          d.className = "ai-action-card__workspace-sub";
+          d.textContent = (ws.domain || "") + (ws.members ? (" · " + ws.members + " members") : "");
+          meta.appendChild(n);
+          meta.appendChild(d);
+          row.appendChild(meta);
+
+          var cta = document.createElement("span");
+          cta.className = "ai-action-card__workspace-cta";
+          cta.textContent = block.cta || "Connect";
+          row.appendChild(cta);
+
+          row.addEventListener("click", function(){
+            if (window.showToast) {
+              window.showToast("Would start Slack OAuth for " + (ws.name || "workspace") + " (prototype)", null, false);
+            } else {
+              console.log("[Clara] connect_slack click", ws);
+            }
+          });
+
+          list.appendChild(row);
+        });
+        card.appendChild(list);
+      }
+
+      makeBody(wrap).appendChild(card);
     }
   };
 

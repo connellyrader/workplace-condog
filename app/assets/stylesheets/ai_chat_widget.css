@@ -10,7 +10,7 @@
   --muted: #6b7280;
   --accent: #111827;
   --bubble-block-max-h: 220px;
-  --bubble-max-w: 78%;
+  --bubble-max-w: 70%;
   --gap-2: 2px; --gap-4: 4px; --gap-6: 6px; --gap-8: 8px; --gap-10: 10px; --gap-12: 12px;
   font-size: var(--font-size);
 }
@@ -404,7 +404,7 @@
 .ai-chat__bubble--user{
   max-width: var(--bubble-max-w);
   margin-left:auto;
-  margin-bottom:16px;
+  margin-bottom:0;
   background: var(--slate-100);
   color:var(--slate-700);
   padding: 8px 12px;
@@ -417,23 +417,31 @@
     margin:0 !important;
   }
 }
+
+/* Tighten gap when user sends two messages back-to-back */
+.ai-chat__bubble--user + .ai-chat__bubble--user{
+  margin-top: -12px;
+}
 .ai-chat__bubble--assistant{ margin-right:auto; color:var(--slate-700); border-bottom-left-radius:4px; }
 
-/* Avatar for assistant messages in primary layout */
-.ai-chat--primary-layout .ai-chat__bubble--assistant{
-  padding-left: 32px;
-  position: relative;
+/* Group consecutive assistant messages so they read as a single reply:
+   - Tight "line-break" spacing between them
+   - Hide hover actions on every bubble except the last in the group */
+.ai-chat__bubble--assistant:has(+ .ai-chat__bubble--assistant){
+  padding-bottom: 0;
+  margin-bottom: 0;
 }
-.ai-chat--primary-layout .ai-chat__bubble--assistant::before{
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 10px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: url("/assets/clara-avatar.png") center / cover no-repeat;
-  flex-shrink: 0;
+.ai-chat__bubble--assistant:has(+ .ai-chat__bubble--assistant) .ai-msg-actions{
+  display: none;
+}
+.ai-chat__bubble--assistant + .ai-chat__bubble--assistant{
+  margin-top: 0;
+  padding-top: 4px;
+}
+
+/* Avatar for assistant messages in primary layout — hidden for now */
+.ai-chat--primary-layout .ai-chat__bubble--assistant{
+  position: relative;
 }
 .ai-chat__system{ text-align:center; color:var(--muted); font-size:12px; margin: var(--gap-6) 0; }
 
@@ -672,6 +680,86 @@
 }
 .ai-kpi__sub--up{ color: #16a34a; }
 .ai-kpi__sub--down{ color: #dc2626; }
+
+/* Action card — simple list of tappable workspace rows, no chrome */
+.ai-action-card{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+.ai-action-card__workspaces{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ai-action-card__workspace{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--slate-50);
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  transition: background 0.15s ease;
+}
+.ai-action-card__workspace:hover{
+  background: var(--slate-100);
+}
+.ai-action-card__workspace-avatar{
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--slate-200);
+  color: var(--slate-700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+  flex: 0 0 auto;
+}
+.ai-action-card__workspace-meta{
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.ai-action-card__workspace-name{
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--slate-900);
+  line-height: 20px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ai-action-card__workspace-sub{
+  font-size: 12px;
+  color: var(--slate-500);
+  line-height: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ai-action-card__workspace-cta{
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--slate-700);
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: var(--slate-0);
+  border: 1px solid var(--slate-200);
+  flex: 0 0 auto;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.ai-action-card__workspace:hover .ai-action-card__workspace-cta{
+  background: var(--slate-900);
+  color: var(--slate-0);
+  border-color: var(--slate-900);
+}
 
 /* Callout */
 .ai-callout{
@@ -1212,13 +1300,19 @@
 
 /* Shimmer text variant for primary layout */
 .ai-chat--primary-layout .ai-typing{
-  gap: 6px;
+  gap: 8px;
+  align-items: flex-start;
   margin-top: 0;
 }
 .ai-chat--primary-layout .ai-typing__braille{
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  height: 20px;         /* match the label's 14px * 1.4 line-height */
   font-size: 16px;
+  line-height: 1;
   color: var(--slate-400);
+  flex: 0 0 auto;
+  margin-top: -2px;     /* braille glyphs have extra bottom padding; nudge up */
 }
 .ai-chat--primary-layout .ai-typing__dot{
   display: none;
@@ -1229,6 +1323,16 @@
   width: auto;
   max-width: none;
   margin-left: 0;
+  white-space: normal;
+  line-height: 1.4;
+  color: var(--slate-500);
+}
+
+/* Shimmer is applied only while the label is showing "Thinking…".
+   As soon as we cycle to a reasoning / tool phrase, the class is removed
+   and the text reads as solid slate-500. */
+.ai-chat--primary-layout .ai-typing__label--shimmer{
+  color: transparent;
   background: linear-gradient(
     90deg,
     var(--slate-500) 0%,
@@ -1258,6 +1362,110 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: opacity 0.18s ease, filter 0.18s ease;
+}
+.ai-typing__label--fading{
+  opacity: 0;
+  filter: blur(6px);
+}
+
+/* "Thought for X seconds" block — clickable summary + expandable drawer */
+.ai-thought{
+  margin-bottom: 12px;
+}
+
+.ai-thought-summary{
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--slate-400);
+  line-height: 20px;
+  font-family: inherit;
+  transition: color 0.15s ease;
+}
+.ai-thought-summary:hover{
+  color: var(--slate-600);
+}
+.ai-thought-summary__chevron{
+  color: var(--slate-400);
+  transition: transform 0.2s ease, color 0.15s ease;
+  flex: 0 0 auto;
+}
+.ai-thought-summary:hover .ai-thought-summary__chevron{
+  color: var(--slate-600);
+}
+.ai-thought.is-open .ai-thought-summary__chevron{
+  transform: rotate(90deg);
+}
+
+.ai-thought-drawer{
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  margin-top: 0;
+  transform: scale(0.95);
+  transform-origin: top left;
+  transition:
+    max-height 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    margin-top 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.18s linear,
+    transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ai-thought.is-open .ai-thought-drawer{
+  max-height: 400px;
+  margin-top: 8px;
+  opacity: 1;
+  transform: scale(1);
+}
+
+.ai-thought-step{
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 5px 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+/* Reasoning narrative lines — bullet dot + lighter descriptive text */
+.ai-thought-step--reasoning{
+  color: var(--slate-400);
+}
+.ai-thought-step__dot{
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--slate-400);
+  margin-top: 8px;         /* vertical-align with text baseline */
+  margin-left: 5px;         /* indent to align with icon center */
+  margin-right: 5px;
+  flex: 0 0 auto;
+}
+.ai-thought-step__text{
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Tool calls — icon + bolder label */
+.ai-thought-step--tool{
+  color: var(--slate-700);
+}
+.ai-thought-step__icon{
+  color: var(--slate-500);
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+.ai-thought-step__label{
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 @keyframes ai-typing-bounce{
@@ -1973,9 +2181,9 @@
 .ai-chat--primary-layout .ai-chat__bubble--user{
   background: var(--slate-100);
   border-radius: 18px;
-  max-width: 480px;
+  max-width: min(480px, var(--bubble-max-w));
   width: fit-content;
   margin-left: auto;
   margin-right: 0;
-  margin-bottom: 16px;
+  margin-bottom: 0;
 }
