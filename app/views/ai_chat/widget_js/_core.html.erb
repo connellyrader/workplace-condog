@@ -579,9 +579,13 @@
   };
 
   /* Pick a random spinner each time. Only includes single-braille-character
-     (2 columns wide) spinners. Wider spinners like `diagswipe` are still
-     defined for other UIs (e.g. the analyzing bar) but excluded from the pool. */
-  AiChatWidget._spinnerNames = ["braille", "orbit", "breathe"];
+     (2 columns wide) spinners with coherent motion, so the dot pattern reads
+     as an animation rather than a shape that changes height frame-to-frame.
+     `braille` (the generic char-based default) is excluded because its frames
+     vary between 3- and 4-row patterns which looks off next to the text.
+     Wider spinners like `diagswipe` are still defined for the analyzing bar
+     but excluded here. */
+  AiChatWidget._spinnerNames = ["orbit", "breathe"];
   AiChatWidget._randomSpinner = function(){
     var names = AiChatWidget._spinnerNames;
     return AiChatWidget._brailleSpinners[names[Math.floor(Math.random() * names.length)]];
@@ -1307,6 +1311,72 @@
     var nodes = document.querySelectorAll('[data-controller="ai-chat-widget"], .js-ai-chat-widget');
     for (var i=0; i<nodes.length; i++){ if (!nodes[i]._aiChatWidget) nodes[i]._aiChatWidget = AiChatWidget.mount(nodes[i]); }
   });
+
+  /* ---------------------------------------------------------------
+     Easter egg: type "replay" anywhere on the page (outside of input
+     fields) and the onboarding flow will be reset + relaunched. Makes
+     prototype demos easy to re-trigger without clearing localStorage
+     by hand. 2-second rolling buffer so stray keystrokes don't match.
+     --------------------------------------------------------------- */
+  (function(){
+    var KEYWORD = "replay";
+    var buffer = "";
+    var resetTimer = null;
+
+    function resetOnboarding(){
+      try { localStorage.removeItem("clara_onboarding_completed_v1"); } catch(_) {}
+
+      var node = document.querySelector('[data-controller="ai-chat-widget"], .js-ai-chat-widget');
+      var widget = node && node._aiChatWidget;
+      if (!widget) return;
+
+      // Find the onboarding conversation in the loaded list
+      var convs = widget.conversations || [];
+      var onboardingId = null;
+      for (var i = 0; i < convs.length; i++) {
+        if (convs[i].title === AiChatWidget.ONBOARDING_TITLE) {
+          onboardingId = convs[i].id;
+          break;
+        }
+      }
+      if (!onboardingId) return;
+
+      // Wipe client-side scripted history so the state machine starts over
+      if (widget._dummyConvos && widget._dummyConvos[onboardingId]) {
+        delete widget._dummyConvos[onboardingId];
+      }
+      widget._pendingOnboardingGreeting = null;
+      widget._lastDummyIdx = -1;
+
+      // Re-open the conversation so it re-renders the landing fresh
+      if (widget.openConversation) widget.openConversation(onboardingId);
+
+      if (window.showToast) {
+        window.showToast("Onboarding reset — replaying now", null, false);
+      } else if (window.toast) {
+        window.toast("Onboarding reset — replaying now", "success");
+      }
+    }
+
+    document.addEventListener("keydown", function(e){
+      // Ignore when typing inside inputs / textareas / contenteditable
+      var tag = (e.target && e.target.tagName || "").toLowerCase();
+      if (tag === "input" || tag === "textarea" || (e.target && e.target.isContentEditable)) return;
+      // Only single-character keys matter for matching
+      if (!e.key || e.key.length !== 1) return;
+
+      buffer += e.key.toLowerCase();
+      if (buffer.length > KEYWORD.length) buffer = buffer.slice(-KEYWORD.length);
+
+      if (resetTimer) clearTimeout(resetTimer);
+      resetTimer = setTimeout(function(){ buffer = ""; }, 2000);
+
+      if (buffer === KEYWORD) {
+        buffer = "";
+        resetOnboarding();
+      }
+    });
+  })();
 
   global.AiChatWidget = AiChatWidget;
 })(window);

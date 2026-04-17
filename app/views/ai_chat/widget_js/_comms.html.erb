@@ -22,40 +22,68 @@
       var msgs = data.messages || [];
       var ds = this.root && this.root.dataset || {};
 
-      // In home layout, if the conversation starts with a user message,
-      // prepend the intro greeting (it's not persisted server-side)
-      if (ds.aiChatWidgetLayoutValue === "home" && msgs.length && msgs[0].role === "user") {
-        self.appendMessageBubble("assistant", "Hey! I\u2019m your Workplace assistant. What would you like to call me?");
-      }
-
-      msgs.forEach(function(m){
-        var bubble = self.appendMessageBubble(m.role, m.content);
-        self.processInlineMarkers && self.processInlineMarkers(bubble);
-
-        if (Array.isArray(m.inline_blocks) && m.inline_blocks.length) {
-          for (var i = 0; i < m.inline_blocks.length; i++) {
-            var b = m.inline_blocks[i];
-            if (b && b.anchor) self.insertInlineBlock && self.insertInlineBlock(b.anchor, b);
-          }
-        }
-      });
-
-      // Track conversations that have had dummy messages
+      // ---- Onboarding landing detection ----
+      // If this is the scripted onboarding conversation AND no user messages
+      // have been sent yet, swap into a full-screen "greeting-as-heading"
+      // landing state. The seeded greeting becomes the centered title; the
+      // composer sits below it; everything else is blurred/hidden until the
+      // user submits their first reply.
       self._dummyConvos = self._dummyConvos || {};
-      if (!msgs.length && !self._dummyConvos[id]) {
-        this.renderEmptyIntro && this.renderEmptyIntro();
+      var userMsgsInDummy = (self._dummyConvos[id] || []).some(function(m){ return m.role === "user"; });
+      var userMsgsFromServer = msgs.some(function(m){ return m.role === "user"; });
+      var isOnboardingConv = AiChatWidget.ONBOARDING_TITLE && data.title === AiChatWidget.ONBOARDING_TITLE;
+      var onboardingDone = false;
+      try { onboardingDone = localStorage.getItem("clara_onboarding_completed_v1") === "true"; } catch(_) {}
+      var isOnboardingLanding = isOnboardingConv && !userMsgsInDummy && !userMsgsFromServer && !onboardingDone;
+
+      if (isOnboardingLanding) {
+        // Stash the greeting text so the first-send transition can insert it
+        // at the top of the thread as the conversation's first bubble.
+        var seededGreeting = (msgs[0] && msgs[0].role === "assistant") ? msgs[0].content : null;
+        self._pendingOnboardingGreeting = seededGreeting;
+
+        if (self.renderOnboardingLanding) {
+          self.renderOnboardingLanding(seededGreeting || "Hi, I'm your Workplace assistant. What would you like to call me?");
+        }
       } else {
-        this.clearEmptyIntro && this.clearEmptyIntro();
-        // Restore dummy messages if they exist
-        if (!msgs.length && self._dummyConvos[id]) {
-          self._dummyConvos[id].forEach(function(m){
-            var bubble = self.appendMessageBubble(m.role, "");
-            var msgEl = bubble && bubble.querySelector(".ai-msg");
-            if (msgEl) {
-              var html = ""; try { html = global.__renderMarkdown ? global.__renderMarkdown(m.content) : ""; } catch(_){}
-              if (html && html.trim()) msgEl.innerHTML = html; else msgEl.textContent = m.content;
+        // In home layout, if the conversation starts with a user message,
+        // prepend the intro greeting (it's not persisted server-side)
+        if (ds.aiChatWidgetLayoutValue === "home" && msgs.length && msgs[0].role === "user") {
+          self.appendMessageBubble("assistant", "Hey! I\u2019m your Workplace assistant. What would you like to call me?");
+        }
+
+        msgs.forEach(function(m){
+          var bubble = self.appendMessageBubble(m.role, m.content);
+          self.processInlineMarkers && self.processInlineMarkers(bubble);
+
+          if (Array.isArray(m.inline_blocks) && m.inline_blocks.length) {
+            for (var i = 0; i < m.inline_blocks.length; i++) {
+              var b = m.inline_blocks[i];
+              if (b && b.anchor) self.insertInlineBlock && self.insertInlineBlock(b.anchor, b);
             }
-          });
+          }
+        });
+
+        var hasDummyHistory = self._dummyConvos[id] && self._dummyConvos[id].length;
+
+        if (!msgs.length && !hasDummyHistory) {
+          this.renderEmptyIntro && this.renderEmptyIntro();
+        } else {
+          this.clearEmptyIntro && this.clearEmptyIntro();
+          // Restore any dummy messages we have for this conversation AFTER
+          // the server-side messages. This handles both normal convs (no
+          // server history) and the onboarding conv (1 seeded greeting on
+          // server + scripted replies that only exist client-side).
+          if (hasDummyHistory) {
+            self._dummyConvos[id].forEach(function(m){
+              var bubble = self.appendMessageBubble(m.role, "");
+              var msgEl = bubble && bubble.querySelector(".ai-msg");
+              if (msgEl) {
+                var html = ""; try { html = global.__renderMarkdown ? global.__renderMarkdown(m.content) : ""; } catch(_){}
+                if (html && html.trim()) msgEl.innerHTML = html; else msgEl.textContent = m.content;
+              }
+            });
+          }
         }
       }
     }
@@ -201,6 +229,43 @@
     // which shows the landing but doesn't create anything until they actually send)
     if (!this.currentConversationId && this.createConversation) {
       try { await this.createConversation(); } catch (_) { return; }
+    }
+
+    // Onboarding landing transition: when the user submits their first
+    // message, fade/blur-in the rest of the UI and insert the greeting as
+    // the first thread bubble so the conversation history makes sense.
+    var _wasOnboardingLanding = false;
+    var layoutEl = document.querySelector(".layout");
+    if (layoutEl && layoutEl.classList.contains("layout--onboarding-landing")) {
+      _wasOnboardingLanding = true;
+      // Remember that onboarding has been started so refreshes skip landing.
+      // Cleared via the "replay" easter egg or localStorage removal.
+      try { localStorage.setItem("clara_onboarding_completed_v1", "true"); } catch(_) {}
+
+      layoutEl.classList.remove("layout--onboarding-landing");
+      layoutEl.classList.add("layout--onboarding-landing-exit");
+      setTimeout(function(){
+        layoutEl.classList.remove("layout--onboarding-landing-exit");
+      }, 800);
+
+      // Drop the onboarding-landing marker on main so clearEmptyIntro
+      // treats the remaining state as a normal landing to clean up.
+      var mainEl = this.root && this.root.querySelector(".ai-chat__main");
+      if (mainEl) mainEl.classList.remove("ai-chat__main--onboarding-landing");
+
+      // Restore the topbar title from "CLARA v26.040" (set by landing) back
+      // to the actual conversation title so it reads correctly once the
+      // rest of the chat UI is visible.
+      if (this.updateConversationTitle && AiChatWidget.ONBOARDING_TITLE) {
+        this.updateConversationTitle(AiChatWidget.ONBOARDING_TITLE);
+      }
+
+      // Insert the seeded greeting as the first thread bubble so it
+      // becomes part of the conversation history.
+      if (this._pendingOnboardingGreeting && this.threadEl) {
+        this.appendMessageBubble("assistant", this._pendingOnboardingGreeting);
+        this._pendingOnboardingGreeting = null;
+      }
     }
 
     // Hide intro / landing once user starts a real thread
@@ -681,6 +746,67 @@
         mainEl.classList.remove("ai-chat__main--landing-exit");
       }, 500);
     }
+  };
+
+  /* Full-screen onboarding landing: just the greeting-as-heading and the
+     composer, centered. Everything else (nav, topbar, thread) is blurred
+     out. On the user's first send we transition out via clearEmptyIntro
+     (FLIP on the composer) and fade/blur-in the rest of the UI. */
+  W.prototype.renderOnboardingLanding = function(greetingText){
+    if (!this.threadEl) return;
+    this.clearEmptyIntro();
+
+    var ds = this.root && this.root.dataset || {};
+    if (ds.aiChatWidgetLayoutValue !== "home") return;
+
+    var self = this;
+    var mainEl = this.root.querySelector(".ai-chat__main");
+    if (!mainEl) return;
+
+    // Tag the layout so we can blur + hide the nav / topbar / chat panel
+    var layoutEl = document.querySelector(".layout");
+    if (layoutEl) layoutEl.classList.add("layout--onboarding-landing");
+
+    mainEl.classList.add("ai-chat__main--landing");
+    mainEl.classList.add("ai-chat__main--onboarding-landing");
+
+    if (self.titleEl) self.titleEl.textContent = "CLARA v26.040";
+
+    var landing = document.createElement("div");
+    landing.className = "ai-chat__landing ai-chat__landing--onboarding";
+
+    var heading = document.createElement("h1");
+    heading.className = "ai-chat__landing-heading ai-chat__landing-heading--onboarding";
+    var headingText = greetingText || "Hi, I'm your Workplace assistant. What would you like to call me?";
+    // Split on the first sentence boundary so the statement sits on one line
+    // and the question on the next (shift+enter feel, not paragraph break).
+    var splitMatch = headingText.match(/^(.+?[.!?])\s+(.+)$/);
+    if (splitMatch) {
+      var line1 = document.createElement("span");
+      line1.className = "ai-chat__landing-heading-line";
+      line1.textContent = splitMatch[1];
+      var line2 = document.createElement("span");
+      line2.className = "ai-chat__landing-heading-line";
+      line2.textContent = splitMatch[2];
+      heading.appendChild(line1);
+      heading.appendChild(line2);
+    } else {
+      heading.textContent = headingText;
+    }
+    landing.appendChild(heading);
+
+    // Move the real composer into the landing container
+    var composer = mainEl.querySelector(".ai-chat__composer");
+    if (composer) landing.appendChild(composer);
+
+    // Swap placeholder text to something onboarding-specific
+    if (self.inputEl) {
+      self._origPlaceholder = self.inputEl.placeholder;
+      self.inputEl.placeholder = "Type your answer…";
+    }
+
+    var threadWrap = mainEl.querySelector(".ai-chat__thread-wrap");
+    mainEl.insertBefore(landing, threadWrap);
   };
 
   W.prototype.renderEmptyIntro = function(){

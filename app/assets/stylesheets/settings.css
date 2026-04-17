@@ -426,74 +426,145 @@
       }
     }
 
-    #settings-toast-container {
+    /* ===================================================================
+       Toast system — Sonner-inspired. Handles stacking, hover-expansion,
+       and swipe-to-dismiss. Tokens (radius, shadows, typography) match
+       the rest of the app's design system.
+       =================================================================== */
+
+    .toast-viewport{
       position: fixed;
       bottom: 16px;
       right: 16px;
+      width: 356px;
+      max-width: calc(100vw - 32px);
+      height: 0;                    /* viewport is zero-height; toasts position upward from bottom-right */
       z-index: 9999;
-      pointer-events: none; /* let clicks go to children only */
+      pointer-events: none;
     }
 
-    .settings-toast {
-      background: var(--slate-900);                 /* slate-900-ish */
-      color: #f9fafb;                      /* near white */
-      padding: 12px 16px;
-      border-radius: 10px;
-      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.3);
+    .toast{
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      left: 0;
+      box-sizing: border-box;
       display: flex;
       align-items: flex-start;
       gap: 12px;
-      max-width: 360px;
-      font-size: 13px;
-      line-height: 1.4;
-      margin-top: 8px;
-      pointer-events: auto;                /* clickable */
-
-      /* ↓ NEW: slide in/out from the right */
-      transform: translateX(120%);
-      opacity: 0;
+      padding: 12px 14px;
+      background: var(--slate-0);
+      border: 1px solid var(--slate-200);
+      border-radius: 12px;
+      box-shadow:
+        0 20px 40px -10px rgba(15, 23, 42, 0.12),
+        0 8px 16px -8px rgba(15, 23, 42, 0.06);
+      color: var(--slate-900);
+      font-family: inherit;
+      font-size: 14px;
+      line-height: 20px;
+      pointer-events: auto;
+      cursor: grab;
+      transform: translate3d(0, 0, 0) scale(1);
+      transform-origin: bottom center;
       transition:
-        transform 0.25s ease-out,
-        opacity 0.25s ease-out;
+        transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+        opacity   0.22s ease-out;
+      will-change: transform, opacity;
+      touch-action: none;
+      user-select: none;
     }
 
-    /* ↓ NEW: visible state */
-    .settings-toast.is-visible {
-      transform: translateX(0);
-      opacity: 1;
+    .toast--dragging{
+      cursor: grabbing;
+      transition: opacity 0.12s ease !important;
     }
 
-    .settings-toast-body {
-      flex: 1;
+    /* Enter state (added before animation frame, then removed) */
+    .toast--entering{
+      opacity: 0;
+      transform: translate3d(0, 18px, 0) scale(0.94);
     }
 
-    .settings-toast-title {
-      font-weight: 600;
-      margin-bottom: 2px;
+    /* Leave state — gentle fade + slight downward drift. Used for
+       auto-dismiss and close-button clicks. */
+    .toast--leaving{
+      opacity: 0 !important;
+      transform: translate3d(0, 14px, 0) scale(0.98) !important;
+      transition:
+        transform 0.45s cubic-bezier(0.4, 0, 0.6, 1),
+        opacity   0.4s  cubic-bezier(0.4, 0, 0.6, 1) !important;
+      pointer-events: none !important;
     }
 
-    .settings-toast-link {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      font-size: 12px;
-      display: block;
-      margin-top: 4px;
-      word-break: break-word;
-      color: #e5e7eb;
+    /* Swipe dismiss — continues the user's gesture off to the right. */
+    .toast--leaving-right{
+      opacity: 0 !important;
+      transform: translate3d(120%, 0, 0) !important;
+      transition:
+        transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+        opacity   0.25s ease-out !important;
+      pointer-events: none !important;
     }
 
-    .settings-toast-close {
-      background: transparent;
-      border: none;
-      color: #e5e7eb;
-      font-size: 16px;
-      line-height: 1;
-      cursor: pointer;
+    /* Close-button dismiss — same direction as auto, but snappier. */
+    .toast--leaving-fast{
+      opacity: 0 !important;
+      transform: translate3d(0, 8px, 0) scale(0.98) !important;
+      transition:
+        transform 0.18s cubic-bezier(0.4, 0, 1, 1),
+        opacity   0.16s ease-out !important;
+      pointer-events: none !important;
+    }
+
+    .toast__icon{
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-top: 1px;
+    }
+    .toast--success .toast__icon-svg{ color: #16a34a; }
+    .toast--error   .toast__icon-svg{ color: #dc2626; }
+    .toast--warning .toast__icon-svg{ color: #d97706; }
+    .toast--info    .toast__icon-svg{ color: #2563eb; }
+
+    .toast__content{
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    .toast__title{
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 20px;
+      color: var(--slate-900);
+    }
+    .toast__description{
+      margin-top: 2px;
+      font-size: 13px;
+      line-height: 18px;
+      color: var(--slate-500);
+    }
+
+    .toast__close{
+      flex: 0 0 auto;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       padding: 0;
-      margin-left: 4px;
+      margin: -2px -2px 0 0;
+      background: transparent;
+      border: 0;
+      color: var(--slate-400);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
     }
-
-    .settings-toast-close:hover {
-      color: #f97316; /* accent-ish on hover */
+    .toast__close:hover{
+      background: var(--slate-100);
+      color: var(--slate-700);
     }
 
 

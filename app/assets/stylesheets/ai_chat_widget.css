@@ -1899,6 +1899,164 @@
   to { opacity: 1; }
 }
 
+/* ===== Onboarding landing (first-touch experience) =====
+   When the user lands in the scripted onboarding conversation and hasn't
+   typed anything yet, blur/fade the rest of the app so it's JUST the
+   greeting heading + composer, centered. */
+
+/* Collapse the nav column so the white card fills the full-width area;
+   grid transition animates it back open on exit. */
+.layout--onboarding-landing,
+.layout--onboarding-landing-exit{
+  transition: grid-template-columns 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.layout--onboarding-landing{
+  --nav-w: 0px;
+}
+
+/* Blur/fade out the nav, topbar, right panel, dropdowns during landing */
+.layout--onboarding-landing .navigation,
+.layout--onboarding-landing .ai-chat__topbar,
+.layout--onboarding-landing .chat,
+.layout--onboarding-landing .right-panel,
+.layout--onboarding-landing .navigation-top-dropdown,
+.layout--onboarding-landing .backdrop{
+  opacity: 0;
+  filter: blur(12px);
+  pointer-events: none;
+  transition: opacity 0.3s ease, filter 0.3s ease;
+}
+
+/* Keep the 8px padding around the white card but add left padding during
+   landing (since the nav column collapses, we need 8px gap on the left too).
+   Animate padding-left back to 0 on exit as the nav slides in. */
+.layout--onboarding-landing .content--clara-home,
+.layout--onboarding-landing-exit .content--clara-home{
+  transition: padding-left 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.layout--onboarding-landing .content--clara-home{
+  padding-left: 8px;
+}
+
+/* Ensure the main card's children sit above the dotted background pseudos.
+   The card itself (.ai-chat__main) is already position: relative in the
+   primary layout styling. */
+.layout--onboarding-landing .ai-chat__main > *,
+.layout--onboarding-landing-exit .ai-chat__main > *{
+  position: relative;
+  z-index: 1;
+}
+
+/* Dotted "sea" background — a single uniform grid of small dots. A wide
+   diagonal mask-gradient travels slowly across the card, causing dots to
+   rise to full visibility as the wave passes over them and dim back down
+   as it leaves. The baseline mask opacity keeps a hint of the grid visible
+   everywhere, so it reads as a connected sea rather than separate pulses. */
+.layout--onboarding-landing .ai-chat__main::before,
+.layout--onboarding-landing-exit .ai-chat__main::before{
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: radial-gradient(circle, rgba(148, 163, 184, 0.45) 0.6px, transparent 1px);
+  background-size: 14px 14px;
+  -webkit-mask-image: linear-gradient(
+    105deg,
+    rgba(0, 0, 0, 0.18) 0%,
+    rgba(0, 0, 0, 0.35) 25%,
+    rgba(0, 0, 0, 1)    50%,
+    rgba(0, 0, 0, 0.35) 75%,
+    rgba(0, 0, 0, 0.18) 100%
+  );
+          mask-image: linear-gradient(
+    105deg,
+    rgba(0, 0, 0, 0.18) 0%,
+    rgba(0, 0, 0, 0.35) 25%,
+    rgba(0, 0, 0, 1)    50%,
+    rgba(0, 0, 0, 0.35) 75%,
+    rgba(0, 0, 0, 0.18) 100%
+  );
+  -webkit-mask-size: 260% 260%;
+          mask-size: 260% 260%;
+  -webkit-mask-repeat: no-repeat;
+          mask-repeat: no-repeat;
+  transition: opacity 0.5s ease;
+}
+
+/* Animate the wave only while landing is active */
+.layout--onboarding-landing .ai-chat__main::before{
+  animation: dots-wave 18s ease-in-out infinite;
+}
+
+/* On exit: freeze the animation and fade the whole layer out smoothly */
+.layout--onboarding-landing-exit .ai-chat__main::before{
+  opacity: 0;
+  animation: none;
+}
+
+@keyframes dots-wave{
+  0%   { -webkit-mask-position:   0%   0%; mask-position:   0%   0%; }
+  50%  { -webkit-mask-position: 100% 100%; mask-position: 100% 100%; }
+  100% { -webkit-mask-position:   0%   0%; mask-position:   0%   0%; }
+}
+
+/* Landing content inside the full-screen card */
+.ai-chat__main--onboarding-landing .ai-chat__landing-examples{
+  display: none;
+}
+.ai-chat__landing--onboarding{
+  gap: 24px;
+  position: relative;
+  z-index: 1;  /* sit above the dotted pseudo layers */
+}
+.ai-chat__landing-heading--onboarding{
+  font-size: 28px;
+  line-height: 1.2;
+  font-weight: 500;
+  color: var(--slate-900);
+  max-width: 560px;
+  letter-spacing: -0.3px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;   /* tight shift+enter line break, not paragraph spacing */
+}
+.ai-chat__landing-heading-line{
+  display: block;
+}
+/* De-emphasize the first line ("Hi, I'm your Workplace assistant.") so the
+   actual question becomes the visual focus — color change only, keep the
+   same font-weight so the two lines read as a matched pair. */
+.ai-chat__landing-heading--onboarding .ai-chat__landing-heading-line:first-child{
+  color: var(--slate-400);
+}
+
+/* Composer: narrower on onboarding landing + sits above the dots */
+.ai-chat--primary-layout .ai-chat__landing--onboarding .ai-chat__composer{
+  position: relative;
+  z-index: 1;
+  max-width: 520px;
+}
+
+/* Once the user sends, the exit class on the layout re-blurs everything
+   in and gently sharpens it while the composer FLIPs down. The static
+   opacity/filter values keep things hidden during the animation-delay so
+   there's no flash between removing the landing class and the animation
+   kicking in. */
+.layout--onboarding-landing-exit .navigation,
+.layout--onboarding-landing-exit .ai-chat__topbar,
+.layout--onboarding-landing-exit .chat,
+.layout--onboarding-landing-exit .right-panel{
+  opacity: 0;
+  filter: blur(12px);
+  pointer-events: none;
+  animation: onboarding-blur-fade-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
+}
+@keyframes onboarding-blur-fade-in{
+  from { opacity: 0; filter: blur(12px); }
+  to   { opacity: 1; filter: blur(0); }
+}
+
 .ai-chat__landing-examples{
   width: 100%;
   max-width: 640px;

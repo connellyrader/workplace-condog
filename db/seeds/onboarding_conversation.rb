@@ -29,7 +29,7 @@ conv = AiChat::Conversation.find_or_initialize_by(
   title: SCRIPT_TITLE
 )
 
-GREETING = "Hey! I'm your Workplace assistant. What would you like to call me?".freeze
+GREETING = "Hi, I'm your Workplace assistant. What would you like to call me?".freeze
 
 if conv.new_record?
   conv.save!

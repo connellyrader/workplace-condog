@@ -83,8 +83,8 @@
   if (!window.WorkplaceConsent) return;
 
   function showToast(message, kind = "success") {
-    const isError = (kind === "error" || kind === "danger");
-    if (window.showToast) return window.showToast(message, null, isError);
+    const variant = (kind === "danger") ? "error" : kind;
+    if (window.showToast) return window.showToast(message, variant);
     alert(message);
   }
 

@@ -1,82 +1,321 @@
-<div id="settings-toast-container"></div>
+<div id="toast-viewport" class="toast-viewport" aria-live="polite" aria-label="Notifications"></div>
 
 <script>
-  document.addEventListener("DOMContentLoaded", function() {
-    // title:    string
-    // subtitle: string | null
-    // sticky:   boolean (default false; true = stays open until closed)
-    window.showToast = function(title, subtitle = null, sticky = false) {
-      var duration = 3000; // ms – auto-close delay for non-sticky toasts
+  (function(){
+    /* ====================================================================
+       Toast system — Sonner-inspired
+       - Stacked toasts (newest at bottom, older peek behind)
+       - Hover the stack to expand and see all
+       - Swipe right to dismiss
+       - Auto-dismiss after a duration (paused on hover)
+       - Variants: default, success, error, warning, info
+       - Design tokens match the rest of the app (slate palette, Geist,
+         12px radius, layered shadows matching the global modal)
 
-      var container = document.getElementById("settings-toast-container");
-      if (!container) {
-        container = document.createElement("div");
-        container.id = "settings-toast-container";
-        document.body.appendChild(container);
+       Backward-compatible API:
+         showToast(title)
+         showToast(title, "description")
+         showToast(title, "error" | "success" | "warning" | "info")
+         showToast(title, null, true)                         // sticky
+         showToast(title, { variant, description, duration, sticky })
+         showToast.success(title, opts?)
+         showToast.error(title, opts?)
+         showToast.info(title, opts?)
+         showToast.warning(title, opts?)
+    ==================================================================== */
+    var DEFAULT_DURATION = 4000;
+    var SWIPE_THRESHOLD  = 100;   /* px drag to dismiss */
+    var TOAST_GAP        = 8;     /* uniform px gap between toasts */
+
+    var toasts = [];              /* array of { el, state } */
+    var viewport = null;
+
+    function getViewport(){
+      if (viewport && viewport.isConnected) return viewport;
+      viewport = document.getElementById("toast-viewport");
+      if (!viewport){
+        viewport = document.createElement("div");
+        viewport.id = "toast-viewport";
+        viewport.className = "toast-viewport";
+        viewport.setAttribute("aria-live", "polite");
+        document.body.appendChild(viewport);
       }
+      return viewport;
+    }
 
-      // Remove any existing toast
-      var existing = container.querySelector(".settings-toast");
-      if (existing) existing.remove();
+    /* Hover tracking — the viewport has pointer-events: none, so we listen
+       on individual toasts. Pause auto-dismiss timers while any toast is
+       hovered, restart timers fresh once nothing is hovered.
 
-      var toast = document.createElement("div");
-      toast.className = "settings-toast";
+       A Set of actively-hovered toast elements is more reliable than a
+       counter because rapid enter/leave fired during re-layout (or
+       transforms moving a toast out from under the cursor) can desync
+       a counter and leave the stack permanently "hovered." */
+    var hoveredToasts = new Set();
+    var resumeTimer   = null;
 
-      toast.innerHTML = `
-        <div class="settings-toast-body">
-          <div class="settings-toast-title">
-            ${escapeHtml(title)}
-          </div>
-          ${
-            subtitle
-              ? `<span class="settings-toast-link">${escapeHtml(subtitle)}</span>`
-              : ""
-          }
-        </div>
-        <button class="settings-toast-close" aria-label="Close">&times;</button>
-      `;
+    function isHoverPaused(){ return hoveredToasts.size > 0; }
 
-      container.appendChild(toast);
+    function onToastEnter(e){
+      hoveredToasts.add(e.currentTarget);
+      if (resumeTimer){ clearTimeout(resumeTimer); resumeTimer = null; }
+      pauseAllTimers();
+    }
+    function onToastLeave(e){
+      hoveredToasts.delete(e.currentTarget);
+      if (resumeTimer) clearTimeout(resumeTimer);
+      resumeTimer = setTimeout(function(){
+        if (isHoverPaused()) return;
+        resumeAllTimers();
+      }, 80);
+    }
 
-      // Trigger slide-in on next frame
-      requestAnimationFrame(function () {
-        toast.classList.add("is-visible");
-      });
+    function escapeHtml(s){
+      return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+    }
 
-      var closeBtn = toast.querySelector(".settings-toast-close");
-      closeBtn.addEventListener("click", function() {
-        hideToast(toast);
-      });
-
-      // Auto-close only if NOT sticky
-      if (!sticky) {
-        setTimeout(function() {
-          hideToast(toast);
-        }, duration);
-      }
-    };
-
-    function hideToast(toast) {
-      if (!toast) return;
-      toast.classList.remove("is-visible");
-
-      // Wait for the slide-out transition to finish, then remove
-      var removeHandler = function(event) {
-        if (event.propertyName !== "transform") return;
-        toast.removeEventListener("transitionend", removeHandler);
-        if (toast.parentNode) toast.parentNode.removeChild(toast);
+    function variantIconHtml(variant){
+      if (variant === "default") return "";
+      var common = 'viewBox="0 0 20 20" width="18" height="18" fill="none"';
+      var strokeProps = 'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+      var paths = {
+        success: '<circle cx="10" cy="10" r="9" fill="currentColor" opacity="0.14"/><path d="M6 10.5l2.5 2.5L14.5 7.5" ' + strokeProps + '/>',
+        error:   '<circle cx="10" cy="10" r="9" fill="currentColor" opacity="0.14"/><path d="M7 7l6 6M13 7l-6 6" ' + strokeProps + '/>',
+        warning: '<circle cx="10" cy="10" r="9" fill="currentColor" opacity="0.14"/><path d="M10 6.5v4M10 13.5v.2" ' + strokeProps + '/>',
+        info:    '<circle cx="10" cy="10" r="9" fill="currentColor" opacity="0.14"/><path d="M10 9v4.5M10 6.5v.2" ' + strokeProps + '/>'
       };
-
-      toast.addEventListener("transitionend", removeHandler);
+      return '<svg ' + common + ' class="toast__icon-svg">' + (paths[variant] || "") + '</svg>';
     }
 
-    function escapeHtml(str) {
-      return String(str)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+    function addToast(title, opts){
+      opts = opts || {};
+      var variant     = opts.variant     || "default";
+      var description = opts.description || null;
+      var sticky      = !!opts.sticky;
+      var duration    = opts.duration    || DEFAULT_DURATION;
+
+      var el = document.createElement("div");
+      el.className = "toast toast--" + variant + " toast--entering";
+      el.setAttribute("role", variant === "error" ? "alert" : "status");
+
+      var iconHtml = variantIconHtml(variant);
+      el.innerHTML =
+        (iconHtml ? '<div class="toast__icon">' + iconHtml + '</div>' : '') +
+        '<div class="toast__content">' +
+          '<div class="toast__title">' + escapeHtml(title) + '</div>' +
+          (description ? '<div class="toast__description">' + escapeHtml(description) + '</div>' : '') +
+        '</div>' +
+        '<button type="button" class="toast__close" aria-label="Dismiss">' +
+          '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">' +
+            '<path d="M4 4l8 8 M12 4l-8 8"/>' +
+          '</svg>' +
+        '</button>';
+
+      getViewport().appendChild(el);
+
+      var state = {
+        el: el,
+        timer: null,
+        duration: duration,    /* original lifetime, used to reset timer */
+        sticky: sticky,
+        dismissed: false
+      };
+      toasts.push(state);
+
+      // Enter animation next frame
+      requestAnimationFrame(function(){
+        el.classList.remove("toast--entering");
+        layoutToasts();
+      });
+
+      el.querySelector(".toast__close").addEventListener("click", function(e){
+        e.stopPropagation();
+        dismiss(state, "fast");
+      });
+
+      el.addEventListener("pointerenter", onToastEnter);
+      el.addEventListener("pointerleave", onToastLeave);
+
+      attachSwipe(el, state);
+
+      // If something is currently hovered, leave the timer null — it'll be
+      // started by resumeAllTimers when the user moves off the stack.
+      if (!sticky && !isHoverPaused()){
+        state.timer = setTimeout(function(){ dismiss(state); }, duration);
+      }
+
+      return state;
     }
-  });
+
+    function dismiss(state, mode){
+      if (state.dismissed) return;
+      state.dismissed = true;
+      if (state.timer) clearTimeout(state.timer);
+      // Remove from hover tracking so it doesn't keep the stack paused
+      // while it animates away.
+      hoveredToasts.delete(state.el);
+
+      var leavingClass = "toast--leaving";        /* default: gentle fade-down */
+      var holdMs       = 500;
+      if (mode === "right"){                      /* swipe gesture follow-through */
+        leavingClass = "toast--leaving-right";
+        holdMs       = 360;
+      } else if (mode === "fast"){                /* close-button: snappier exit */
+        leavingClass = "toast--leaving-fast";
+        holdMs       = 220;
+      }
+      state.el.classList.add(leavingClass);
+
+      var idx = toasts.indexOf(state);
+      if (idx >= 0) toasts.splice(idx, 1);
+      layoutToasts();
+
+      // If dismissing this one was the only thing keeping the stack paused,
+      // give the remaining toasts a fresh timer.
+      if (!isHoverPaused()){
+        if (resumeTimer) clearTimeout(resumeTimer);
+        resumeTimer = setTimeout(function(){
+          if (isHoverPaused()) return;
+          resumeAllTimers();
+        }, 80);
+      }
+
+      setTimeout(function(){
+        if (state.el && state.el.parentNode) state.el.parentNode.removeChild(state.el);
+      }, holdMs);
+    }
+
+    function layoutToasts(){
+      if (!viewport) return;
+      var total = toasts.length;
+      // Newest toast (highest array index) sits at the bottom (y=0).
+      // Each older toast sits exactly TOAST_GAP above the bottom of the
+      // toast immediately below it, so the spacing is uniform regardless
+      // of how tall any individual toast is.
+      var cumulative = 0; /* px above viewport bottom for the next toast */
+      for (var depth = 0; depth < total; depth++){
+        var idx   = (total - 1) - depth;   /* depth 0 = newest = last in array */
+        var state = toasts[idx];
+        var el    = state.el;
+
+        el.style.transform     = "translate3d(0, " + (-cumulative) + "px, 0)";
+        el.style.opacity       = "1";
+        el.style.zIndex        = String(100 + idx);
+        el.style.pointerEvents = "auto";
+
+        cumulative += (el.offsetHeight || 72) + TOAST_GAP;
+      }
+    }
+
+    function pauseAllTimers(){
+      toasts.forEach(function(state){
+        if (state.timer){
+          clearTimeout(state.timer);
+          state.timer = null;
+        }
+      });
+    }
+
+    /* On unhover, restart the auto-dismiss timer from full duration so the
+       user always gets a fresh window to see the toast after letting go. */
+    function resumeAllTimers(){
+      toasts.forEach(function(state){
+        if (state.sticky || state.timer || state.dismissed) return;
+        state.timer = setTimeout(function(){ dismiss(state); }, state.duration);
+      });
+    }
+
+    function attachSwipe(el, state){
+      var startX = null, currentX = 0;
+
+      el.addEventListener("pointerdown", function(e){
+        if (e.button !== 0) return;
+        if (e.target.closest(".toast__close")) return;
+        startX = e.clientX;
+        currentX = 0;
+        try { el.setPointerCapture(e.pointerId); } catch(_){}
+        el.style.transition = "none";
+        el.classList.add("toast--dragging");
+      });
+
+      el.addEventListener("pointermove", function(e){
+        if (startX === null) return;
+        currentX = e.clientX - startX;
+        if (currentX < 0) currentX = 0; /* only right swipe */
+        el.style.transform = "translate3d(" + currentX + "px, 0, 0)";
+        el.style.opacity = String(Math.max(0.2, 1 - currentX / (SWIPE_THRESHOLD * 1.8)));
+      });
+
+      function endDrag(e){
+        if (startX === null) return;
+        el.style.transition = "";
+        el.classList.remove("toast--dragging");
+        try { el.releasePointerCapture(e.pointerId); } catch(_){}
+        if (currentX > SWIPE_THRESHOLD){
+          dismiss(state, "right");
+        } else {
+          layoutToasts();
+        }
+        startX = null;
+        currentX = 0;
+      }
+
+      el.addEventListener("pointerup", endDrag);
+      el.addEventListener("pointercancel", endDrag);
+    }
+
+    /* ---- Public API ---- */
+    function showToast(title, arg2, arg3){
+      var opts = {};
+      if (typeof arg2 === "string"){
+        if (arg2 === "error" || arg2 === "success" || arg2 === "warning" || arg2 === "info"){
+          opts.variant = arg2;
+        } else {
+          opts.description = arg2;
+        }
+      } else if (typeof arg2 === "object" && arg2 !== null){
+        opts = Object.assign({}, arg2);
+      }
+      if (arg3 === true) opts.sticky = true;
+      return addToast(title, opts);
+    }
+
+    showToast.success = function(t, o){ return addToast(t, Object.assign({ variant: "success" }, o || {})); };
+    showToast.error   = function(t, o){ return addToast(t, Object.assign({ variant: "error"   }, o || {})); };
+    showToast.info    = function(t, o){ return addToast(t, Object.assign({ variant: "info"    }, o || {})); };
+    showToast.warning = function(t, o){ return addToast(t, Object.assign({ variant: "warning" }, o || {})); };
+    showToast.dismissAll = function(){ toasts.slice().forEach(dismiss); };
+
+    window.showToast = showToast;
+    window.toast = showToast;
+
+    /* Re-run layout on window resize so heights stay correct */
+    window.addEventListener("resize", function(){ layoutToasts(); });
+
+    /* Dev helper: Cmd+Option+T (Mac) or Ctrl+Alt+T fires a random toast so
+       you can quickly stress-test the stack / hover / swipe behavior. */
+    var SAMPLE_TOASTS = [
+      { v: "success", t: "Changes saved",            d: "Your workspace settings have been updated." },
+      { v: "success", t: "Invite sent",              d: "sarah.chen@demo.example.com will get an email shortly." },
+      { v: "error",   t: "Couldn't save group",      d: "Something went sideways on our end. Please try again." },
+      { v: "error",   t: "Slack disconnected",       d: "We lost connection — reconnect to keep signals flowing." },
+      { v: "warning", t: "Low coverage on Product",  d: "Only 42% of the team is connected. Invite more members for better insights." },
+      { v: "warning", t: "Unusual activity",         d: "Engagement dropped 18% on the design team overnight." },
+      { v: "info",    t: "New insight available",    d: "A burnout pattern emerged on the support team this week." },
+      { v: "info",    t: "Sync in progress",         d: "Still pulling in the last 30 days of messages." },
+      { v: "default", t: "Conversation renamed" },
+      { v: "default", t: "Copied to clipboard" },
+      { v: "default", t: "Onboarding reset",         d: "Replay ready whenever you want to demo it." }
+    ];
+
+    document.addEventListener("keydown", function(e){
+      var isShortcut = (e.key === "t" || e.key === "T" || e.key === "†") &&
+                       e.altKey && (e.metaKey || e.ctrlKey);
+      if (!isShortcut) return;
+      e.preventDefault();
+      var sample = SAMPLE_TOASTS[Math.floor(Math.random() * SAMPLE_TOASTS.length)];
+      addToast(sample.t, { variant: sample.v, description: sample.d });
+    });
+  })();
 </script>

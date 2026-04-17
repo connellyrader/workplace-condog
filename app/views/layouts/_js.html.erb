@@ -223,15 +223,10 @@
     var errorMsg = (el.dataset.error || "").trim();
 
     function showToast(message, type) {
-      // Prefer your app's toast function if it exists.
-      // Adjust these names to match what your toast modal uses.
-      if (window.showToast) {
-        var isErr = (type === "error");
-        return window.showToast(message, null, isErr);
-      }
-      if (window.toast) return window.toast(message, type);
-
-      // Last-resort fallback
+      // Prefer the app's toast function if available; pass the variant
+      // through so the new toast system picks the right icon/color.
+      if (window.showToast) return window.showToast(message, type || "default");
+      if (window.toast)     return window.toast(message, type);
       console.log(type + ": " + message);
     }
 
